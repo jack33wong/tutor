@@ -1,6 +1,6 @@
 'use client';
 
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Point } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { Function, Target, Grid3X3 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -21,7 +21,7 @@ export default function MathGraph({
   showPoints = true,
   domain = { x: [-10, 10], y: [-10, 10] }
 }: MathGraphProps) {
-  const [hoveredPoint, setHoveredPoint] = useState<{ x: number; y: number } | null>(null);
+
 
   const generateData = () => {
     const data = [];
