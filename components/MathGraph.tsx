@@ -1,8 +1,7 @@
 'use client';
 
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
-import { Function, Target, Grid3X3 } from 'lucide-react';
-import { useState } from 'react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { Square, Grid3X3 } from 'lucide-react';
 
 interface MathGraphProps {
   title: string;
@@ -21,7 +20,6 @@ export default function MathGraph({
   showPoints = true,
   domain = { x: [-10, 10], y: [-10, 10] }
 }: MathGraphProps) {
-
 
   const generateData = () => {
     const data = [];
@@ -61,24 +59,6 @@ export default function MathGraph({
 
   const data = generateData();
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
-          <p className="font-medium text-gray-900">Point ({label}, {payload[0].value})</p>
-          <p className="text-sm text-gray-600">
-            Function: {functionType === 'linear' && 'y = 2x + 1'}
-            {functionType === 'quadratic' && 'y = x² - 4'}
-            {functionType === 'cubic' && 'y = x³ - 2x'}
-            {functionType === 'exponential' && 'y = 2^x'}
-            {functionType === 'trigonometric' && 'y = 3sin(x)'}
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
-
   const getFunctionDescription = () => {
     switch (functionType) {
       case 'linear':
@@ -117,7 +97,7 @@ export default function MathGraph({
     <div className="card">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-2">
-          <Function className="w-5 h-5 text-primary-600" />
+          <Square className="w-5 h-5 text-primary-600" />
           <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
         </div>
         <div className="flex items-center space-x-2 text-sm text-gray-500">
@@ -141,7 +121,6 @@ export default function MathGraph({
         <LineChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
           {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />}
           
-          {/* X and Y axes */}
           <XAxis 
             dataKey="x" 
             stroke="#6b7280"
@@ -156,11 +135,25 @@ export default function MathGraph({
             tickFormatter={(value) => value.toFixed(1)}
           />
           
-          {/* Reference lines */}
-          <ReferenceLine x={0} stroke="#d1d5db" strokeDasharray="3 3" />
-          <ReferenceLine y={0} stroke="#d1d5db" strokeDasharray="3 3" />
-          
-          <Tooltip content={<CustomTooltip />} />
+          <Tooltip 
+            content={({ active, payload, label }) => {
+              if (active && payload && payload.length) {
+                return (
+                  <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
+                    <p className="font-medium text-gray-900">Point ({label}, {payload[0].value})</p>
+                    <p className="text-sm text-gray-600">
+                      Function: {functionType === 'linear' && 'y = 2x + 1'}
+                      {functionType === 'quadratic' && 'y = x² - 4'}
+                      {functionType === 'cubic' && 'y = x³ - 2x'}
+                      {functionType === 'exponential' && 'y = 2^x'}
+                      {functionType === 'trigonometric' && 'y = 3sin(x)'}
+                    </p>
+                  </div>
+                );
+              }
+              return null;
+            }}
+          />
           
           <Line 
             type="monotone" 
@@ -175,7 +168,7 @@ export default function MathGraph({
       </ResponsiveContainer>
       
       <div className="mt-4 pt-4 border-t border-gray-100">
-        <div className="grid grid-cols-3 gap-4 text-center">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-center">
           <div>
             <p className="text-sm text-gray-500">Domain</p>
             <p className="text-sm font-medium text-gray-900">
@@ -188,12 +181,10 @@ export default function MathGraph({
               [{domain.y[0]}, {domain.y[1]}]
             </p>
           </div>
-          <div>
-            <p className="text-sm text-gray-500">Points</p>
-            <p className="text-sm font-medium text-gray-900">
-              {data.length}
-            </p>
-          </div>
+        </div>
+        <div className="text-center mt-2">
+          <p className="text-sm text-gray-500">Data Points</p>
+          <p className="text-sm font-medium text-gray-900">{data.length}</p>
         </div>
       </div>
     </div>
