@@ -195,6 +195,13 @@ export default function Dashboard() {
                   <span>Continue Learning</span>
                 </button>
                 <button 
+                  onClick={() => router.push('/analytics')}
+                  className="w-full btn-secondary flex items-center justify-center space-x-2"
+                >
+                  <BarChart3 className="w-4 h-4" />
+                  <span>View Analytics</span>
+                </button>
+                <button 
                   onClick={() => router.push('/exams')}
                   className="w-full btn-secondary flex items-center justify-center space-x-2"
                 >
