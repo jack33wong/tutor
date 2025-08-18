@@ -164,30 +164,31 @@ export default function TopicsPage() {
         <div className="space-y-6">
           {filteredTopics.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredTopics.map((topic, index) => {
-                const progress = getTopicProgress(topic.id);
-                
-                return (
-                  <motion.div
-                    key={topic.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                  >
-                    <TopicCard
-                      topic={topic}
-                      progress={progress || {
-                        topicId: topic.id,
-                        subtopicProgress: [],
-                        completed: false,
-                        completionPercentage: 0,
-                        lastStudied: new Date(),
-                        timeSpent: 0
-                      }}
-                    />
-                  </motion.div>
-                );
-              })}
+                              {filteredTopics.map((topic, index) => {
+                  const progress = getTopicProgress(topic.id);
+                  
+                  return (
+                    <motion.div
+                      key={topic.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                    >
+                      <TopicCard
+                        topic={topic}
+                        progress={progress || {
+                          topicId: topic.id,
+                          subtopicProgress: [],
+                          completed: false,
+                          completionPercentage: 0,
+                          lastStudied: new Date(),
+                          timeSpent: 0
+                        }}
+                        onClick={() => router.push(`/topics/${topic.id}`)}
+                      />
+                    </motion.div>
+                  );
+                })}
             </div>
           ) : (
             <div className="text-center py-12">

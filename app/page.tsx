@@ -120,6 +120,7 @@ export default function Dashboard() {
                       key={topic.id}
                       topic={topic}
                       progress={topicProgress}
+                      onClick={() => router.push(`/topics/${topic.id}`)}
                     />
                   );
                 })}
@@ -134,13 +135,22 @@ export default function Dashboard() {
             >
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-bold text-gray-900">Recent Exam Results</h2>
-                <button 
-                  onClick={() => router.push('/exams')}
-                  className="btn-secondary flex items-center space-x-2"
-                >
-                  <FileText className="w-4 h-4" />
-                  <span>View All</span>
-                </button>
+                <div className="flex space-x-2">
+                  <button 
+                    onClick={() => router.push('/past-papers')}
+                    className="btn-primary flex items-center space-x-2"
+                  >
+                    <FileText className="w-4 h-4" />
+                    <span>Past Papers</span>
+                  </button>
+                  <button 
+                    onClick={() => router.push('/exams')}
+                    className="btn-secondary flex items-center space-x-2"
+                  >
+                    <FileText className="w-4 h-4" />
+                    <span>View All</span>
+                  </button>
+                </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {userProgress.examAttempts.slice(0, 2).map((attempt) => {

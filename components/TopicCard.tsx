@@ -5,6 +5,7 @@ import { TopicProgress } from '@/data/userProgress';
 interface TopicCardProps {
   topic: Topic;
   progress: TopicProgress;
+  onClick?: () => void;
 }
 
 const difficultyColors = {
@@ -19,7 +20,7 @@ const masteryColors = {
   'mastered': 'bg-green-100 text-green-800'
 };
 
-export default function TopicCard({ topic, progress }: TopicCardProps) {
+export default function TopicCard({ topic, progress, onClick }: TopicCardProps) {
   const completedSubtopics = progress.subtopicProgress.filter(s => s.completed).length;
   const totalSubtopics = progress.subtopicProgress.length;
   const averageMastery = progress.subtopicProgress.reduce((acc, s) => {
@@ -28,7 +29,10 @@ export default function TopicCard({ topic, progress }: TopicCardProps) {
   }, 0) / totalSubtopics;
 
   return (
-    <div className="card hover:shadow-md transition-shadow cursor-pointer">
+    <div 
+      className="card hover:shadow-md transition-shadow cursor-pointer"
+      onClick={onClick}
+    >
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
           <h3 className="text-lg font-semibold text-gray-900 mb-1">{topic.name}</h3>

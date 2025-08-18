@@ -3,7 +3,18 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Clock, CheckCircle, XCircle, ArrowLeft, ArrowRight, Flag } from 'lucide-react';
+import { 
+  Clock, 
+  CheckCircle, 
+  XCircle, 
+  ArrowLeft, 
+  ArrowRight, 
+  Flag, 
+  Calculator,
+  BookOpen,
+  Lightbulb,
+  AlertCircle
+} from 'lucide-react';
 import { examPapers } from '@/data/examPapers';
 import { ExamQuestion } from '@/data/examPapers';
 
@@ -18,12 +29,15 @@ export default function ExamPage() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [flaggedQuestions, setFlaggedQuestions] = useState<Set<number>>(new Set());
+  const [showHints, setShowHints] = useState<Set<number>>(new Set());
+  const [examStartTime, setExamStartTime] = useState<Date | null>(null);
 
   const exam = examPapers.find(e => e.id === examId);
   
   useEffect(() => {
     if (exam) {
       setTimeLeft(exam.timeLimit * 60); // Convert to seconds
+      setExamStartTime(new Date());
     }
   }, [exam]);
 
@@ -89,13 +103,81 @@ export default function ExamPage() {
     });
   };
 
+  const toggleHint = (questionIndex: number) => {
+    setShowHints(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(questionIndex)) {
+        newSet.delete(questionIndex);
+      } else {
+        newSet.add(questionIndex);
+      }
+      return newSet;
+    });
+  };
+
   const currentQ = exam.questions[currentQuestion];
   const answeredQuestions = Object.keys(answers).length;
   const totalQuestions = exam.questions.length;
 
   if (showResults) {
-    return <ExamResults exam={exam} answers={answers} />;
+    return <ExamResults exam={exam} answers={answers} startTime={examStartTime} />;
   }
+
+  const renderAnswerInput = (question: ExamQuestion) => {
+    switch (question.questionType) {
+      case 'multiple-choice':
+        return (
+          <div className="space-y-3">
+            {question.options?.map((option, index) => (
+              <label key={index} className="flex items-center space-x-3 cursor-pointer">
+                <input
+                  type="radio"
+                  name={question.id}
+                  value={option}
+                  checked={answers[question.id] === option}
+                  onChange={(e) => handleAnswerChange(question.id, e.target.value)}
+                  className="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500"
+                />
+                <span className="text-gray-700">{option}</span>
+              </label>
+            ))}
+          </div>
+        );
+      
+      case 'short-answer':
+        return (
+          <input
+            type="text"
+            value={answers[question.id] || ''}
+            onChange={(e) => handleAnswerChange(question.id, e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            placeholder="Enter your answer..."
+          />
+        );
+      
+      case 'long-answer':
+        return (
+          <textarea
+            value={answers[question.id] || ''}
+            onChange={(e) => handleAnswerChange(question.id, e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            rows={6}
+            placeholder="Show your working and answer here..."
+          />
+        );
+      
+      default:
+        return (
+          <textarea
+            value={answers[question.id] || ''}
+            onChange={(e) => handleAnswerChange(question.id, e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            rows={4}
+            placeholder="Enter your answer..."
+          />
+        );
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -113,7 +195,25 @@ export default function ExamPage() {
               </button>
               <div>
                 <h1 className="text-xl font-bold text-gray-900">{exam.title}</h1>
-                <p className="text-sm text-gray-600">Question {currentQuestion + 1} of {totalQuestions}</p>
+                <div className="flex items-center space-x-4 text-sm text-gray-600">
+                  <span>Question {currentQuestion + 1} of {totalQuestions}</span>
+                  <span>•</span>
+                  <span>{exam.examBoard} {exam.paperType}</span>
+                  <span>•</span>
+                  <span className="flex items-center space-x-1">
+                    {exam.calculator ? (
+                      <>
+                        <Calculator className="w-4 h-4" />
+                        <span>Calculator</span>
+                      </>
+                    ) : (
+                      <>
+                        <BookOpen className="w-4 h-4" />
+                        <span>Non-Calculator</span>
+                      </>
+                    )}
+                  </span>
+                </div>
               </div>
             </div>
             
@@ -148,34 +248,67 @@ export default function ExamPage() {
                 <div className="flex items-center space-x-4">
                   <span className="text-2xl font-bold text-primary-600">Q{currentQuestion + 1}</span>
                   <span className="text-sm text-gray-500">{currentQ.marks} marks</span>
+                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                    currentQ.questionType === 'multiple-choice' ? 'bg-blue-100 text-blue-800' :
+                    currentQ.questionType === 'short-answer' ? 'bg-green-100 text-green-800' :
+                    currentQ.questionType === 'long-answer' ? 'bg-purple-100 text-purple-800' :
+                    'bg-orange-100 text-orange-800'
+                  }`}>
+                    {currentQ.questionType.replace('-', ' ')}
+                  </span>
                 </div>
-                <button
-                  onClick={() => toggleFlag(currentQuestion)}
-                  className={`p-2 rounded-lg transition-colors ${
-                    flaggedQuestions.has(currentQuestion)
-                      ? 'bg-yellow-100 text-yellow-600'
-                      : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
-                  }`}
-                >
-                  <Flag className="w-5 h-5" />
-                </button>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => toggleHint(currentQuestion)}
+                    className={`p-2 rounded-lg transition-colors ${
+                      showHints.has(currentQuestion)
+                        ? 'bg-yellow-100 text-yellow-600'
+                        : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+                    }`}
+                    title="Show hints"
+                  >
+                    <Lightbulb className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={() => toggleFlag(currentQuestion)}
+                    className={`p-2 rounded-lg transition-colors ${
+                      flaggedQuestions.has(currentQuestion)
+                        ? 'bg-yellow-100 text-yellow-600'
+                        : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+                    }`}
+                    title="Flag for review"
+                  >
+                    <Flag className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
 
               {/* Question */}
               <div className="mb-8">
                 <p className="text-lg text-gray-900 mb-4">{currentQ.question}</p>
                 
+                {/* Hints */}
+                {showHints.has(currentQuestion) && currentQ.hints && (
+                  <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <h4 className="font-medium text-yellow-800 mb-2 flex items-center">
+                      <Lightbulb className="w-4 h-4 mr-2" />
+                      Hints
+                    </h4>
+                    <ul className="text-sm text-yellow-700 space-y-1">
+                      {currentQ.hints.map((hint, index) => (
+                        <li key={index}>• {hint}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                
                 {/* Answer Input */}
                 <div className="space-y-4">
                   <label className="block">
                     <span className="text-sm font-medium text-gray-700">Your Answer</span>
-                    <textarea
-                      value={answers[currentQ.id] || ''}
-                      onChange={(e) => handleAnswerChange(currentQ.id, e.target.value)}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-                      rows={4}
-                      placeholder="Enter your answer here..."
-                    />
+                    <div className="mt-2">
+                      {renderAnswerInput(currentQ)}
+                    </div>
                   </label>
                 </div>
               </div>
@@ -229,13 +362,13 @@ export default function ExamPage() {
                     <button
                       key={index}
                       onClick={() => setCurrentQuestion(index)}
-                      className={`w-10 h-10 rounded-lg text-sm font-medium transition-colors ${
+                      className={`w-10 h-10 rounded-lg text-sm font-medium transition-colors relative ${
                         isCurrent
                           ? 'bg-primary-600 text-white'
                           : isAnswered
                           ? 'bg-success-100 text-success-800'
                           : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      } relative`}
+                      }`}
                     >
                       {index + 1}
                       {isFlagged && (
@@ -260,6 +393,28 @@ export default function ExamPage() {
                   <span>Unanswered</span>
                 </div>
               </div>
+
+              {/* Exam Info */}
+              <div className="mt-6 pt-4 border-t border-gray-100">
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-600">Total Marks</span>
+                    <span className="font-medium">{exam.totalMarks}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-600">Time Limit</span>
+                    <span className="font-medium">{exam.timeLimit}m</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-600">Difficulty</span>
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                      exam.difficulty === 'foundation' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'
+                    }`}>
+                      {exam.difficulty}
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -268,16 +423,8 @@ export default function ExamPage() {
   );
 }
 
-function ExamResults({ exam, answers }: { exam: any, answers: Record<string, string> }) {
+function ExamResults({ exam, answers, startTime }: { exam: any, answers: Record<string, string>, startTime: Date | null }) {
   const router = useRouter();
-  
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
-  };
   
   const calculateScore = () => {
     let totalScore = 0;
@@ -295,6 +442,21 @@ function ExamResults({ exam, answers }: { exam: any, answers: Record<string, str
   };
 
   const { score, totalMarks, percentage } = calculateScore();
+  const examDuration = startTime ? Math.round((new Date().getTime() - startTime.getTime()) / 60000) : 0;
+
+  const getGrade = (percentage: number) => {
+    if (percentage >= 90) return '9';
+    if (percentage >= 80) return '8';
+    if (percentage >= 70) return '7';
+    if (percentage >= 60) return '6';
+    if (percentage >= 50) return '5';
+    if (percentage >= 40) return '4';
+    if (percentage >= 30) return '3';
+    if (percentage >= 20) return '2';
+    return '1';
+  };
+
+  const grade = getGrade(percentage);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -307,10 +469,17 @@ function ExamResults({ exam, answers }: { exam: any, answers: Record<string, str
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-4">Exam Results</h1>
             <p className="text-lg text-gray-600">{exam.title}</p>
+            <div className="flex items-center justify-center space-x-4 mt-2 text-sm text-gray-500">
+              <span>{exam.examBoard} {exam.paperType}</span>
+              <span>•</span>
+              <span>{exam.difficulty} tier</span>
+              <span>•</span>
+              <span>{examDuration} minutes</span>
+            </div>
           </div>
 
           {/* Score Summary */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
             <div className="text-center">
               <p className="text-2xl font-bold text-primary-600">{score}</p>
               <p className="text-sm text-gray-500">Score</p>
@@ -322,6 +491,10 @@ function ExamResults({ exam, answers }: { exam: any, answers: Record<string, str
             <div className="text-center">
               <p className="text-2xl font-bold text-success-600">{percentage.toFixed(1)}%</p>
               <p className="text-sm text-gray-500">Percentage</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-purple-600">Grade {grade}</p>
+              <p className="text-sm text-gray-500">Grade</p>
             </div>
           </div>
 
@@ -343,6 +516,14 @@ function ExamResults({ exam, answers }: { exam: any, answers: Record<string, str
                         <XCircle className="w-5 h-5 text-error-600" />
                       )}
                       <span className="text-sm text-gray-500">{question.marks} marks</span>
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                        question.questionType === 'multiple-choice' ? 'bg-blue-100 text-blue-800' :
+                        question.questionType === 'short-answer' ? 'bg-green-100 text-green-800' :
+                        question.questionType === 'long-answer' ? 'bg-purple-100 text-purple-800' :
+                        'bg-orange-100 text-orange-800'
+                      }`}>
+                        {question.questionType.replace('-', ' ')}
+                      </span>
                     </div>
                   </div>
                   
@@ -371,6 +552,15 @@ function ExamResults({ exam, answers }: { exam: any, answers: Record<string, str
                       </p>
                     </div>
                   )}
+
+                  {question.working && (
+                    <div className="mt-3">
+                      <p className="text-sm font-medium text-gray-600 mb-1">Working:</p>
+                      <p className="text-sm text-gray-700 bg-yellow-50 p-3 rounded font-mono whitespace-pre-line">
+                        {question.working}
+                      </p>
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -383,6 +573,12 @@ function ExamResults({ exam, answers }: { exam: any, answers: Record<string, str
               className="btn-primary"
             >
               Return to Dashboard
+            </button>
+            <button
+              onClick={() => router.push('/exams')}
+              className="btn-secondary"
+            >
+              View All Exams
             </button>
             <button
               onClick={() => window.location.reload()}
