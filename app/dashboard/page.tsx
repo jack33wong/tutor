@@ -12,7 +12,6 @@ import {
   BarChart3,
   MessageCircle,
   LayoutDashboard,
-  BookOpen,
   Calculator,
   Award
 } from 'lucide-react';
@@ -56,13 +55,7 @@ export default function Dashboard() {
               <FileText className="w-4 h-4" />
               <span>Past Papers</span>
             </button>
-            <button
-              onClick={() => router.push('/exams')}
-              className="w-full flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-100"
-            >
-              <BookOpen className="w-4 h-4" />
-              <span>Exam Papers</span>
-            </button>
+
           </nav>
           
           {/* User Info */}
@@ -142,13 +135,7 @@ export default function Dashboard() {
                         <FileText className="w-4 h-4" />
                         <span>Past Papers</span>
                       </button>
-                      <button 
-                        onClick={() => router.push('/exams')}
-                        className="btn-secondary flex items-center space-x-2"
-                      >
-                        <FileText className="w-4 h-4" />
-                        <span>View All</span>
-                      </button>
+                      
                     </div>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
