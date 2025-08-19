@@ -188,6 +188,13 @@ export default function Dashboard() {
                   <span>Start Practice Test</span>
                 </button>
                 <button 
+                  onClick={() => router.push('/practice')}
+                  className="w-full btn-secondary flex items-center justify-center space-x-2"
+                >
+                  <Play className="w-4 h-4" />
+                  <span>Single Question Practice</span>
+                </button>
+                <button 
                   onClick={() => router.push('/topics')}
                   className="w-full btn-secondary flex items-center justify-center space-x-2"
                 >

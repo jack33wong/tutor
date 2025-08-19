@@ -11,7 +11,7 @@ import ExamCard from '@/components/ExamCard';
 export default function ExamsPage() {
   const router = useRouter();
   const [selectedDifficulty, setSelectedDifficulty] = useState<'all' | 'foundation' | 'higher'>('all');
-  const [selectedYear, setSelectedYear] = useState<'all' | '2023' | '2022' | '2021'>('all');
+  const [selectedYear, setSelectedYear] = useState<'all' | string>('all');
 
   const userProgress = sampleUserProgress;
 
@@ -41,7 +41,7 @@ export default function ExamsPage() {
     return userProgress.examAttempts.length;
   };
 
-  const uniqueYears = [...new Set(examPapers.map(exam => exam.year))].sort((a, b) => b - a);
+  const uniqueYears = Array.from(new Set(examPapers.map(exam => exam.year))).sort((a, b) => b - a);
 
   return (
     <div className="min-h-screen bg-gray-50">

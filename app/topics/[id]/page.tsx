@@ -23,6 +23,7 @@ import {
 import { gcseMathsSyllabus } from '@/data/syllabus';
 import { topicContent } from '@/data/topicContent';
 import { sampleUserProgress } from '@/data/userProgress';
+import DrawingPad from '@/components/DrawingPad';
 
 export default function TopicLearningPage() {
   const params = useParams();
@@ -334,7 +335,7 @@ export default function TopicLearningPage() {
                       </div>
                     )}
                     
-                    {/* Answer Input */}
+                    {/* Answer Input + Notepad */}
                     <div className="mb-4">
                       {question.questionType === 'multiple-choice' ? (
                         <div className="space-y-2">
@@ -353,13 +354,19 @@ export default function TopicLearningPage() {
                           ))}
                         </div>
                       ) : (
-                        <input
-                          type="text"
-                          value={userAnswers[question.id] || ''}
-                          onChange={(e) => handleAnswerChange(question.id, e.target.value)}
-                          placeholder="Enter your answer..."
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                        />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <input
+                            type="text"
+                            value={userAnswers[question.id] || ''}
+                            onChange={(e) => handleAnswerChange(question.id, e.target.value)}
+                            placeholder="Enter your answer..."
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                          />
+                          <div>
+                            <p className="text-sm font-medium text-gray-700 mb-2">Notepad</p>
+                            <DrawingPad className="h-56 border border-gray-300 rounded-lg" />
+                          </div>
+                        </div>
                       )}
                     </div>
                     

@@ -24,7 +24,7 @@ export default function PastPapersPage() {
   const router = useRouter();
   const [selectedExamBoard, setSelectedExamBoard] = useState<'all' | 'AQA' | 'Edexcel' | 'OCR' | 'WJEC'>('all');
   const [selectedDifficulty, setSelectedDifficulty] = useState<'all' | 'foundation' | 'higher'>('all');
-  const [selectedYear, setSelectedYear] = useState<'all' | '2023' | '2022' | '2021'>('all');
+  const [selectedYear, setSelectedYear] = useState<'all' | string>('all');
   const [selectedCalculator, setSelectedCalculator] = useState<'all' | 'calculator' | 'non-calculator'>('all');
 
   const userProgress = sampleUserProgress;
@@ -60,8 +60,8 @@ export default function PastPapersPage() {
     return userProgress.examAttempts.length;
   };
 
-  const uniqueYears = [...new Set(examPapers.map(exam => exam.year))].sort((a, b) => b - a);
-  const uniqueExamBoards = [...new Set(examPapers.map(exam => exam.examBoard))];
+  const uniqueYears = Array.from(new Set(examPapers.map(exam => exam.year))).sort((a, b) => b - a);
+  const uniqueExamBoards = Array.from(new Set(examPapers.map(exam => exam.examBoard)));
 
   const examBoardColors = {
     'AQA': 'bg-blue-100 text-blue-800',

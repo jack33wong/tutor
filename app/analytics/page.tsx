@@ -7,7 +7,6 @@ import {
   BarChart3, 
   TrendingUp, 
   PieChart as PieChartIcon,
-  Function,
   Calendar,
   Target,
   Award

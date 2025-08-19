@@ -16,6 +16,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { examPapers } from '@/data/examPapers';
+import DrawingPad from '@/components/DrawingPad';
 import { ExamQuestion } from '@/data/examPapers';
 
 export default function ExamPage() {
@@ -146,35 +147,53 @@ export default function ExamPage() {
       
       case 'short-answer':
         return (
-          <input
-            type="text"
-            value={answers[question.id] || ''}
-            onChange={(e) => handleAnswerChange(question.id, e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-            placeholder="Enter your answer..."
-          />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <input
+              type="text"
+              value={answers[question.id] || ''}
+              onChange={(e) => handleAnswerChange(question.id, e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              placeholder="Enter your answer..."
+            />
+            <div>
+              <p className="text-sm font-medium text-gray-700 mb-2">Notepad</p>
+              <DrawingPad className="h-64 border border-gray-300 rounded-lg" />
+            </div>
+          </div>
         );
       
       case 'long-answer':
         return (
-          <textarea
-            value={answers[question.id] || ''}
-            onChange={(e) => handleAnswerChange(question.id, e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-            rows={6}
-            placeholder="Show your working and answer here..."
-          />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <textarea
+              value={answers[question.id] || ''}
+              onChange={(e) => handleAnswerChange(question.id, e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              rows={6}
+              placeholder="Show your working and answer here..."
+            />
+            <div>
+              <p className="text-sm font-medium text-gray-700 mb-2">Notepad</p>
+              <DrawingPad className="h-64 md:h-full border border-gray-300 rounded-lg" />
+            </div>
+          </div>
         );
       
       default:
         return (
-          <textarea
-            value={answers[question.id] || ''}
-            onChange={(e) => handleAnswerChange(question.id, e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-            rows={4}
-            placeholder="Enter your answer..."
-          />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <textarea
+              value={answers[question.id] || ''}
+              onChange={(e) => handleAnswerChange(question.id, e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              rows={4}
+              placeholder="Enter your answer..."
+            />
+            <div>
+              <p className="text-sm font-medium text-gray-700 mb-2">Notepad</p>
+              <DrawingPad className="h-64 border border-gray-300 rounded-lg" />
+            </div>
+          </div>
         );
     }
   };
