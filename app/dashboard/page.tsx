@@ -12,7 +12,6 @@ import {
   BarChart3,
   MessageCircle,
   LayoutDashboard,
-  Calculator,
   Award
 } from 'lucide-react';
 import { sampleUserProgress } from '@/data/userProgress';
@@ -41,13 +40,7 @@ export default function Dashboard() {
               <MessageCircle className="w-4 h-4" />
               <span>Chat Interface</span>
             </button>
-            <button
-              onClick={() => router.push('/practice')}
-              className="w-full flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-100"
-            >
-              <Calculator className="w-4 h-4" />
-              <span>Practice Questions</span>
-            </button>
+
             <button
               onClick={() => router.push('/past-papers')}
               className="w-full flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-100"
