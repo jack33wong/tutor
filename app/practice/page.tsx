@@ -46,6 +46,10 @@ export default function SingleQuestionPractice() {
           studentAnswer: a,
           options: q.options,
           type: q.questionType,
+          marks: q.marks,
+          topic: q.topic,
+          subtopic: q.subtopic,
+          difficulty: q.difficulty
         }),
       });
       if (resp.ok) {
@@ -140,11 +144,31 @@ export default function SingleQuestionPractice() {
 
               <div className="mt-4 flex items-center space-x-2">
                 <button type="button" onClick={submit} className="btn-primary">Check</button>
-                <button type="button" onClick={nextQuestion} className="btn-secondary flex items-center space-x-1">
+                <button 
+                  type="button" 
+                  onClick={() => fetchHint(current, answer)}
+                  className="btn-secondary flex items-center space-x-2"
+                  disabled={loadingHint}
+                >
+                  <Lightbulb className="w-4 h-4" />
+                  <span>{loadingHint ? 'Loading...' : 'Get Hint'}</span>
+                </button>
+                <button type="button" onClick={nextQuestion} className="btn-secondary flex items-center space-x-2">
                   <RotateCcw className="w-4 h-4" />
                   <span>Next Question</span>
                 </button>
               </div>
+
+              {/* Hint Display */}
+              {hint && !result && (
+                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-center mb-1">
+                    <Lightbulb className="w-4 h-4 text-blue-600 mr-2" />
+                    <span className="text-sm font-medium text-blue-800">AI Hint</span>
+                  </div>
+                  <p className="text-sm text-blue-700">{hint}</p>
+                </div>
+              )}
 
               {result && (
                 <div className="mt-4 flex items-center space-x-2">

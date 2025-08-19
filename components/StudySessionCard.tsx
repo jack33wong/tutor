@@ -50,42 +50,7 @@ export default function StudySessionCard({ session }: StudySessionCardProps) {
         </div>
       </div>
 
-      {/* Topics Covered */}
-      <div className="mb-4">
-        <h4 className="text-sm font-medium text-gray-900 mb-2">Topics Covered</h4>
-        <div className="flex flex-wrap gap-2">
-          {session.topics.map((topic, index) => (
-            <span 
-              key={index}
-              className="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded-full"
-            >
-              {topic}
-            </span>
-          ))}
-        </div>
-      </div>
 
-      {/* Subtopics */}
-      {session.subtopics.length > 0 && (
-        <div className="mb-4">
-          <h4 className="text-sm font-medium text-gray-900 mb-2">Subtopics</h4>
-          <div className="flex flex-wrap gap-2">
-            {session.subtopics.slice(0, 3).map((subtopic, index) => (
-              <span 
-                key={index}
-                className="px-2 py-1 text-xs bg-primary-50 text-primary-700 rounded-full"
-              >
-                {subtopic}
-              </span>
-            ))}
-            {session.subtopics.length > 3 && (
-              <span className="px-2 py-1 text-xs bg-gray-50 text-gray-600 rounded-full">
-                +{session.subtopics.length - 3} more
-              </span>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Notes */}
       {session.notes && (

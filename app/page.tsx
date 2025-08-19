@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { 
-  BookOpen, 
   FileText, 
   TrendingUp, 
   Clock, 
@@ -14,10 +13,8 @@ import {
   BarChart3
 } from 'lucide-react';
 import { sampleUserProgress } from '@/data/userProgress';
-import { gcseMathsSyllabus } from '@/data/syllabus';
 import { examPapers } from '@/data/examPapers';
 import ProgressCard from '@/components/ProgressCard';
-import TopicCard from '@/components/TopicCard';
 import ExamCard from '@/components/ExamCard';
 import RecentActivity from '@/components/RecentActivity';
 import StudySessionCard from '@/components/StudySessionCard';
@@ -26,8 +23,6 @@ export default function Dashboard() {
   const router = useRouter();
   const [userProgress] = useState(sampleUserProgress);
 
-  const completedTopics = userProgress.topics.filter(t => t.completed).length;
-  const totalTopics = userProgress.topics.length;
   const recentExam = userProgress.examAttempts[0];
   const recentSession = userProgress.studySessions[0];
 
@@ -66,11 +61,11 @@ export default function Dashboard() {
             value={userProgress.overallProgress}
             icon={TrendingUp}
             color="primary"
-            subtitle={`${completedTopics}/${totalTopics} topics completed`}
+            subtitle="Overall learning progress"
           />
           <ProgressCard
             title="Study Time"
-            value={Math.round(userProgress.topics.reduce((acc, t) => acc + t.timeSpent, 0) / 60)}
+            value={Math.round(userProgress.studySessions.reduce((acc, s) => acc + s.duration, 0) / 60)}
             icon={Clock}
             color="success"
             subtitle="hours this week"
@@ -94,38 +89,7 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-8">
-            {/* Topics Section */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-            >
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">Topics</h2>
-                <button 
-                  onClick={() => router.push('/topics')}
-                  className="btn-primary flex items-center space-x-2"
-                >
-                  <BookOpen className="w-4 h-4" />
-                  <span>View All</span>
-                </button>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {userProgress.topics.slice(0, 4).map((topicProgress) => {
-                  const topic = gcseMathsSyllabus.find(t => t.id === topicProgress.topicId);
-                  if (!topic) return null;
-                  
-                  return (
-                    <TopicCard
-                      key={topic.id}
-                      topic={topic}
-                      progress={topicProgress}
-                      onClick={() => router.push(`/topics/${topic.id}`)}
-                    />
-                  );
-                })}
-              </div>
-            </motion.div>
+
 
             {/* Recent Exam Results */}
             <motion.div
@@ -194,20 +158,8 @@ export default function Dashboard() {
                   <Play className="w-4 h-4" />
                   <span>Single Question Practice</span>
                 </button>
-                <button 
-                  onClick={() => router.push('/topics')}
-                  className="w-full btn-secondary flex items-center justify-center space-x-2"
-                >
-                  <BookOpen className="w-4 h-4" />
-                  <span>Continue Learning</span>
-                </button>
-                <button 
-                  onClick={() => router.push('/analytics')}
-                  className="w-full btn-secondary flex items-center justify-center space-x-2"
-                >
-                  <BarChart3 className="w-4 h-4" />
-                  <span>View Analytics</span>
-                </button>
+
+
                 <button 
                   onClick={() => router.push('/exams')}
                   className="w-full btn-secondary flex items-center justify-center space-x-2"

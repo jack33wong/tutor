@@ -5,14 +5,14 @@ A comprehensive, interactive study application designed specifically for UK GCSE
 ## 🎯 Features
 
 ### 📚 Comprehensive Syllabus Coverage
-- **Complete GCSE Maths Syllabus**: Covers all topics from Foundation to Higher tier
-- **Structured Learning Paths**: Organized by topics and subtopics with clear learning objectives
+- **Comprehensive Exam Preparation**: Focus on past papers and practice questions
+- **Structured Learning Paths**: Organized by exam difficulty and question types
 - **Difficulty Levels**: Foundation and Higher tier content with appropriate progression
 
 ### 📊 Progress Tracking
 - **Personalized Dashboard**: Visual overview of learning progress and achievements
-- **Topic Mastery Levels**: Track progress from "not-started" to "mastered"
-- **Study Time Analytics**: Monitor time spent on different topics and subtopics
+- **Exam Performance Tracking**: Monitor scores and improvement over time
+- **Study Time Analytics**: Monitor time spent on different study sessions
 - **Performance Metrics**: Detailed analytics on exam performance and improvement areas
 
 ### 📝 Interactive Exam Papers
@@ -82,7 +82,7 @@ tutor/
 │   └── exam/[id]/         # Exam taking interface
 ├── components/            # Reusable React components
 │   ├── ProgressCard.tsx   # Progress metrics display
-│   ├── TopicCard.tsx      # Topic information cards
+
 │   ├── ExamCard.tsx       # Exam result cards
 │   ├── RecentActivity.tsx # Activity feed
 │   └── StudySessionCard.tsx # Study session display
@@ -101,11 +101,11 @@ tutor/
 - See recent study sessions and exam attempts
 - Access quick actions for learning and practice
 
-### 2. Topic Learning
-- Browse topics by difficulty level (Foundation/Higher)
-- Track completion percentage for each topic
-- Monitor mastery levels for subtopics
-- View estimated study time for each topic
+### 2. Practice & Learning
+- Single question practice with hints and explanations
+- Drawing pad for mathematical diagrams
+- Track practice question performance
+- Monitor study session progress
 
 ### 3. Taking Exams
 - Select from available exam papers
@@ -132,7 +132,7 @@ tutor/
 
 - **User Authentication**: Individual user accounts and progress
 - **Advanced Analytics**: Detailed performance insights and recommendations
-- **Practice Questions**: Topic-specific practice with adaptive difficulty
+- **Practice Questions**: Exam-style practice with hints and explanations
 - **Study Plans**: Personalized study schedules and reminders
 - **Social Features**: Study groups and peer learning
 - **Mobile App**: Native mobile application

@@ -5,12 +5,16 @@ type HintRequestBody = {
   studentAnswer: string;
   options?: string[];
   type?: string;
+  marks?: number;
+  topic?: string;
+  subtopic?: string;
+  difficulty?: string;
 };
 
 export async function POST(req: NextRequest) {
   try {
     const body = (await req.json()) as HintRequestBody;
-    const { question, studentAnswer, options, type } = body || {};
+    const { question, studentAnswer, options, type, marks, topic, subtopic, difficulty } = body || {};
 
     if (!question || !studentAnswer) {
       return NextResponse.json({ error: 'Missing question or studentAnswer' }, { status: 400 });
@@ -19,13 +23,22 @@ export async function POST(req: NextRequest) {
     const apiUrl = process.env.HINTS_API_URL || 'https://www.apifreellm.com/api/chat';
     const apiKey = process.env.HINTS_API_KEY;
 
-    const systemInstructions = `You are a GCSE Maths tutor. Provide a concise, encouraging hint (max 35 words) to guide the student toward the correct answer without revealing it. If multiple-choice, suggest eliminating wrong options. Use plain language.`;
+    const systemInstructions = `You are a GCSE Maths tutor. Provide a concise, encouraging hint (max 40 words) to guide the student toward the correct answer without revealing it. Consider the question type, marks, topic, and difficulty level. If multiple-choice, suggest eliminating wrong options. Use plain language and mathematical terminology appropriate for GCSE level.`;
+    
     const contextParts: string[] = [
       `Question: ${question}`,
       `Student Answer: ${studentAnswer}`,
+      `Question Type: ${type || 'unknown'}`,
+      `Marks: ${marks || 'unknown'}`,
+      `Topic: ${topic || 'unknown'}`,
+      `Subtopic: ${subtopic || 'unknown'}`,
+      `Difficulty: ${difficulty || 'unknown'}`
     ];
-    if (type) contextParts.push(`Type: ${type}`);
-    if (options && options.length > 0) contextParts.push(`Options: ${options.join(', ')}`);
+    
+    if (options && options.length > 0) {
+      contextParts.push(`Options: ${options.join(', ')}`);
+    }
+    
     const message = `${systemInstructions}\n\n${contextParts.join('\n')}`;
 
     let hintText: string | null = null;
@@ -53,10 +66,26 @@ export async function POST(req: NextRequest) {
     }
 
     if (!hintText) {
-      // Fallback simple heuristic hint if external API fails
-      const base = 'Think about the key concept and units. Rewrite the problem in smaller steps';
-      const mcq = options && options.length > 0 ? ' and eliminate options that violate basic rules' : '';
-      hintText = `${base}${mcq}. Check your operations and try again.`;
+      // Fallback context-aware hint if external API fails
+      let baseHint = 'Think about the key concept and break the problem into smaller steps.';
+      
+      if (type === 'multiple-choice' && options && options.length > 0) {
+        baseHint += ' Try eliminating options that violate basic mathematical rules.';
+      } else if (type === 'long-answer') {
+        baseHint += ' Show your working step by step.';
+      } else if (marks && marks > 3) {
+        baseHint += ' This question is worth several marks, so show detailed working.';
+      }
+      
+      if (topic === 'algebra') {
+        baseHint += ' Remember to collect like terms and check your signs.';
+      } else if (topic === 'geometry') {
+        baseHint += ' Draw a diagram if it helps visualize the problem.';
+      } else if (topic === 'number') {
+        baseHint += ' Check your calculations and consider using estimation.';
+      }
+      
+      hintText = baseHint;
     }
 
     return NextResponse.json({ hint: hintText });

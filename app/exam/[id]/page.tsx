@@ -31,6 +31,8 @@ export default function ExamPage() {
   const [showResults, setShowResults] = useState(false);
   const [flaggedQuestions, setFlaggedQuestions] = useState<Set<number>>(new Set());
   const [showHints, setShowHints] = useState<Set<number>>(new Set());
+  const [aiHints, setAiHints] = useState<Record<number, string>>({});
+  const [loadingHints, setLoadingHints] = useState<Set<number>>(new Set());
   const [examStartTime, setExamStartTime] = useState<Date | null>(null);
 
   const exam = examPapers.find(e => e.id === examId);
@@ -104,16 +106,77 @@ export default function ExamPage() {
     });
   };
 
-  const toggleHint = (questionIndex: number) => {
-    setShowHints(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(questionIndex)) {
+  const toggleHint = async (questionIndex: number) => {
+    if (showHints.has(questionIndex)) {
+      setShowHints(prev => {
+        const newSet = new Set(prev);
         newSet.delete(questionIndex);
-      } else {
+        return newSet;
+      });
+    } else {
+      setShowHints(prev => {
+        const newSet = new Set(prev);
         newSet.add(questionIndex);
+        return newSet;
+      });
+      
+      // Fetch AI hint if we don't have one yet
+      if (!aiHints[questionIndex]) {
+        await fetchAIHint(questionIndex);
       }
+    }
+  };
+
+  const fetchAIHint = async (questionIndex: number) => {
+    const question = exam.questions[questionIndex];
+    if (!question) return;
+
+    setLoadingHints(prev => {
+      const newSet = new Set(prev);
+      newSet.add(questionIndex);
       return newSet;
     });
+
+    try {
+      const resp = await fetch('/api/hint', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          question: question.question,
+          studentAnswer: answers[question.id] || '',
+          options: question.options,
+          type: question.questionType,
+          marks: question.marks,
+          topic: question.topic,
+          subtopic: question.subtopic,
+          difficulty: question.difficulty
+        }),
+      });
+      
+      if (resp.ok) {
+        const data = await resp.json();
+        setAiHints(prev => ({
+          ...prev,
+          [questionIndex]: data.hint || 'Try breaking the problem into smaller steps and check each carefully.'
+        }));
+      } else {
+        setAiHints(prev => ({
+          ...prev,
+          [questionIndex]: 'Try breaking the problem into smaller steps and check each carefully.'
+        }));
+      }
+    } catch (e) {
+      setAiHints(prev => ({
+        ...prev,
+        [questionIndex]: 'Try breaking the problem into smaller steps and check each carefully.'
+      }));
+    } finally {
+      setLoadingHints(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(questionIndex);
+        return newSet;
+      });
+    }
   };
 
   const currentQ = exam.questions[currentQuestion];
@@ -306,18 +369,23 @@ export default function ExamPage() {
               <div className="mb-8">
                 <p className="text-lg text-gray-900 mb-4">{currentQ.question}</p>
                 
-                {/* Hints */}
-                {showHints.has(currentQuestion) && currentQ.hints && (
+                {/* AI Hints */}
+                {showHints.has(currentQuestion) && (
                   <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                     <h4 className="font-medium text-yellow-800 mb-2 flex items-center">
                       <Lightbulb className="w-4 h-4 mr-2" />
-                      Hints
+                      AI Hint
                     </h4>
-                    <ul className="text-sm text-yellow-700 space-y-1">
-                      {currentQ.hints.map((hint, index) => (
-                        <li key={index}>• {hint}</li>
-                      ))}
-                    </ul>
+                    <div className="text-sm text-yellow-700">
+                      {loadingHints.has(currentQuestion) ? (
+                        <div className="flex items-center space-x-2">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-600"></div>
+                          <span>Generating hint...</span>
+                        </div>
+                      ) : (
+                        <p>{aiHints[currentQuestion] || 'Click the hint button to get AI-powered help!'}</p>
+                      )}
+                    </div>
                   </div>
                 )}
                 

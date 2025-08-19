@@ -19,7 +19,7 @@ export default function RecentActivity({ userProgress }: RecentActivityProps) {
       type: 'study' as const,
       date: new Date(session.date),
       title: `${session.sessionType.charAt(0).toUpperCase() + session.sessionType.slice(1)} Session`,
-      description: `${session.duration} minutes on ${session.topics.join(', ')}`,
+      description: `${session.duration} minutes of ${session.sessionType}`,
       icon: BookOpen,
       color: 'text-green-600'
     }))
