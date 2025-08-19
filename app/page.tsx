@@ -1,197 +1,135 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { useRef, useState } from 'react';
+import { LayoutDashboard, Pencil, Send, Image as ImageIcon } from 'lucide-react';
+import DrawingPad from '@/components/DrawingPad';
 import { useRouter } from 'next/navigation';
-import { 
-  FileText, 
-  TrendingUp, 
-  Clock, 
-  Target, 
-  CheckCircle,
-  Play,
-  BarChart3
-} from 'lucide-react';
-import { sampleUserProgress } from '@/data/userProgress';
-import { examPapers } from '@/data/examPapers';
-import ProgressCard from '@/components/ProgressCard';
-import ExamCard from '@/components/ExamCard';
-import RecentActivity from '@/components/RecentActivity';
-import StudySessionCard from '@/components/StudySessionCard';
 
-export default function Dashboard() {
-  const router = useRouter();
-  const [userProgress] = useState(sampleUserProgress);
+type ChatItem = { role: 'user' | 'assistant'; content: string };
 
-  const recentExam = userProgress.examAttempts[0];
-  const recentSession = userProgress.studySessions[0];
+export default function ChatHome() {
+	const router = useRouter();
+	const [messages, setMessages] = useState<ChatItem[]>([
+		{ role: 'assistant', content: 'Hi! I can help with GCSE Maths. Ask a question or upload an image and tell me about it.' },
+	]);
+	const [input, setInput] = useState('');
+	const [uploadName, setUploadName] = useState<string | null>(null);
+	const [showNotepad, setShowNotepad] = useState(false);
+	const [isSending, setIsSending] = useState(false);
+	const fileRef = useRef<HTMLInputElement | null>(null);
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">GCSE Maths Tutor</h1>
-              <p className="text-gray-600">Welcome back! Let's continue your learning journey.</p>
-            </div>
-            <div className="flex items-center space-x-4">
-              <div className="text-right">
-                <p className="text-sm text-gray-500">Target Grade</p>
-                <p className="text-2xl font-bold text-primary-600">Grade {userProgress.targetGrade}</p>
-              </div>
-              <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center">
-                <Target className="w-8 h-8 text-primary-600" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
+	const send = async () => {
+		const text = input.trim();
+		if (!text) return;
+		setIsSending(true);
+		const userMsg: ChatItem = { role: 'user', content: text + (uploadName ? `\n(Attached: ${uploadName})` : '') };
+		setMessages(prev => [...prev, userMsg]);
+		setInput('');
+		try {
+			const resp = await fetch('/api/chat', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ message: text, imageName: uploadName || undefined }),
+			});
+			const data = await resp.json();
+			const reply = data?.reply || 'Sorry, I could not respond right now.';
+			setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
+		} catch (e) {
+			setMessages(prev => [...prev, { role: 'assistant', content: 'Network error. Please try again.' }]);
+		} finally {
+			setIsSending(false);
+		}
+	};
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Progress Overview */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
-        >
-          <ProgressCard
-            title="Overall Progress"
-            value={userProgress.overallProgress}
-            icon={TrendingUp}
-            color="primary"
-            subtitle="Overall learning progress"
-          />
-          <ProgressCard
-            title="Study Time"
-            value={Math.round(userProgress.studySessions.reduce((acc, s) => acc + s.duration, 0) / 60)}
-            icon={Clock}
-            color="success"
-            subtitle="hours this week"
-          />
-          <ProgressCard
-            title="Exam Average"
-            value={Math.round(userProgress.examAttempts.reduce((acc, e) => acc + e.percentage, 0) / userProgress.examAttempts.length)}
-            icon={BarChart3}
-            color="warning"
-            subtitle="% across all exams"
-          />
-          <ProgressCard
-            title="Current Streak"
-            value={7}
-            icon={CheckCircle}
-            color="success"
-            subtitle="days of study"
-          />
-        </motion.div>
+	return (
+		<div className="min-h-screen bg-gray-50">
+			<div className="flex h-screen">
+				{/* Sidebar */}
+				<aside className="w-64 bg-white border-r border-gray-200 p-4 hidden md:flex md:flex-col">
+					<h2 className="text-lg font-semibold text-gray-900 mb-4">Tutor</h2>
+					<nav className="space-y-2">
+						<button
+							onClick={() => router.push('/dashboard')}
+							className="w-full flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-100"
+						>
+							<LayoutDashboard className="w-4 h-4" />
+							<span>Original Dashboard</span>
+						</button>
+					</nav>
+					<div className="mt-auto">
+						<button
+							onClick={() => setShowNotepad(v => !v)}
+							className="w-full flex items-center justify-center space-x-2 px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-800"
+						>
+							<Pencil className="w-4 h-4" />
+							<span>{showNotepad ? 'Hide' : 'Open'} Notepad</span>
+						</button>
+						{showNotepad && (
+							<div className="mt-3 h-56">
+								<DrawingPad className="h-full border border-gray-300 rounded-lg" />
+							</div>
+						)}
+					</div>
+				</aside>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-8">
+				{/* Chat Area */}
+				<main className="flex-1 flex flex-col">
+					<header className="bg-white border-b border-gray-200 p-4">
+						<h1 className="text-xl font-bold text-gray-900">GCSE Maths Tutor</h1>
+						<p className="text-sm text-gray-600">Ask questions, attach an image (optional), and jot notes in the notepad.</p>
+					</header>
 
+					<div className="flex-1 overflow-y-auto p-4 space-y-4">
+						{messages.map((m, idx) => (
+							<div key={idx} className={`max-w-2xl ${m.role === 'user' ? 'ml-auto' : ''}`}>
+								<div className={`px-4 py-3 rounded-lg text-sm whitespace-pre-wrap ${m.role === 'user' ? 'bg-primary-600 text-white' : 'bg-white border border-gray-200 text-gray-900'}`}>
+									{m.content}
+								</div>
+							</div>
+						))}
+					</div>
 
-            {/* Recent Exam Results */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-            >
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">Recent Exam Results</h2>
-                <div className="flex space-x-2">
-                  <button 
-                    onClick={() => router.push('/past-papers')}
-                    className="btn-primary flex items-center space-x-2"
-                  >
-                    <FileText className="w-4 h-4" />
-                    <span>Past Papers</span>
-                  </button>
-                  <button 
-                    onClick={() => router.push('/exams')}
-                    className="btn-secondary flex items-center space-x-2"
-                  >
-                    <FileText className="w-4 h-4" />
-                    <span>View All</span>
-                  </button>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {userProgress.examAttempts.slice(0, 2).map((attempt) => {
-                  const exam = examPapers.find(e => e.id === attempt.examId);
-                  if (!exam) return null;
-                  
-                  return (
-                    <ExamCard
-                      key={attempt.examId}
-                      exam={exam}
-                      attempt={attempt}
-                    />
-                  );
-                })}
-              </div>
-            </motion.div>
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-8">
-            {/* Quick Actions */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.3 }}
-              className="card"
-            >
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
-              <div className="space-y-3">
-                <button 
-                  onClick={() => router.push('/exams')}
-                  className="w-full btn-primary flex items-center justify-center space-x-2"
-                >
-                  <Play className="w-4 h-4" />
-                  <span>Start Practice Test</span>
-                </button>
-                <button 
-                  onClick={() => router.push('/practice')}
-                  className="w-full btn-secondary flex items-center justify-center space-x-2"
-                >
-                  <Play className="w-4 h-4" />
-                  <span>Single Question Practice</span>
-                </button>
-
-
-                <button 
-                  onClick={() => router.push('/exams')}
-                  className="w-full btn-secondary flex items-center justify-center space-x-2"
-                >
-                  <FileText className="w-4 h-4" />
-                  <span>Take Full Exam</span>
-                </button>
-              </div>
-            </motion.div>
-
-            {/* Recent Study Session */}
-            {recentSession && (
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.4 }}
-              >
-                <StudySessionCard session={recentSession} />
-              </motion.div>
-            )}
-
-            {/* Recent Activity */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.5 }}
-            >
-              <RecentActivity userProgress={userProgress} />
-            </motion.div>
-          </div>
-        </div>
-      </main>
-    </div>
-  );
+					{/* Input Bar */}
+					<div className="border-t border-gray-200 bg-white p-3">
+						<div className="max-w-3xl mx-auto flex items-end space-x-2">
+							<button
+								onClick={() => fileRef.current?.click()}
+								className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 text-gray-700"
+								title="Attach image"
+							>
+								<ImageIcon className="w-5 h-5" />
+							</button>
+							<input
+								ref={fileRef}
+								type="file"
+								accept="image/*"
+								className="hidden"
+								onChange={(e) => {
+									const f = e.target.files?.[0];
+									setUploadName(f ? f.name : null);
+								}}
+							/>
+							<div className="flex-1">
+								<textarea
+									value={input}
+									onChange={(e) => setInput(e.target.value)}
+									rows={1}
+									placeholder={uploadName ? `Message (attached: ${uploadName})` : 'Message GCSE Tutor...'}
+									className="w-full resize-none px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+								/>
+							</div>
+							<button
+								disabled={isSending}
+								onClick={send}
+								className="p-2 rounded-lg bg-primary-600 hover:bg-primary-700 text-white disabled:opacity-50"
+								title="Send"
+							>
+								<Send className="w-5 h-5" />
+							</button>
+						</div>
+					</div>
+				</main>
+			</div>
+		</div>
+	);
 }
