@@ -10,7 +10,7 @@ type ChatItem = { role: 'user' | 'assistant'; content: string };
 export default function ChatHome() {
 	const router = useRouter();
 	const [messages, setMessages] = useState<ChatItem[]>([
-		{ role: 'assistant', content: 'Hi! I can help with GCSE Maths. Ask a question or upload an image and tell me about it.' },
+		        { role: 'assistant', content: 'Hi! I can help with GCSE Maths using Mentara. Ask a question or upload an image and tell me about it.' },
 	]);
 	const [input, setInput] = useState('');
 	const [uploadName, setUploadName] = useState<string | null>(null);
@@ -46,7 +46,7 @@ export default function ChatHome() {
 			<div className="flex h-screen">
 				{/* Sidebar */}
 				<aside className="w-64 bg-white border-r border-gray-200 p-4 hidden md:flex md:flex-col">
-					<h2 className="text-lg font-semibold text-gray-900 mb-4">Tutor</h2>
+					                <h2 className="text-lg font-semibold text-gray-900 mb-4">Mentara</h2>
 					<nav className="space-y-2">
 						<button
 							onClick={() => router.push('/dashboard')}
@@ -84,7 +84,7 @@ export default function ChatHome() {
 				{/* Chat Area */}
 				<main className="flex-1 flex flex-col">
 					<header className="bg-white border-b border-gray-200 p-4">
-						<h1 className="text-xl font-bold text-gray-900">GCSE Maths Tutor</h1>
+						                <h1 className="text-xl font-bold text-gray-900">Mentara</h1>
 						<p className="text-sm text-gray-600">Ask questions, attach an image (optional), and jot notes in the notepad.</p>
 					</header>
 
@@ -123,7 +123,7 @@ export default function ChatHome() {
 									value={input}
 									onChange={(e) => setInput(e.target.value)}
 									rows={1}
-									placeholder={uploadName ? `Message (attached: ${uploadName})` : 'Message GCSE Tutor...'}
+									                    placeholder={uploadName ? `Message (attached: ${uploadName})` : 'Message Mentara...'}
 									className="w-full resize-none px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
 								/>
 							</div>

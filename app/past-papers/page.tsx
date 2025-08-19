@@ -118,7 +118,7 @@ export default function PastPapersPage() {
         <main className="flex-1 flex flex-col">
           <header className="bg-white border-b border-gray-200 p-4">
             <h1 className="text-xl font-bold text-gray-900">Past Papers</h1>
-            <p className="text-sm text-gray-600">Practice with authentic GCSE Maths exam papers</p>
+                            <p className="text-sm text-gray-600">Practice with authentic GCSE Maths exam papers using Mentara</p>
           </header>
 
                     <div className="flex-1 overflow-y-auto p-4">

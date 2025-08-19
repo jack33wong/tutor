@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
     const apiUrl = process.env.CHAT_API_URL || 'https://www.apifreellm.com/api/chat';
     const apiKey = process.env.CHAT_API_KEY;
 
-    const system = 'You are a friendly GCSE Maths tutor. Be concise and clear. If an image is mentioned, you do not have access to its pixels; only refer to the description provided.';
+    const system = 'You are a friendly Mentara Maths tutor. Be concise and clear. If an image is mentioned, you do not have access to its pixels; only refer to the description provided.';
     const composed = `${system}\n\nUser: ${message}${imageName ? `\n(An image named \"${imageName}\" was uploaded.)` : ''}`;
 
     let reply: string | null = null;

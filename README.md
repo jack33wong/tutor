@@ -1,6 +1,6 @@
-# GCSE Maths Tutor - Personalized Study App
+# Mentara - Personalized Study App
 
-A comprehensive, interactive study application designed specifically for UK GCSE Mathematics students. This app provides personalized learning experiences with progress tracking, interactive exam papers, and detailed marking schemes.
+A comprehensive, interactive study application designed specifically for UK GCSE Mathematics students using Mentara. This app provides personalized learning experiences with progress tracking, interactive exam papers, and detailed marking schemes.
 
 ## 🎯 Features
 
@@ -16,7 +16,7 @@ A comprehensive, interactive study application designed specifically for UK GCSE
 - **Performance Metrics**: Detailed analytics on exam performance and improvement areas
 
 ### 📝 Interactive Exam Papers
-- **Past Exam Papers**: Authentic GCSE-style questions with realistic difficulty
+- **Past Exam Papers**: Authentic GCSE-style questions with realistic difficulty using Mentara
 - **Timed Assessments**: Realistic exam conditions with countdown timers
 - **Question Navigation**: Easy navigation between questions with progress indicators
 - **Flagging System**: Mark questions for review during exams
@@ -87,7 +87,7 @@ tutor/
 │   ├── RecentActivity.tsx # Activity feed
 │   └── StudySessionCard.tsx # Study session display
 ├── data/                  # Application data
-│   ├── syllabus.ts        # GCSE Maths syllabus structure
+│   ├── syllabus.ts        # GCSE Maths syllabus structure (removed)
 │   ├── examPapers.ts      # Exam papers and questions
 │   └── userProgress.ts    # User progress tracking
 ├── public/                # Static assets
@@ -160,7 +160,7 @@ If you encounter any issues or have questions:
 
 ## 🙏 Acknowledgments
 
-- UK GCSE Mathematics curriculum and exam boards
+- UK GCSE Mathematics curriculum and exam boards with Mentara
 - Educational content creators and teachers
 - Open source community for amazing tools and libraries
 

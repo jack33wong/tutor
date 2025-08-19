@@ -1,7 +1,7 @@
 {
-  "name": "gcse-maths-tutor",
+  "name": "mentara",
   "version": "1.0.0",
-  "description": "Personalized GCSE Maths study app with progress tracking",
+  "description": "Personalized Mentara Maths study app with progress tracking",
   "main": "index.js",
   "scripts": {
     "dev": "next dev",
@@ -30,7 +30,7 @@
     "eslint": "^8.0.0",
     "eslint-config-next": "^14.0.0"
   },
-  "keywords": ["gcse", "maths", "education", "study", "tutor"],
-  "author": "GCSE Maths Tutor",
+  "keywords": ["mentara", "maths", "education", "study", "tutor"],
+  "author": "Mentara",
   "license": "MIT"
 }

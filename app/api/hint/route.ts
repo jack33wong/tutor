@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
     const apiUrl = process.env.HINTS_API_URL || 'https://www.apifreellm.com/api/chat';
     const apiKey = process.env.HINTS_API_KEY;
 
-    const systemInstructions = `You are a GCSE Maths tutor. Provide a concise, encouraging hint (max 40 words) to guide the student toward the correct answer without revealing it. Consider the question type, marks, topic, and difficulty level. If multiple-choice, suggest eliminating wrong options. Use plain language and mathematical terminology appropriate for GCSE level.`;
+    const systemInstructions = `You are a Mentara Maths tutor. Provide a concise, encouraging hint (max 40 words) to guide the student toward the correct answer without revealing it. Consider the question type, marks, topic, and difficulty level. If multiple-choice, suggest eliminating wrong options. Use plain language and mathematical terminology appropriate for GCSE level with Mentara.`;
     
     const contextParts: string[] = [
       `Question: ${question}`,
