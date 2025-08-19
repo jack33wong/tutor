@@ -9,7 +9,6 @@ import {
   Clock, 
   Target, 
   CheckCircle,
-  Play,
   BarChart3,
   MessageCircle,
   LayoutDashboard,
@@ -21,15 +20,13 @@ import { sampleUserProgress } from '@/data/userProgress';
 import { examPapers } from '@/data/examPapers';
 import ProgressCard from '@/components/ProgressCard';
 import ExamCard from '@/components/ExamCard';
-import RecentActivity from '@/components/RecentActivity';
-import StudySessionCard from '@/components/StudySessionCard';
+
 
 export default function Dashboard() {
   const router = useRouter();
   const [userProgress] = useState(sampleUserProgress);
 
   const recentExam = userProgress.examAttempts[0];
-  const recentSession = userProgress.studySessions[0];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -172,63 +169,7 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Right Sidebar */}
-            <div className="w-80 bg-white border-l border-gray-200 p-4 hidden lg:block">
-              <div className="space-y-6">
-                {/* Quick Actions */}
-                <motion.div
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.3 }}
-                  className="card"
-                >
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
-                  <div className="space-y-3">
-                    <button 
-                      onClick={() => router.push('/exams')}
-                      className="w-full btn-primary flex items-center justify-center space-x-2"
-                    >
-                      <Play className="w-4 h-4" />
-                      <span>Start Practice Test</span>
-                    </button>
-                    <button 
-                      onClick={() => router.push('/practice')}
-                      className="w-full btn-secondary flex items-center justify-center space-x-2"
-                    >
-                      <Play className="w-4 h-4" />
-                      <span>Single Question Practice</span>
-                    </button>
-                    <button 
-                      onClick={() => router.push('/exams')}
-                      className="w-full btn-secondary flex items-center justify-center space-x-2"
-                    >
-                      <FileText className="w-4 h-4" />
-                      <span>Take Full Exam</span>
-                    </button>
-                  </div>
-                </motion.div>
 
-                {/* Recent Study Session */}
-                {recentSession && (
-                  <motion.div
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.4 }}
-                  >
-                    <StudySessionCard session={recentSession} />
-                  </motion.div>
-                )}
-
-                {/* Recent Activity */}
-                <motion.div
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.5 }}
-                >
-                  <RecentActivity userProgress={userProgress} />
-                </motion.div>
-              </div>
-            </div>
           </div>
         </main>
       </div>
