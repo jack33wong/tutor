@@ -13,7 +13,10 @@ import {
   Calculator,
   BookOpen,
   Lightbulb,
-  AlertCircle
+  AlertCircle,
+  MessageCircle,
+  LayoutDashboard,
+  FileText
 } from 'lucide-react';
 import { examPapers } from '@/data/examPapers';
 import DrawingPad from '@/components/DrawingPad';
@@ -62,15 +65,50 @@ export default function ExamPage() {
 
   if (!exam) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Exam not found</h1>
-          <button 
-            onClick={() => router.push('/')}
-            className="btn-primary"
-          >
-            Return to Dashboard
-          </button>
+      <div className="min-h-screen bg-gray-50">
+        <div className="flex h-screen">
+          {/* Sidebar */}
+          <aside className="w-64 bg-white border-r border-gray-200 p-4 hidden md:flex md:flex-col">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Exam</h2>
+            <nav className="space-y-2">
+              <button
+                onClick={() => router.push('/')}
+                className="w-full flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-100"
+              >
+                <MessageCircle className="w-4 h-4" />
+                <span>Chat Interface</span>
+              </button>
+              <button
+                onClick={() => router.push('/dashboard')}
+                className="w-full flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-100"
+              >
+                <LayoutDashboard className="w-4 h-4" />
+                <span>Dashboard</span>
+              </button>
+              <button
+                onClick={() => router.push('/past-papers')}
+                className="w-full flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-100"
+              >
+                <FileText className="w-4 h-4" />
+                <span>Past Papers</span>
+              </button>
+            </nav>
+          </aside>
+
+          {/* Main Content */}
+          <main className="flex-1 flex flex-col">
+            <div className="flex-1 flex items-center justify-center">
+              <div className="text-center">
+                <h1 className="text-2xl font-bold text-gray-900 mb-4">Exam not found</h1>
+                <button 
+                  onClick={() => router.push('/')}
+                  className="btn-primary"
+                >
+                  Return to Chat
+                </button>
+              </div>
+            </div>
+          </main>
         </div>
       </div>
     );
@@ -259,52 +297,55 @@ export default function ExamPage() {
           </div>
         );
     }
+    return null; // Default return for switch statement
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between py-4">
-            <div className="flex items-center space-x-4">
-              <button 
-                onClick={() => router.push('/')}
-                className="btn-secondary flex items-center space-x-2"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                <span>Exit Exam</span>
-              </button>
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">{exam.title}</h1>
-                <div className="flex items-center space-x-4 text-sm text-gray-600">
-                  <span>Question {currentQuestion + 1} of {totalQuestions}</span>
-                  <span>•</span>
-                  <span>{exam.examBoard} {exam.paperType}</span>
-                  <span>•</span>
-                  <span className="flex items-center space-x-1">
-                    {exam.calculator ? (
-                      <>
-                        <Calculator className="w-4 h-4" />
-                        <span>Calculator</span>
-                      </>
-                    ) : (
-                      <>
-                        <BookOpen className="w-4 h-4" />
-                        <span>Non-Calculator</span>
-                      </>
-                    )}
-                  </span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-6">
+      <div className="flex h-screen">
+        {/* Sidebar */}
+        <aside className="w-64 bg-white border-r border-gray-200 p-4 hidden md:flex md:flex-col">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Exam</h2>
+          <nav className="space-y-2">
+            <button
+              onClick={() => router.push('/')}
+              className="w-full flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-100"
+            >
+              <MessageCircle className="w-4 h-4" />
+              <span>Chat Interface</span>
+            </button>
+            <button
+              onClick={() => router.push('/dashboard')}
+              className="w-full flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-100"
+            >
+              <LayoutDashboard className="w-4 h-4" />
+              <span>Dashboard</span>
+            </button>
+            <button
+              onClick={() => router.push('/past-papers')}
+              className="w-full flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-100"
+            >
+              <FileText className="w-4 h-4" />
+              <span>Past Papers</span>
+            </button>
+          </nav>
+          
+          {/* Exam Info */}
+          <div className="mt-auto space-y-4">
+            <div className="p-3 bg-gray-50 rounded-lg">
               <div className="text-center">
+                <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                  <BookOpen className="w-6 h-6 text-primary-600" />
+                </div>
                 <p className="text-sm text-gray-500">Progress</p>
                 <p className="text-lg font-bold text-primary-600">{answeredQuestions}/{totalQuestions}</p>
               </div>
+            </div>
+            <div className="p-3 bg-gray-50 rounded-lg">
               <div className="text-center">
+                <div className="w-12 h-12 bg-warning-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                  <Clock className="w-6 h-6 text-warning-600" />
+                </div>
                 <p className="text-sm text-gray-500">Time Left</p>
                 <p className={`text-lg font-bold ${timeLeft < 300 ? 'text-error-600' : 'text-gray-900'}`}>
                   {formatTime(timeLeft)}
@@ -312,13 +353,51 @@ export default function ExamPage() {
               </div>
             </div>
           </div>
-        </div>
-      </header>
+        </aside>
 
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Question Area */}
-          <div className="lg:col-span-3">
+        {/* Main Content */}
+        <main className="flex-1 flex flex-col">
+          {/* Header */}
+          <header className="bg-white border-b border-gray-200 p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <button 
+                  onClick={() => router.push('/')}
+                  className="btn-secondary flex items-center space-x-2"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span>Exit Exam</span>
+                </button>
+                <div>
+                  <h1 className="text-xl font-bold text-gray-900">{exam.title}</h1>
+                  <div className="flex items-center space-x-4 text-sm text-gray-600">
+                    <span>Question {currentQuestion + 1} of {totalQuestions}</span>
+                    <span>•</span>
+                    <span>{exam.examBoard} {exam.paperType}</span>
+                    <span>•</span>
+                    <span className="flex items-center space-x-1">
+                      {exam.calculator ? (
+                        <>
+                          <Calculator className="w-4 h-4" />
+                          <span>Calculator</span>
+                        </>
+                      ) : (
+                        <>
+                          <BookOpen className="w-4 h-4" />
+                          <span>Non-Calculator</span>
+                        </>
+                      )}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </header>
+
+          <div className="flex-1 overflow-y-auto p-4">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+              {/* Question Area */}
+              <div className="lg:col-span-3">
             <motion.div
               key={currentQuestion}
               initial={{ opacity: 0, x: 20 }}
@@ -504,8 +583,8 @@ export default function ExamPage() {
               </div>
             </div>
           </div>
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 }
@@ -547,12 +626,44 @@ function ExamResults({ exam, answers, startTime }: { exam: any, answers: Record<
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="card"
-        >
+      <div className="flex h-screen">
+        {/* Sidebar */}
+        <aside className="w-64 bg-white border-r border-gray-200 p-4 hidden md:flex md:flex-col">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Exam Results</h2>
+          <nav className="space-y-2">
+            <button
+              onClick={() => router.push('/')}
+              className="w-full flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-100"
+            >
+              <MessageCircle className="w-4 h-4" />
+              <span>Chat Interface</span>
+            </button>
+            <button
+              onClick={() => router.push('/dashboard')}
+              className="w-full flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-100"
+            >
+              <LayoutDashboard className="w-4 h-4" />
+              <span>Dashboard</span>
+            </button>
+            <button
+              onClick={() => router.push('/past-papers')}
+              className="w-full flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-100"
+            >
+              <FileText className="w-4 h-4" />
+              <span>Past Papers</span>
+            </button>
+          </nav>
+        </aside>
+
+        {/* Main Content */}
+        <main className="flex-1 flex flex-col">
+          <div className="flex-1 overflow-y-auto p-4">
+            <div className="max-w-4xl mx-auto">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="card"
+              >
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-4">Exam Results</h1>
             <p className="text-lg text-gray-600">{exam.title}</p>
@@ -675,6 +786,9 @@ function ExamResults({ exam, answers, startTime }: { exam: any, answers: Record<
             </button>
           </div>
         </motion.div>
+            </div>
+          </div>
+        </main>
       </div>
     </div>
   );

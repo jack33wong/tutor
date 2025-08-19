@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from 'react';
-import { LayoutDashboard, Pencil, Send, Image as ImageIcon } from 'lucide-react';
+import { LayoutDashboard, Pencil, Send, Image as ImageIcon, FileText } from 'lucide-react';
 import DrawingPad from '@/components/DrawingPad';
 import { useRouter } from 'next/navigation';
 
@@ -53,10 +53,19 @@ export default function ChatHome() {
 							className="w-full flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-100"
 						>
 							<LayoutDashboard className="w-4 h-4" />
-							<span>Original Dashboard</span>
+							<span>Dashboard</span>
+						</button>
+						<button
+							onClick={() => router.push('/past-papers')}
+							className="w-full flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-100"
+						>
+							<FileText className="w-4 h-4" />
+							<span>Past Papers</span>
 						</button>
 					</nav>
-					<div className="mt-auto">
+					
+					{/* Notepad Section */}
+					<div className="mt-auto space-y-4">
 						<button
 							onClick={() => setShowNotepad(v => !v)}
 							className="w-full flex items-center justify-center space-x-2 px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-800"
