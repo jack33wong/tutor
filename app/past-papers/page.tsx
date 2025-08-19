@@ -14,7 +14,9 @@ import {
   BookOpen,
   Award,
   TrendingUp,
-  Filter
+  Filter,
+  MessageCircle,
+  LayoutDashboard
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { examPapers } from '@/data/examPapers';
@@ -77,32 +79,49 @@ export default function PastPapersPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between py-6">
-            <div className="flex items-center space-x-4">
-              <button 
-                onClick={() => router.push('/')}
-                className="btn-secondary flex items-center space-x-2"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                <span>Back to Dashboard</span>
-              </button>
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">Past Papers</h1>
-                <p className="text-gray-600">Practice with authentic GCSE Maths exam papers</p>
+      <div className="flex h-screen">
+        {/* Sidebar */}
+        <aside className="w-64 bg-white border-r border-gray-200 p-4 hidden md:flex md:flex-col">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Past Papers</h2>
+          <nav className="space-y-2">
+            <button
+              onClick={() => router.push('/')}
+              className="w-full flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-100"
+            >
+              <MessageCircle className="w-4 h-4" />
+              <span>Chat Interface</span>
+            </button>
+            <button
+              onClick={() => router.push('/dashboard')}
+              className="w-full flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-100"
+            >
+              <LayoutDashboard className="w-4 h-4" />
+              <span>Dashboard</span>
+            </button>
+          </nav>
+          
+          {/* User Info */}
+          <div className="mt-auto space-y-4">
+            <div className="p-3 bg-gray-50 rounded-lg">
+              <div className="text-center">
+                <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                  <BarChart3 className="w-6 h-6 text-primary-600" />
+                </div>
+                <p className="text-sm text-gray-500">Average Score</p>
+                <p className="text-lg font-bold text-primary-600">{getAverageScore()}%</p>
               </div>
             </div>
-            <div className="text-right">
-              <p className="text-sm text-gray-500">Average Score</p>
-              <p className="text-2xl font-bold text-primary-600">{getAverageScore()}%</p>
-            </div>
           </div>
-        </div>
-      </header>
+        </aside>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Main Content */}
+        <main className="flex-1 flex flex-col">
+          <header className="bg-white border-b border-gray-200 p-4">
+            <h1 className="text-xl font-bold text-gray-900">Past Papers</h1>
+            <p className="text-sm text-gray-600">Practice with authentic GCSE Maths exam papers</p>
+          </header>
+
+                    <div className="flex-1 overflow-y-auto p-4">
         {/* Filters */}
         <div className="mb-8">
           <div className="card">
@@ -391,8 +410,10 @@ export default function PastPapersPage() {
               </div>
             </div>
           </div>
-        </div>
-      </main>
+            </div>
+          </div>
+        </main>
+      </div>
     </div>
   );
 }
