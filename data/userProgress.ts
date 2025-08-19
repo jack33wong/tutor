@@ -7,8 +7,6 @@ export interface UserProgress {
   currentLevel: 'foundation' | 'higher';
 }
 
-
-
 export interface PracticeQuestionResult {
   questionId: string;
   correct: boolean;
@@ -51,7 +49,6 @@ export const sampleUserProgress: UserProgress = {
   targetGrade: '7',
   currentLevel: 'foundation',
   overallProgress: 35,
-
   examAttempts: [
     {
       examId: 'paper-1-foundation-2023',
@@ -84,7 +81,6 @@ export const sampleUserProgress: UserProgress = {
       id: 'session1',
       date: new Date('2024-01-16'),
       duration: 90,
-
       sessionType: 'learning',
       notes: 'Focused on solving linear equations with brackets'
     },
@@ -92,7 +88,6 @@ export const sampleUserProgress: UserProgress = {
       id: 'session2',
       date: new Date('2024-01-15'),
       duration: 120,
-
       sessionType: 'practice',
       notes: 'Mixed practice on ratios and algebraic expressions'
     }

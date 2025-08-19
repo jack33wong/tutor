@@ -10,7 +10,8 @@ import {
   Target, 
   CheckCircle,
   Play,
-  BarChart3
+  BarChart3,
+  MessageCircle
 } from 'lucide-react';
 import { sampleUserProgress } from '@/data/userProgress';
 import { examPapers } from '@/data/examPapers';
@@ -37,6 +38,13 @@ export default function Dashboard() {
               <p className="text-gray-600">Welcome back! Let's continue your learning journey.</p>
             </div>
             <div className="flex items-center space-x-4">
+              <button
+                onClick={() => router.push('/')}
+                className="btn-secondary flex items-center space-x-2"
+              >
+                <MessageCircle className="w-4 h-4" />
+                <span>Back to Chat</span>
+              </button>
               <div className="text-right">
                 <p className="text-sm text-gray-500">Target Grade</p>
                 <p className="text-2xl font-bold text-primary-600">Grade {userProgress.targetGrade}</p>
