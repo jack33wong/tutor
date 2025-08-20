@@ -186,11 +186,21 @@ export default function ChatHome() {
 	useEffect(() => {
 		if (chatSessions.length > 0) {
 			console.log('=== CHAT PAGE: Saving chat sessions to localStorage ===', chatSessions);
-			localStorage.setItem('chatSessions', JSON.stringify(chatSessions));
+			const jsonString = JSON.stringify(chatSessions);
+			console.log('=== CHAT PAGE: JSON string to save ===', jsonString);
+			
+			localStorage.setItem('chatSessions', jsonString);
 			
 			// Test if it was saved
 			const saved = localStorage.getItem('chatSessions');
 			console.log('=== CHAT PAGE: Verification - localStorage now contains ===', saved);
+			
+			// Check if the save was successful
+			if (saved === jsonString) {
+				console.log('=== CHAT PAGE: localStorage save successful ===');
+			} else {
+				console.error('=== CHAT PAGE: localStorage save failed - mismatch ===');
+			}
 		}
 	}, [chatSessions]);
 

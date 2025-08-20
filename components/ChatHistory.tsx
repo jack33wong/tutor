@@ -26,24 +26,39 @@ export default function ChatHistory() {
 		if (typeof window === 'undefined') return;
 		
 		try {
+			console.log('=== CHAT HISTORY: loadChatSessions called ===');
+			
 			// Test localStorage
 			localStorage.setItem('test', 'test-value');
 			const testValue = localStorage.getItem('test');
-			console.log('localStorage test:', testValue);
+			console.log('=== CHAT HISTORY: localStorage test ===', testValue);
+			
+			// Check all localStorage keys
+			const allKeys = [];
+			for (let i = 0; i < localStorage.length; i++) {
+				const key = localStorage.key(i);
+				if (key) allKeys.push(key);
+			}
+			console.log('=== CHAT HISTORY: All localStorage keys ===', allKeys);
 			
 			const saved = localStorage.getItem('chatSessions');
-			console.log('ChatHistory: localStorage.getItem("chatSessions"):', saved);
+			console.log('=== CHAT HISTORY: localStorage.getItem("chatSessions") ===', saved);
 			
-			if (saved) {
-				const parsed = JSON.parse(saved);
-				console.log('ChatHistory: Parsed sessions:', parsed);
-				setChatSessions(parsed);
+			if (saved && saved.trim() !== '' && saved !== 'null') {
+				try {
+					const parsed = JSON.parse(saved);
+					console.log('=== CHAT HISTORY: Parsed sessions ===', parsed);
+					setChatSessions(parsed);
+				} catch (parseError) {
+					console.error('=== CHAT HISTORY: Parse error ===', parseError);
+					setChatSessions([]);
+				}
 			} else {
-				console.log('ChatHistory: No chatSessions found in localStorage');
+				console.log('=== CHAT HISTORY: No valid chatSessions found ===');
 				setChatSessions([]);
 			}
 		} catch (error) {
-			console.error('Error loading chat sessions:', error);
+			console.error('=== CHAT HISTORY: Error loading chat sessions ===', error);
 		}
 	};
 
