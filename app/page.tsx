@@ -323,7 +323,6 @@ export default function ChatHome() {
 									onKeyDown={(e) => {
 										if (e.key === 'Enter' && !e.shiftKey) {
 											e.preventDefault();
-											console.log('Enter key pressed');
 											send();
 										}
 									}}
