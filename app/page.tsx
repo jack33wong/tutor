@@ -249,22 +249,46 @@ export default function ChatHome() {
 			
 			// Add assistant reply to current session
 			setChatSessions(prev => {
-				const updated = prev.map(session => 
-					session.id === currentSessionId 
-						? { ...session, messages: [...session.messages, { role: 'assistant' as const, content: reply }] }
-						: session
-				);
+				const updated = prev.map(session => {
+					if (session.id === currentSessionId) {
+						// Preserve the existing title and all other session properties
+						const updatedSession = {
+							...session,
+							messages: [...session.messages, { role: 'assistant' as const, content: reply }],
+							timestamp: new Date()
+						};
+						console.log('=== CHAT PAGE: Assistant reply added, preserving title ===', { 
+							oldTitle: session.title, 
+							newTitle: updatedSession.title,
+							messagesCount: updatedSession.messages.length 
+						});
+						return updatedSession;
+					}
+					return session;
+				});
 				console.log('=== CHAT PAGE: Added assistant reply to session ===', updated);
 				return updated;
 			});
 		} catch (e) {
 			console.error('Error in send function:', e);
 			setChatSessions(prev => {
-				const updated = prev.map(session => 
-					session.id === currentSessionId 
-						? { ...session, messages: [...session.messages, { role: 'assistant' as const, content: 'Network error. Please try again.' }] }
-						: session
-				);
+				const updated = prev.map(session => {
+					if (session.id === currentSessionId) {
+						// Preserve the existing title and all other session properties
+						const updatedSession = {
+							...session,
+							messages: [...session.messages, { role: 'assistant' as const, content: 'Network error. Please try again.' }],
+							timestamp: new Date()
+						};
+						console.log('=== CHAT PAGE: Error message added, preserving title ===', { 
+							oldTitle: session.title, 
+							newTitle: updatedSession.title,
+							messagesCount: updatedSession.messages.length 
+						});
+						return updatedSession;
+					}
+					return session;
+				});
 				return updated;
 			});
 		} finally {
