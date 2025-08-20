@@ -178,6 +178,22 @@ export default function ChatHome() {
 			? text.slice(0, 30) + (text.length > 30 ? '...' : '')
 			: currentSession.title;
 
+		// IMMEDIATELY add user message to chat for instant feedback
+		setChatSessions(prev => {
+			const updated = prev.map(session => {
+				if (session.id === currentSessionId) {
+					return {
+						...session,
+						title: titleToPreserve,
+						messages: [...session.messages, userMsg],
+						timestamp: new Date()
+					};
+				}
+				return session;
+			});
+			return updated;
+		});
+
 		setInput('');
 		try {
 			const resp = await fetch('/api/chat', {
@@ -188,52 +204,31 @@ export default function ChatHome() {
 			const data = await resp.json();
 			const reply = data?.reply || 'Sorry, I could not respond right now.';
 			
-
-			
-			// SINGLE ATOMIC UPDATE: Add both user message and assistant reply in one state update
+			// Add assistant reply to the existing session
 			setChatSessions(prev => {
 				const updated = prev.map(session => {
 					if (session.id === currentSessionId) {
-						// Create the complete updated session with both messages
-						const updatedSession = {
+						return {
 							...session,
-							title: titleToPreserve, // Explicitly preserve the title
-							messages: [
-								...session.messages, 
-								userMsg, 
-								{ role: 'assistant' as const, content: reply }
-							],
+							messages: [...session.messages, { role: 'assistant' as const, content: reply }],
 							timestamp: new Date()
 						};
-						
-
-						
-						return updatedSession;
 					}
 					return session;
 				});
-				
-
 				return updated;
 			});
 		} catch (e) {
 			console.error('Error in send function:', e);
-			// Error case: Add both user message and error message in one update
+			// Error case: Add error message to the existing session
 			setChatSessions(prev => {
 				const updated = prev.map(session => {
 					if (session.id === currentSessionId) {
-						const updatedSession = {
+						return {
 							...session,
-							title: titleToPreserve, // Preserve the title
-							messages: [
-								...session.messages, 
-								userMsg, 
-								{ role: 'assistant' as const, content: 'Network error. Please try again.' }
-							],
+							messages: [...session.messages, { role: 'assistant' as const, content: 'Network error. Please try again.' }],
 							timestamp: new Date()
 						};
-
-						return updatedSession;
 					}
 					return session;
 				});
