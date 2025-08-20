@@ -14,7 +14,11 @@ interface ChatSession {
 }
 
 export default function ChatHistory() {
+	console.log('=== CHAT HISTORY: Component rendering ===');
+	
 	const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
+	const [isMounted, setIsMounted] = useState(false);
+	const [debugInfo, setDebugInfo] = useState('Component created');
 	const router = useRouter();
 
 	// Simple function to load chat sessions
@@ -43,8 +47,11 @@ export default function ChatHistory() {
 		}
 	};
 
-	// Load on mount
+	// Mount effect - only run on client side
 	useEffect(() => {
+		console.log('=== CHAT HISTORY: useEffect running ===');
+		setDebugInfo('useEffect started');
+		setIsMounted(true);
 		loadChatSessions();
 		
 		// Refresh every 3 seconds
@@ -59,10 +66,24 @@ export default function ChatHistory() {
 		}
 	};
 
+	// Don't render anything until mounted to prevent hydration mismatch
+	if (!isMounted) {
+		return (
+			<div className="mb-6 border-4 border-yellow-500 p-4 bg-yellow-50">
+				<h3 className="text-sm font-medium text-gray-700 mb-3">Loading Chat History...</h3>
+				<div className="text-xs text-gray-500 mb-2">Debug: {debugInfo}</div>
+				<div className="animate-pulse space-y-2">
+					<div className="h-4 bg-yellow-200 rounded"></div>
+					<div className="h-4 bg-yellow-200 rounded w-3/4"></div>
+				</div>
+			</div>
+		);
+	}
+
 	// Simple render - always show something
 	return (
 		<div className="mb-6 border-4 border-green-500 p-4 bg-green-50">
-			<h3 className="text-sm font-medium text-gray-700 mb-3">Recent Chats (SIMPLE)</h3>
+			<h3 className="text-sm font-medium text-gray-700 mb-3">Recent Chats (MOUNTED)</h3>
 			
 			{/* Debug info */}
 			<div className="text-xs text-gray-600 p-2 bg-white rounded mb-3">
