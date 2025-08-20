@@ -230,6 +230,43 @@ export default function ChatHome() {
 				<LeftSidebar onNewChat={createNewChat}>
 					{/* Chat History */}
 					<div className="flex-1 overflow-y-auto">
+						{/* Debug button */}
+						<div className="p-2 mb-2">
+							<button
+								onClick={() => {
+									console.log('=== DEBUG INFO ===');
+									console.log('Current chatSessions:', chatSessions);
+									console.log('Current session ID:', currentSessionId);
+									console.log('localStorage chatSessions:', localStorage.getItem('chatSessions'));
+									console.log('localStorage restoreSessionId:', localStorage.getItem('restoreSessionId'));
+									console.log('==================');
+								}}
+								className="w-full px-3 py-2 text-xs bg-red-100 text-red-700 rounded border border-red-300 hover:bg-red-200 mb-2"
+							>
+								🔍 Debug Chat History
+							</button>
+							<button
+								onClick={() => {
+									const testSession: ChatSession = {
+										id: 'test-' + Date.now(),
+										title: 'Test Chat ' + new Date().toLocaleTimeString(),
+										messages: [
+											{ role: 'assistant', content: 'This is a test message' },
+											{ role: 'user', content: 'Hello, this is a test' },
+											{ role: 'assistant', content: 'Great! The test is working.' }
+										],
+										timestamp: new Date()
+									};
+									console.log('Creating test session:', testSession);
+									setChatSessions(prev => [testSession, ...prev]);
+									setCurrentSessionId(testSession.id);
+								}}
+								className="w-full px-3 py-2 text-xs bg-blue-100 text-blue-700 rounded border border-blue-300 hover:bg-blue-200"
+							>
+								🧪 Create Test Session
+							</button>
+						</div>
+						
 						{chatSessions.map((session, index) => (
 							<div key={session.id} className="mb-2">
 								<button
