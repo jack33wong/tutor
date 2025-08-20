@@ -121,6 +121,9 @@ async function callThirdAlternativeAPI(message: string): Promise<string> {
 
 // Intelligent local AI response system for GCSE Maths
 function generateIntelligentMathResponse(message: string): string {
+  console.log('=== INTELLIGENT AI FUNCTION CALLED ===');
+  console.log('Processing message:', message);
+  
   const lowerMessage = message.toLowerCase();
   
   // Extract mathematical content and provide intelligent responses
