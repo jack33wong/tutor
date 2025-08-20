@@ -60,9 +60,11 @@ If you cannot see the image content, ask the user to describe what they see or w
   }
 }
 
-// Hugging Face API functions
+// AI API functions with multiple fallback options
 async function callHuggingFaceText(message: string): Promise<string> {
   try {
+    console.log('Attempting Hugging Face text API...');
+    
     // Use a free, open-source text model
     const response = await fetch('https://api-inference.huggingface.co/models/microsoft/DialoGPT-medium', {
       method: 'POST',
@@ -80,26 +82,102 @@ async function callHuggingFaceText(message: string): Promise<string> {
       })
     });
 
+    console.log('Hugging Face response status:', response.status);
+
     if (response.ok) {
       const data = await response.json();
+      console.log('Hugging Face response data:', data);
       return data[0]?.generated_text || 'I understand your question. Let me help you with that.';
     } else {
       console.error('Hugging Face text API error:', response.status, response.statusText);
-      return 'I\'m here to help with your maths questions. Could you please rephrase that?';
+      // Try alternative free API
+      return await callAlternativeTextAPI(message);
     }
   } catch (error) {
     console.error('Hugging Face text API call failed:', error);
-    return 'I\'m having trouble processing your request right now. Please try again.';
+    // Try alternative free API
+    return await callAlternativeTextAPI(message);
   }
+}
+
+// Alternative free text API (fallback)
+async function callAlternativeTextAPI(message: string): Promise<string> {
+  try {
+    console.log('Attempting alternative text API...');
+    
+    // Use a different free AI service as fallback
+    const response = await fetch('https://api-inference.huggingface.co/models/gpt2', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        inputs: message,
+        parameters: {
+          max_length: 200,
+          temperature: 0.8,
+          do_sample: true
+        }
+      })
+    });
+
+    console.log('Alternative API response status:', response.status);
+
+    if (response.ok) {
+      const data = await response.json();
+      console.log('Alternative API response data:', data);
+      return data[0]?.generated_text || 'I understand your question. Let me help you with that.';
+    } else {
+      console.error('Alternative API error:', response.status, response.statusText);
+      // Provide a helpful default response
+      return generateDefaultMathResponse(message);
+    }
+  } catch (error) {
+    console.error('Alternative API call failed:', error);
+    // Provide a helpful default response
+    return generateDefaultMathResponse(message);
+  }
+}
+
+// Generate helpful default responses for maths questions
+function generateDefaultMathResponse(message: string): string {
+  const lowerMessage = message.toLowerCase();
+  
+  if (lowerMessage.includes('equation') || lowerMessage.includes('solve')) {
+    return 'I can help you with solving equations! For GCSE Maths, remember to:\n\n1. **Collect like terms** on each side\n2. **Use inverse operations** to isolate the variable\n3. **Check your answer** by substituting back\n\nCould you share the specific equation you\'re working with?';
+  }
+  
+  if (lowerMessage.includes('fraction') || lowerMessage.includes('fractions')) {
+    return 'Fractions can be tricky! Here are some key GCSE concepts:\n\n1. **Adding/Subtracting**: Find common denominators\n2. **Multiplying**: Multiply numerators and denominators\n3. **Dividing**: Flip the second fraction and multiply\n\nWhat specific fraction problem are you stuck on?';
+  }
+  
+  if (lowerMessage.includes('algebra') || lowerMessage.includes('algebraic')) {
+    return 'Algebra is fundamental to GCSE Maths! Key areas include:\n\n1. **Expanding brackets** using FOIL method\n2. **Factorising** expressions\n3. **Solving equations** step by step\n\nWhich algebraic concept would you like help with?';
+  }
+  
+  if (lowerMessage.includes('geometry') || lowerMessage.includes('shape') || lowerMessage.includes('area')) {
+    return 'Geometry is all about shapes and space! Important GCSE topics:\n\n1. **Area and perimeter** of 2D shapes\n2. **Volume and surface area** of 3D shapes\n3. **Angles** and their properties\n\nWhat geometric problem are you working on?';
+  }
+  
+  if (lowerMessage.includes('statistics') || lowerMessage.includes('data') || lowerMessage.includes('graph')) {
+    return 'Statistics helps us understand data! GCSE focuses on:\n\n1. **Mean, median, mode** calculations\n2. **Reading and interpreting** graphs\n3. **Probability** basics\n\nWhat statistical question do you have?';
+  }
+  
+  // Default helpful response
+  return 'I\'m here to help with GCSE Maths! I can assist with:\n\n• **Algebra** - equations, expressions, factorising\n• **Geometry** - shapes, areas, angles\n• **Fractions** - operations and problem solving\n• **Statistics** - data analysis and probability\n• **And much more!**\n\nPlease ask me a specific question or describe what you\'re working on.';
 }
 
 async function callHuggingFaceMultimodal(message: string, imageData: string): Promise<string> {
   try {
+    console.log('Attempting Hugging Face multimodal API...');
+    
     // Process image data - remove data URL prefix and validate
     const base64Data = imageData.split(',')[1]; // Remove data:image/...;base64, prefix
     if (!base64Data) {
       throw new Error('Invalid image data format');
     }
+
+    console.log('Image data processed, length:', base64Data.length);
 
     // Use a free multimodal model that can handle images and text
     const response = await fetch('https://api-inference.huggingface.co/models/microsoft/git-base-coco', {
@@ -116,8 +194,12 @@ async function callHuggingFaceMultimodal(message: string, imageData: string): Pr
       })
     });
 
+    console.log('Multimodal API response status:', response.status);
+
     if (response.ok) {
       const data = await response.json();
+      console.log('Multimodal API response data:', data);
+      
       let responseText = data[0]?.generated_text || 'I can see the image you uploaded. Let me analyze it and provide mathematical assistance.';
       
       // Enhance the response for mathematical context
@@ -129,11 +211,55 @@ async function callHuggingFaceMultimodal(message: string, imageData: string): Pr
       return responseText;
     } else {
       console.error('Hugging Face multimodal API error:', response.status, response.statusText);
-      return 'I can see your image, but I\'m having trouble analyzing it right now. Could you describe what you see?';
+      // Try alternative approach for image analysis
+      return await handleImageAnalysisFallback(message, imageData);
     }
   } catch (error) {
     console.error('Hugging Face multimodal API call failed:', error);
-    return 'I\'m having trouble processing your image right now. Please try again or describe what you see.';
+    // Try alternative approach for image analysis
+    return await handleImageAnalysisFallback(message, imageData);
+  }
+}
+
+// Fallback for image analysis when multimodal API fails
+async function handleImageAnalysisFallback(message: string, imageData: string): Promise<string> {
+  try {
+    console.log('Attempting image analysis fallback...');
+    
+    // Provide helpful guidance based on the message context
+    if (message.toLowerCase().includes('math') || message.toLowerCase().includes('equation') || 
+        message.toLowerCase().includes('problem') || message.toLowerCase().includes('solve')) {
+      return `I can see you've uploaded an image with a mathematical problem! 
+
+Since I'm having trouble analyzing the image directly, could you please:
+
+1. **Describe what you see** in the image
+2. **Tell me the specific question** or problem
+3. **Share any equations** or numbers shown
+
+I'm here to help with GCSE Maths and can guide you through solving:
+• Algebraic equations
+• Geometry problems  
+• Fraction calculations
+• Statistics questions
+• And much more!
+
+What mathematical concept are you working on?`;
+    }
+    
+    // Generic image guidance
+    return `I can see you've uploaded an image! 
+
+To help you best, please describe:
+• What the image shows
+• What question you have
+• What you'd like help with
+
+I'm your GCSE Maths tutor and ready to assist with any mathematical concepts!`;
+    
+  } catch (error) {
+    console.error('Image analysis fallback failed:', error);
+    return 'I can see your image, but I\'m having trouble analyzing it right now. Please describe what you see and I\'ll be happy to help with your maths question!';
   }
 }
 
