@@ -78,12 +78,27 @@ export default function ChatHome() {
 
 	const send = async () => {
 		console.log('Send function called');
+		console.log('Current session ID:', currentSessionId);
+		console.log('Current session:', currentSession);
+		console.log('Chat sessions:', chatSessions);
+		
 		const text = input.trim();
 		console.log('Input text:', text);
 		if (!text) {
 			console.log('No text to send');
 			return;
 		}
+		
+		if (!currentSessionId) {
+			console.log('No current session ID, creating new session');
+			createNewChat();
+			// Wait a bit for the new session to be created
+			setTimeout(() => {
+				send();
+			}, 100);
+			return;
+		}
+		
 		setIsSending(true);
 		console.log('Setting isSending to true');
 		const userMsg: ChatItem = { role: 'user', content: text + (uploadName ? `\n(Attached: ${uploadName})` : '') };
@@ -213,14 +228,17 @@ export default function ChatHome() {
 
 	// Initialize default session
 	const initializeDefaultSession = () => {
+		console.log('Initializing default session...');
 		const defaultSession: ChatSession = {
 			id: Date.now().toString(),
 			title: 'New Chat',
 			messages: [{ role: 'assistant', content: 'Hi! I can help with GCSE Maths using Mentara. Ask a question or upload an image and tell me about it.' }],
 			timestamp: new Date()
 		};
+		console.log('Default session created:', defaultSession);
 		setChatSessions([defaultSession]);
 		setCurrentSessionId(defaultSession.id);
+		console.log('Default session ID set to:', defaultSession.id);
 	};
 
 	return (
@@ -341,6 +359,16 @@ export default function ChatHome() {
 					{/* Input Bar */}
 					<div className="border-t border-gray-200 bg-white p-6">
 						<div className="max-w-4xl mx-auto">
+							{/* Session status indicator */}
+							{!currentSessionId && (
+								<div className="mb-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+									<div className="flex items-center text-yellow-800">
+										<div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-600 mr-2"></div>
+										<span className="text-sm">Initializing chat session...</span>
+									</div>
+								</div>
+							)}
+							
 							<div className="relative">
 								{/* Image attachment button on the left */}
 								<button
@@ -388,8 +416,9 @@ export default function ChatHome() {
 								{/* Send button on the right */}
 								<button
 									onClick={send}
-									disabled={isSending || !input.trim()}
+									disabled={isSending || !input.trim() || !currentSessionId}
 									className="absolute right-3 top-1/2 transform -translate-y-1/2 p-4 rounded-2xl bg-primary-600 hover:bg-primary-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white shadow-sm hover:shadow-md transition-all duration-200"
+									title={!currentSessionId ? 'No active session' : isSending ? 'Sending...' : !input.trim() ? 'Type a message' : 'Send message'}
 								>
 									<Send className="w-5 h-5" />
 								</button>
