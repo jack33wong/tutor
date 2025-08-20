@@ -126,12 +126,13 @@ export default function ChatHome() {
 					</div>
 
 					{/* Input Bar */}
-					<div className="border-t border-gray-200 bg-white p-4">
+					<div className="border-t border-gray-200 bg-white p-6">
 						<div className="max-w-4xl mx-auto">
-							<div className="flex items-end space-x-3">
+							<div className="relative">
+								{/* Image attachment button on the left */}
 								<button
 									onClick={() => fileRef.current?.click()}
-									className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 text-gray-700 transition-colors"
+									className="absolute left-3 top-1/2 transform -translate-y-1/2 p-2 rounded-xl hover:bg-gray-100 text-gray-600 transition-all duration-200"
 									title="Attach image"
 								>
 									<ImageIcon className="w-5 h-5" />
@@ -142,38 +143,52 @@ export default function ChatHome() {
 									accept="image/*"
 									className="hidden"
 									onChange={(e) => {
-										const f = e.target.files?.[0];
-										setUploadName(f ? f.name : null);
+										const file = e.target.files?.[0];
+										if (file) {
+											setUploadName(file.name);
+										}
 									}}
 								/>
-								<div className="flex-1">
-									<textarea
-										value={input}
-										onChange={(e) => setInput(e.target.value)}
-										onKeyDown={(e) => {
-											if (e.key === 'Enter' && !e.shiftKey) {
-												e.preventDefault();
-												console.log('Enter key pressed');
-												send();
-											}
-										}}
-										rows={1}
-										placeholder={uploadName ? `Message (attached: ${uploadName})` : 'Message Mentara...'}
-										className="w-full resize-none px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
-									/>
-								</div>
-								<button
-									disabled={isSending}
-									onClick={() => {
-										console.log('Send button clicked');
-										send();
+								
+								{/* Textarea with integrated buttons */}
+								<textarea
+									value={input}
+									onChange={(e) => setInput(e.target.value)}
+									onKeyDown={(e) => {
+										if (e.key === 'Enter' && !e.shiftKey) {
+											e.preventDefault();
+											console.log('Enter key pressed');
+											send();
+										}
 									}}
-									className="p-3 rounded-xl bg-primary-600 hover:bg-primary-700 text-white disabled:opacity-50 transition-colors"
-									title="Send"
+									rows={1}
+									placeholder={uploadName ? `Message (attached: ${uploadName})` : 'Message Mentara...'}
+									className="w-full px-12 py-4 border border-gray-300 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-none bg-white"
+								/>
+								
+								{/* Send button on the right */}
+								<button
+									onClick={send}
+									disabled={!input.trim() && !uploadName}
+									className="absolute right-3 top-1/2 transform -translate-y-1/2 p-2 rounded-xl bg-primary-500 hover:bg-primary-600 text-white transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
 								>
 									<Send className="w-5 h-5" />
 								</button>
 							</div>
+							
+							{/* Upload name display */}
+							{uploadName && (
+								<div className="mt-3 flex items-center space-x-2 text-sm text-gray-600">
+									<ImageIcon className="w-4 h-4" />
+									<span>{uploadName}</span>
+									<button
+										onClick={() => setUploadName(null)}
+										className="text-red-500 hover:text-red-700"
+									>
+										×
+									</button>
+								</div>
+							)}
 						</div>
 					</div>
 				</main>
