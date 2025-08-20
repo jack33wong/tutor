@@ -92,6 +92,17 @@ export default function ChatHome() {
 	// Get current session
 	const currentSession = chatSessions.find(session => session.id === currentSessionId);
 	const messages = currentSession?.messages || [];
+	
+	// Debug: Log current session changes
+	useEffect(() => {
+		if (currentSession) {
+			console.log('=== CHAT PAGE: Current session updated ===', { 
+				id: currentSession.id, 
+				title: currentSession.title, 
+				messagesCount: currentSession.messages.length 
+			});
+		}
+	}, [currentSession]);
 
 	// Create new chat session
 	const createNewChat = () => {
@@ -118,9 +129,21 @@ export default function ChatHome() {
 
 	// Switch to a different chat session
 	const switchToSession = (sessionId: string) => {
+		console.log('=== CHAT PAGE: Switching to session ===', { sessionId, currentSessionId });
+		
+		// Find the session we're switching to
+		const targetSession = chatSessions.find(s => s.id === sessionId);
+		console.log('=== CHAT PAGE: Target session details ===', { 
+			id: targetSession?.id, 
+			title: targetSession?.title, 
+			messagesCount: targetSession?.messages?.length 
+		});
+		
 		setCurrentSessionId(sessionId);
 		setInput('');
 		setUploadName(null);
+		
+		console.log('=== CHAT PAGE: Session switch complete ===');
 	};
 
 	// Delete a chat session
