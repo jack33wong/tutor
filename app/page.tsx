@@ -151,7 +151,23 @@ export default function ChatHome() {
 					...session,
 					timestamp: new Date(session.timestamp)
 				}));
-				setChatSessions(sessionsWithDates);
+				// Sort sessions by timestamp (newest first)
+				const sortedSessions = sessionsWithDates.sort((a: ChatSession, b: ChatSession) => 
+					new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+				);
+				setChatSessions(sortedSessions);
+				
+				// Check if we need to restore a specific session (e.g., from dashboard)
+				const restoreSessionId = localStorage.getItem('restoreSessionId');
+				if (restoreSessionId) {
+					// Find the session to restore
+					const sessionToRestore = sessionsWithDates.find((session: ChatSession) => session.id === restoreSessionId);
+					if (sessionToRestore) {
+						setCurrentSessionId(restoreSessionId);
+					}
+					// Clear the restore flag
+					localStorage.removeItem('restoreSessionId');
+				}
 			} catch (e) {
 				console.error('Error loading chat sessions:', e);
 			}
@@ -206,23 +222,33 @@ export default function ChatHome() {
 					{/* Chat Messages */}
 					<div className="flex-1 overflow-y-auto p-4">
 						<div className="max-w-4xl mx-auto space-y-6">
-							{messages.map((message, index) => (
-								<div key={index} className={`mb-6 ${message.role === 'user' ? 'text-right' : 'text-left'}`}>
-									<div className={`inline-block max-w-3xl ${message.role === 'user' ? 'ml-auto' : 'mr-auto'}`}>
-										<div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed ${
-											message.role === 'user' 
-												? 'bg-primary-600 text-white' 
-												: 'bg-white border border-gray-200 text-gray-900 shadow-sm'
-										}`}>
-											{message.role === 'user' ? (
-												<div className="whitespace-pre-wrap">{message.content}</div>
-											) : (
-												<MarkdownMessage content={message.content} />
-											)}
+							{messages.length === 0 ? (
+								<div className="text-center py-12">
+									<div className="text-gray-400 mb-4">
+										<MessageCircle className="w-16 h-16 mx-auto" />
+									</div>
+									<h3 className="text-lg font-medium text-gray-900 mb-2">Welcome to Mentara!</h3>
+									<p className="text-gray-600">Start a conversation by typing a message below.</p>
+								</div>
+							) : (
+								messages.map((message, index) => (
+									<div key={index} className={`mb-6 ${message.role === 'user' ? 'text-right' : 'text-left'}`}>
+										<div className={`inline-block max-w-3xl ${message.role === 'user' ? 'ml-auto' : 'mr-auto'}`}>
+											<div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed ${
+												message.role === 'user' 
+													? 'bg-primary-600 text-white' 
+													: 'bg-white border border-gray-200 text-gray-900 shadow-sm'
+											}`}>
+												{message.role === 'user' ? (
+													<div className="whitespace-pre-wrap">{message.content}</div>
+												) : (
+													<MarkdownMessage content={message.content} />
+												)}
+											</div>
 										</div>
 									</div>
-								</div>
-							))}
+								))
+							)}
 						</div>
 					</div>
 
