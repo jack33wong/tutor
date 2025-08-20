@@ -102,67 +102,78 @@ export default function ChatHome() {
 						<p className="text-sm text-gray-600">Ask questions, attach an image (optional), and jot notes in the notepad.</p>
 					</header>
 
-					<div className="flex-1 overflow-y-auto p-4 space-y-4">
-						{messages.map((m, idx) => (
-							<div key={idx} className={`max-w-2xl ${m.role === 'user' ? 'ml-auto' : ''}`}>
-								<div className={`px-4 py-3 rounded-lg text-sm ${m.role === 'user' ? 'bg-primary-600 text-white whitespace-pre-wrap' : 'bg-white border border-gray-200 text-gray-900'}`}>
-									{m.role === 'user' ? (
-										m.content
-									) : (
-										<MarkdownMessage content={m.content} />
-									)}
+					{/* Centered Conversation Area */}
+					<div className="flex-1 overflow-y-auto">
+						<div className="max-w-4xl mx-auto px-4 py-6">
+							{messages.map((m, idx) => (
+								<div key={idx} className={`mb-6 ${m.role === 'user' ? 'text-right' : 'text-left'}`}>
+									<div className={`inline-block max-w-3xl ${m.role === 'user' ? 'ml-auto' : 'mr-auto'}`}>
+										<div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed ${
+											m.role === 'user' 
+												? 'bg-primary-600 text-white' 
+												: 'bg-white border border-gray-200 text-gray-900 shadow-sm'
+										}`}>
+											{m.role === 'user' ? (
+												<div className="whitespace-pre-wrap">{m.content}</div>
+											) : (
+												<MarkdownMessage content={m.content} />
+											)}
+										</div>
+									</div>
 								</div>
-							</div>
-						))}
+							))}
+						</div>
 					</div>
 
 					{/* Input Bar */}
-					<div className="border-t border-gray-200 bg-white p-3">
-						<div className="max-w-3xl mx-auto flex items-end space-x-2">
-							<button
-								onClick={() => fileRef.current?.click()}
-								className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 text-gray-700"
-								title="Attach image"
-							>
-								<ImageIcon className="w-5 h-5" />
-							</button>
-							<input
-								ref={fileRef}
-								type="file"
-								accept="image/*"
-								className="hidden"
-								onChange={(e) => {
-									const f = e.target.files?.[0];
-									setUploadName(f ? f.name : null);
-								}}
-							/>
-							<div className="flex-1">
-								<textarea
-									value={input}
-									onChange={(e) => setInput(e.target.value)}
-									onKeyDown={(e) => {
-										if (e.key === 'Enter' && !e.shiftKey) {
-											e.preventDefault();
-											console.log('Enter key pressed');
-											send();
-										}
+					<div className="border-t border-gray-200 bg-white p-4">
+						<div className="max-w-4xl mx-auto">
+							<div className="flex items-end space-x-3">
+								<button
+									onClick={() => fileRef.current?.click()}
+									className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 text-gray-700 transition-colors"
+									title="Attach image"
+								>
+									<ImageIcon className="w-5 h-5" />
+								</button>
+								<input
+									ref={fileRef}
+									type="file"
+									accept="image/*"
+									className="hidden"
+									onChange={(e) => {
+										const f = e.target.files?.[0];
+										setUploadName(f ? f.name : null);
 									}}
-									rows={1}
-									placeholder={uploadName ? `Message (attached: ${uploadName})` : 'Message Mentara...'}
-									className="w-full resize-none px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
 								/>
+								<div className="flex-1">
+									<textarea
+										value={input}
+										onChange={(e) => setInput(e.target.value)}
+										onKeyDown={(e) => {
+											if (e.key === 'Enter' && !e.shiftKey) {
+												e.preventDefault();
+												console.log('Enter key pressed');
+												send();
+											}
+										}}
+										rows={1}
+										placeholder={uploadName ? `Message (attached: ${uploadName})` : 'Message Mentara...'}
+										className="w-full resize-none px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+									/>
+								</div>
+								<button
+									disabled={isSending}
+									onClick={() => {
+										console.log('Send button clicked');
+										send();
+									}}
+									className="p-3 rounded-xl bg-primary-600 hover:bg-primary-700 text-white disabled:opacity-50 transition-colors"
+									title="Send"
+								>
+									<Send className="w-5 h-5" />
+								</button>
 							</div>
-							<button
-								disabled={isSending}
-								onClick={() => {
-									console.log('Send button clicked');
-									send();
-								}}
-								className="p-2 rounded-lg bg-primary-600 hover:bg-primary-700 text-white disabled:opacity-50"
-								title="Send"
-							>
-								<Send className="w-5 h-5" />
-							</button>
 						</div>
 					</div>
 				</main>

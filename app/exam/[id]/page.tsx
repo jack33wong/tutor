@@ -398,186 +398,188 @@ export default function ExamPage() {
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
               {/* Question Area */}
               <div className="lg:col-span-3">
-            <motion.div
-              key={currentQuestion}
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="card"
-            >
-              {/* Question Header */}
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center space-x-4">
-                  <span className="text-2xl font-bold text-primary-600">Q{currentQuestion + 1}</span>
-                  <span className="text-sm text-gray-500">{currentQ.marks} marks</span>
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                    currentQ.questionType === 'multiple-choice' ? 'bg-blue-100 text-blue-800' :
-                    currentQ.questionType === 'short-answer' ? 'bg-green-100 text-green-800' :
-                    currentQ.questionType === 'long-answer' ? 'bg-purple-100 text-purple-800' :
-                    'bg-orange-100 text-orange-800'
-                  }`}>
-                    {currentQ.questionType.replace('-', ' ')}
-                  </span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => toggleHint(currentQuestion)}
-                    className={`p-2 rounded-lg transition-colors ${
-                      showHints.has(currentQuestion)
-                        ? 'bg-yellow-100 text-yellow-600'
-                        : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
-                    }`}
-                    title="Show hints"
-                  >
-                    <Lightbulb className="w-5 h-5" />
-                  </button>
-                  <button
-                    onClick={() => toggleFlag(currentQuestion)}
-                    className={`p-2 rounded-lg transition-colors ${
-                      flaggedQuestions.has(currentQuestion)
-                        ? 'bg-yellow-100 text-yellow-600'
-                        : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
-                    }`}
-                    title="Flag for review"
-                  >
-                    <Flag className="w-5 h-5" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Question */}
-              <div className="mb-8">
-                <p className="text-lg text-gray-900 mb-4">{currentQ.question}</p>
-                
-                {/* AI Hints */}
-                {showHints.has(currentQuestion) && (
-                  <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                    <h4 className="font-medium text-yellow-800 mb-2 flex items-center">
-                      <Lightbulb className="w-4 h-4 mr-2" />
-                      AI Hint
-                    </h4>
-                    <div className="text-sm text-yellow-700">
-                      {loadingHints.has(currentQuestion) ? (
-                        <div className="flex items-center space-x-2">
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-600"></div>
-                          <span>Generating hint...</span>
-                        </div>
-                      ) : (
-                        <p>{aiHints[currentQuestion] || 'Click the hint button to get AI-powered help!'}</p>
-                      )}
-                    </div>
-                  </div>
-                )}
-                
-                {/* Answer Input */}
-                <div className="space-y-4">
-                  <label className="block">
-                    <span className="text-sm font-medium text-gray-700">Your Answer</span>
-                    <div className="mt-2">
-                      {renderAnswerInput(currentQ)}
-                    </div>
-                  </label>
-                </div>
-              </div>
-
-              {/* Navigation */}
-              <div className="flex items-center justify-between pt-6 border-t border-gray-200">
-                <button
-                  onClick={() => setCurrentQuestion(prev => Math.max(0, prev - 1))}
-                  disabled={currentQuestion === 0}
-                  className="btn-secondary flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                <motion.div
+                  key={currentQuestion}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="card"
                 >
-                  <ArrowLeft className="w-4 h-4" />
-                  <span>Previous</span>
-                </button>
+                  {/* Question Header */}
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center space-x-4">
+                      <span className="text-2xl font-bold text-primary-600">Q{currentQuestion + 1}</span>
+                      <span className="text-sm text-gray-500">{currentQ.marks} marks</span>
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                        currentQ.questionType === 'multiple-choice' ? 'bg-blue-100 text-blue-800' :
+                        currentQ.questionType === 'short-answer' ? 'bg-green-100 text-green-800' :
+                        currentQ.questionType === 'long-answer' ? 'bg-purple-100 text-purple-800' :
+                        'bg-orange-100 text-orange-800'
+                      }`}>
+                        {currentQ.questionType.replace('-', ' ')}
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => toggleHint(currentQuestion)}
+                        className={`p-2 rounded-lg transition-colors ${
+                          showHints.has(currentQuestion)
+                            ? 'bg-yellow-100 text-yellow-600'
+                            : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+                        }`}
+                        title="Show hints"
+                      >
+                        <Lightbulb className="w-5 h-5" />
+                      </button>
+                      <button
+                        onClick={() => toggleFlag(currentQuestion)}
+                        className={`p-2 rounded-lg transition-colors ${
+                          flaggedQuestions.has(currentQuestion)
+                            ? 'bg-yellow-100 text-yellow-600'
+                            : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+                        }`}
+                        title="Flag for review"
+                      >
+                        <Flag className="w-5 h-5" />
+                      </button>
+                    </div>
+                  </div>
 
-                <div className="flex items-center space-x-2">
-                  {currentQuestion < totalQuestions - 1 ? (
-                    <button
-                      onClick={() => setCurrentQuestion(prev => prev + 1)}
-                      className="btn-primary flex items-center space-x-2"
-                    >
-                      <span>Next</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </button>
-                  ) : (
-                    <button
-                      onClick={handleSubmit}
-                      className="btn-primary flex items-center space-x-2"
-                    >
-                      <CheckCircle className="w-4 h-4" />
-                      <span>Submit Exam</span>
-                    </button>
-                  )}
-                </div>
-              </div>
-            </motion.div>
-          </div>
+                  {/* Question */}
+                  <div className="mb-8">
+                    <p className="text-lg text-gray-900 mb-4">{currentQ.question}</p>
+                    
+                    {/* AI Hints */}
+                    {showHints.has(currentQuestion) && (
+                      <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <h4 className="font-medium text-yellow-800 mb-2 flex items-center">
+                          <Lightbulb className="w-4 h-4 mr-2" />
+                          AI Hint
+                        </h4>
+                        <div className="text-sm text-yellow-700">
+                          {loadingHints.has(currentQuestion) ? (
+                            <div className="flex items-center space-x-2">
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-600"></div>
+                              <span>Generating hint...</span>
+                            </div>
+                          ) : (
+                            <p>{aiHints[currentQuestion] || 'Click the hint button to get AI-powered help!'}</p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Answer Input */}
+                    <div className="space-y-4">
+                      <label className="block">
+                        <span className="text-sm font-medium text-gray-700">Your Answer</span>
+                        <div className="mt-2">
+                          {renderAnswerInput(currentQ)}
+                        </div>
+                      </label>
+                    </div>
+                  </div>
 
-          {/* Question Navigator */}
-          <div className="lg:col-span-1">
-            <div className="card">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Question Navigator</h3>
-              
-              <div className="grid grid-cols-5 gap-2 mb-6">
-                {exam.questions.map((question, index) => {
-                  const isAnswered = answers[question.id];
-                  const isFlagged = flaggedQuestions.has(index);
-                  const isCurrent = index === currentQuestion;
-                  
-                  return (
+                  {/* Navigation */}
+                  <div className="flex items-center justify-between pt-6 border-t border-gray-200">
                     <button
-                      key={index}
-                      onClick={() => setCurrentQuestion(index)}
-                      className={`w-10 h-10 rounded-lg text-sm font-medium transition-colors relative ${
-                        isCurrent
-                          ? 'bg-primary-600 text-white'
-                          : isAnswered
-                          ? 'bg-success-100 text-success-800'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      }`}
+                      onClick={() => setCurrentQuestion(prev => Math.max(0, prev - 1))}
+                      disabled={currentQuestion === 0}
+                      className="btn-secondary flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {index + 1}
-                      {isFlagged && (
-                        <Flag className="w-3 h-3 absolute -top-1 -right-1 text-yellow-600" />
+                      <ArrowLeft className="w-4 h-4" />
+                      <span>Previous</span>
+                    </button>
+
+                    <div className="flex items-center space-x-2">
+                      {currentQuestion < totalQuestions - 1 ? (
+                        <button
+                          onClick={() => setCurrentQuestion(prev => prev + 1)}
+                          className="btn-primary flex items-center space-x-2"
+                        >
+                          <span>Next</span>
+                          <ArrowRight className="w-4 h-4" />
+                        </button>
+                      ) : (
+                        <button
+                          onClick={handleSubmit}
+                          className="btn-primary flex items-center space-x-2"
+                        >
+                          <CheckCircle className="w-4 h-4" />
+                          <span>Submit Exam</span>
+                        </button>
                       )}
-                    </button>
-                  );
-                })}
+                    </div>
+                  </div>
+                </motion.div>
               </div>
 
-              <div className="space-y-3 text-sm">
-                <div className="flex items-center space-x-2">
-                  <div className="w-4 h-4 bg-primary-600 rounded"></div>
-                  <span>Current</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-4 h-4 bg-success-100 rounded"></div>
-                  <span>Answered</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-4 h-4 bg-gray-100 rounded"></div>
-                  <span>Unanswered</span>
-                </div>
-              </div>
+              {/* Question Navigator */}
+              <div className="lg:col-span-1">
+                <div className="card">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Question Navigator</h3>
+                  
+                  <div className="grid grid-cols-5 gap-2 mb-6">
+                    {exam.questions.map((question, index) => {
+                      const isAnswered = answers[question.id];
+                      const isFlagged = flaggedQuestions.has(index);
+                      const isCurrent = index === currentQuestion;
+                      
+                      return (
+                        <button
+                          key={index}
+                          onClick={() => setCurrentQuestion(index)}
+                          className={`w-10 h-10 rounded-lg text-sm font-medium transition-colors relative ${
+                            isCurrent
+                              ? 'bg-primary-600 text-white'
+                              : isAnswered
+                              ? 'bg-success-100 text-success-800'
+                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          }`}
+                        >
+                          {index + 1}
+                          {isFlagged && (
+                            <Flag className="w-3 h-3 absolute -top-1 -right-1 text-yellow-600" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
 
-              {/* Exam Info */}
-              <div className="mt-6 pt-4 border-t border-gray-100">
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-600">Total Marks</span>
-                    <span className="font-medium">{exam.totalMarks}</span>
+                  <div className="space-y-3 text-sm">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-4 h-4 bg-primary-600 rounded"></div>
+                      <span>Current</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-4 h-4 bg-success-100 rounded"></div>
+                      <span>Answered</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-4 h-4 bg-gray-100 rounded"></div>
+                      <span>Unanswered</span>
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-600">Time Limit</span>
-                    <span className="font-medium">{exam.timeLimit}m</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-600">Difficulty</span>
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                      exam.difficulty === 'foundation' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'
-                    }`}>
-                      {exam.difficulty}
-                    </span>
+
+                  {/* Exam Info */}
+                  <div className="mt-6 pt-4 border-t border-gray-100">
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-600">Total Marks</span>
+                        <span className="font-medium">{exam.totalMarks}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-600">Time Limit</span>
+                        <span className="font-medium">{exam.timeLimit}m</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-600">Difficulty</span>
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                          exam.difficulty === 'foundation' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'
+                        }`}>
+                          {exam.difficulty}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -664,128 +666,128 @@ function ExamResults({ exam, answers, startTime }: { exam: any, answers: Record<
                 animate={{ opacity: 1, y: 0 }}
                 className="card"
               >
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-4">Exam Results</h1>
-            <p className="text-lg text-gray-600">{exam.title}</p>
-            <div className="flex items-center justify-center space-x-4 mt-2 text-sm text-gray-500">
-              <span>{exam.examBoard} {exam.paperType}</span>
-              <span>•</span>
-              <span>{exam.difficulty} tier</span>
-              <span>•</span>
-              <span>{examDuration} minutes</span>
-            </div>
-          </div>
-
-          {/* Score Summary */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <div className="text-center">
-              <p className="text-2xl font-bold text-primary-600">{score}</p>
-              <p className="text-sm text-gray-500">Score</p>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-gray-900">{totalMarks}</p>
-              <p className="text-sm text-gray-500">Total Marks</p>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-success-600">{percentage.toFixed(1)}%</p>
-              <p className="text-sm text-gray-500">Percentage</p>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-purple-600">Grade {grade}</p>
-              <p className="text-sm text-gray-500">Grade</p>
-            </div>
-          </div>
-
-          {/* Question Review */}
-          <div className="space-y-6">
-            <h2 className="text-xl font-semibold text-gray-900">Question Review</h2>
-            {exam.questions.map((question: ExamQuestion, index: number) => {
-              const userAnswer = answers[question.id];
-              const isCorrect = userAnswer && userAnswer.trim().toLowerCase() === question.correctAnswer.toString().toLowerCase();
-              
-              return (
-                <div key={question.id} className="border border-gray-200 rounded-lg p-4">
-                  <div className="flex items-start justify-between mb-3">
-                    <h3 className="font-medium text-gray-900">Question {index + 1}</h3>
-                    <div className="flex items-center space-x-2">
-                      {isCorrect ? (
-                        <CheckCircle className="w-5 h-5 text-success-600" />
-                      ) : (
-                        <XCircle className="w-5 h-5 text-error-600" />
-                      )}
-                      <span className="text-sm text-gray-500">{question.marks} marks</span>
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                        question.questionType === 'multiple-choice' ? 'bg-blue-100 text-blue-800' :
-                        question.questionType === 'short-answer' ? 'bg-green-100 text-green-800' :
-                        question.questionType === 'long-answer' ? 'bg-purple-100 text-purple-800' :
-                        'bg-orange-100 text-orange-800'
-                      }`}>
-                        {question.questionType.replace('-', ' ')}
-                      </span>
-                    </div>
+                <div className="text-center mb-8">
+                  <h1 className="text-3xl font-bold text-gray-900 mb-4">Exam Results</h1>
+                  <p className="text-lg text-gray-600">{exam.title}</p>
+                  <div className="flex items-center justify-center space-x-4 mt-2 text-sm text-gray-500">
+                    <span>{exam.examBoard} {exam.paperType}</span>
+                    <span>•</span>
+                    <span>{exam.difficulty} tier</span>
+                    <span>•</span>
+                    <span>{examDuration} minutes</span>
                   </div>
-                  
-                  <p className="text-gray-700 mb-3">{question.question}</p>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600 mb-1">Your Answer:</p>
-                      <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">
-                        {userAnswer || 'No answer provided'}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-600 mb-1">Correct Answer:</p>
-                      <p className="text-sm text-gray-900 bg-success-50 p-2 rounded">
-                        {question.correctAnswer}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  {question.explanation && (
-                    <div className="mt-3">
-                      <p className="text-sm font-medium text-gray-600 mb-1">Explanation:</p>
-                      <p className="text-sm text-gray-700 bg-blue-50 p-3 rounded">
-                        {question.explanation}
-                      </p>
-                    </div>
-                  )}
-
-                  {question.working && (
-                    <div className="mt-3">
-                      <p className="text-sm font-medium text-gray-600 mb-1">Working:</p>
-                      <p className="text-sm text-gray-700 bg-yellow-50 p-3 rounded font-mono whitespace-pre-line">
-                        {question.working}
-                      </p>
-                    </div>
-                  )}
                 </div>
-              );
-            })}
-          </div>
 
-          {/* Actions */}
-          <div className="flex items-center justify-center space-x-4 mt-8 pt-6 border-t border-gray-200">
-            <button
-              onClick={() => router.push('/')}
-              className="btn-primary"
-            >
-              Return to Dashboard
-            </button>
-            <button
-              onClick={() => router.push('/exams')}
-              className="btn-secondary"
-            >
-              View All Exams
-            </button>
-            <button
-              onClick={() => window.location.reload()}
-              className="btn-secondary"
-            >
-              Retake Exam
-            </button>
-          </div>
-        </motion.div>
+                {/* Score Summary */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-primary-600">{score}</p>
+                    <p className="text-sm text-gray-500">Score</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-gray-900">{totalMarks}</p>
+                    <p className="text-sm text-gray-500">Total Marks</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-success-600">{percentage.toFixed(1)}%</p>
+                    <p className="text-sm text-gray-500">Percentage</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-purple-600">Grade {grade}</p>
+                    <p className="text-sm text-gray-500">Grade</p>
+                  </div>
+                </div>
+
+                {/* Question Review */}
+                <div className="space-y-6">
+                  <h2 className="text-xl font-semibold text-gray-900">Question Review</h2>
+                  {exam.questions.map((question: ExamQuestion, index: number) => {
+                    const userAnswer = answers[question.id];
+                    const isCorrect = userAnswer && userAnswer.trim().toLowerCase() === question.correctAnswer.toString().toLowerCase();
+                    
+                    return (
+                      <div key={question.id} className="border border-gray-200 rounded-lg p-4">
+                        <div className="flex items-start justify-between mb-3">
+                          <h3 className="font-medium text-gray-900">Question {index + 1}</h3>
+                          <div className="flex items-center space-x-2">
+                            {isCorrect ? (
+                              <CheckCircle className="w-5 h-5 text-success-600" />
+                            ) : (
+                              <XCircle className="w-5 h-5 text-error-600" />
+                            )}
+                            <span className="text-sm text-gray-500">{question.marks} marks</span>
+                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                              question.questionType === 'multiple-choice' ? 'bg-blue-100 text-blue-800' :
+                              question.questionType === 'short-answer' ? 'bg-green-100 text-green-800' :
+                              question.questionType === 'long-answer' ? 'bg-purple-100 text-purple-800' :
+                              'bg-orange-100 text-orange-800'
+                            }`}>
+                              {question.questionType.replace('-', ' ')}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <p className="text-gray-700 mb-3">{question.question}</p>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-sm font-medium text-gray-600 mb-1">Your Answer:</p>
+                            <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">
+                              {userAnswer || 'No answer provided'}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-600 mb-1">Correct Answer:</p>
+                            <p className="text-sm text-gray-900 bg-success-50 p-2 rounded">
+                              {question.correctAnswer}
+                            </p>
+                          </div>
+                        </div>
+                        
+                        {question.explanation && (
+                          <div className="mt-3">
+                            <p className="text-sm font-medium text-gray-600 mb-1">Explanation:</p>
+                            <p className="text-sm text-gray-700 bg-blue-50 p-3 rounded">
+                              {question.explanation}
+                            </p>
+                          </div>
+                        )}
+
+                        {question.working && (
+                          <div className="mt-3">
+                            <p className="text-sm font-medium text-gray-600 mb-1">Working:</p>
+                            <p className="text-sm text-gray-700 bg-yellow-50 p-3 rounded font-mono whitespace-pre-line">
+                              {question.working}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Actions */}
+                <div className="flex items-center justify-center space-x-4 mt-8 pt-6 border-t border-gray-200">
+                  <button
+                    onClick={() => router.push('/')}
+                    className="btn-primary"
+                  >
+                    Return to Dashboard
+                  </button>
+                  <button
+                    onClick={() => router.push('/past-papers')}
+                    className="btn-secondary"
+                  >
+                    View All Exams
+                  </button>
+                  <button
+                    onClick={() => window.location.reload()}
+                    className="btn-secondary"
+                  >
+                    Retake Exam
+                  </button>
+                </div>
+              </motion.div>
             </div>
           </div>
         </main>
