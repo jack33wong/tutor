@@ -22,10 +22,21 @@ export default function ChatHistory() {
 		if (typeof window === 'undefined') return;
 		
 		try {
+			// Test localStorage
+			localStorage.setItem('test', 'test-value');
+			const testValue = localStorage.getItem('test');
+			console.log('localStorage test:', testValue);
+			
 			const saved = localStorage.getItem('chatSessions');
+			console.log('ChatHistory: localStorage.getItem("chatSessions"):', saved);
+			
 			if (saved) {
 				const parsed = JSON.parse(saved);
+				console.log('ChatHistory: Parsed sessions:', parsed);
 				setChatSessions(parsed);
+			} else {
+				console.log('ChatHistory: No chatSessions found in localStorage');
+				setChatSessions([]);
 			}
 		} catch (error) {
 			console.error('Error loading chat sessions:', error);
