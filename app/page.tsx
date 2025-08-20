@@ -362,7 +362,7 @@ export default function ChatHome() {
 		<div className="min-h-screen bg-gray-50">
 			<div className="flex h-screen">
 				{/* Left Sidebar */}
-				<LeftSidebar onNewChat={createNewChat}>
+				<LeftSidebar onNewChat={createNewChat} chatSessions={chatSessions}>
 					{/* Chat History */}
 					<div className="flex-1 overflow-y-auto">
 						{/* Debug: Show all session titles */}

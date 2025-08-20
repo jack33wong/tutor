@@ -1,15 +1,27 @@
 'use client';
 
+import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LayoutDashboard, FileText, MessageCircle, Plus } from 'lucide-react';
 
+interface ChatSession {
+	id: string;
+	title: string;
+	messages: Array<{
+		role: 'user' | 'assistant';
+		content: string;
+	}>;
+	timestamp: Date;
+}
+
 interface LeftSidebarProps {
 	children?: React.ReactNode;
 	onNewChat?: () => void;
+	chatSessions?: ChatSession[];
 }
 
-export default function LeftSidebar({ children, onNewChat }: LeftSidebarProps) {
+export default function LeftSidebar({ children, onNewChat, chatSessions }: LeftSidebarProps) {
 	const pathname = usePathname();
 
 	const handleChatClick = (e: React.MouseEvent) => {
@@ -69,7 +81,8 @@ export default function LeftSidebar({ children, onNewChat }: LeftSidebarProps) {
 					<div className="text-xs text-gray-400 p-2 bg-gray-50 rounded mb-2">
 						LeftSidebar: Children rendered, pathname: {pathname}
 					</div>
-					{children}
+					{/* Pass chatSessions to children */}
+					{React.cloneElement(children as React.ReactElement, { chatSessions: chatSessions })}
 				</div>
 			)}
 		</aside>

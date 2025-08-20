@@ -1,10 +1,21 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { LayoutDashboard, FileText, TrendingUp, Clock, Target, MessageCircle } from 'lucide-react';
 import ProgressCard from '@/components/ProgressCard';
 import ExamCard from '@/components/ExamCard';
 import LeftSidebar from '@/components/LeftSidebar';
 import dynamic from 'next/dynamic';
+
+interface ChatSession {
+	id: string;
+	title: string;
+	messages: Array<{
+		role: 'user' | 'assistant';
+		content: string;
+	}>;
+	timestamp: Date;
+}
 
 const ChatHistory = dynamic(() => import('@/components/ChatHistory'), { 
 	ssr: false,
@@ -20,12 +31,31 @@ const ChatHistory = dynamic(() => import('@/components/ChatHistory'), {
 });
 
 export default function DashboardPage() {
+	const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
+	const [isHydrated, setIsHydrated] = useState(false);
+
+	// Load chat sessions from localStorage
+	useEffect(() => {
+		if (typeof window !== 'undefined') {
+			try {
+				const saved = localStorage.getItem('chatSessions');
+				if (saved && saved.trim() !== '' && saved !== 'null') {
+					const parsed = JSON.parse(saved);
+					setChatSessions(parsed);
+				}
+			} catch (error) {
+				console.error('Error loading chat sessions:', error);
+			}
+			setIsHydrated(true);
+		}
+	}, []);
+
 	return (
 		<div className="min-h-screen bg-gray-50">
 			<div className="flex h-screen">
 				{/* Left Sidebar */}
-				<LeftSidebar>
-					<ChatHistory />
+				<LeftSidebar chatSessions={chatSessions}>
+					<ChatHistory chatSessions={chatSessions} />
 				</LeftSidebar>
 
 				{/* Main Content */}

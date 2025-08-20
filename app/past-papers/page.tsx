@@ -1,9 +1,20 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { examPapers } from '@/data/examPapers';
 import { sampleUserProgress } from '@/data/userProgress';
 import LeftSidebar from '@/components/LeftSidebar';
 import dynamic from 'next/dynamic';
+
+interface ChatSession {
+	id: string;
+	title: string;
+	messages: Array<{
+		role: 'user' | 'assistant';
+		content: string;
+	}>;
+	timestamp: Date;
+}
 
 const ChatHistory = dynamic(() => import('@/components/ChatHistory'), { 
 	ssr: false,
@@ -19,12 +30,31 @@ const ChatHistory = dynamic(() => import('@/components/ChatHistory'), {
 });
 
 export default function PastPapersPage() {
+	const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
+	const [isHydrated, setIsHydrated] = useState(false);
+
+	// Load chat sessions from localStorage
+	useEffect(() => {
+		if (typeof window !== 'undefined') {
+			try {
+				const saved = localStorage.getItem('chatSessions');
+				if (saved && saved.trim() !== '' && saved !== 'null') {
+					const parsed = JSON.parse(saved);
+					setChatSessions(parsed);
+				}
+			} catch (error) {
+				console.error('Error loading chat sessions:', error);
+			}
+			setIsHydrated(true);
+		}
+	}, []);
+
 	return (
 		<div className="min-h-screen bg-gray-50">
 			<div className="flex h-screen">
 				{/* Left Sidebar */}
-				<LeftSidebar>
-					<ChatHistory />
+				<LeftSidebar chatSessions={chatSessions}>
+					<ChatHistory chatSessions={chatSessions} />
 				</LeftSidebar>
 
 				{/* Main Content */}

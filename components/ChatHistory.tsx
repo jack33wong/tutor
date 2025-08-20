@@ -13,20 +13,26 @@ interface ChatSession {
 	timestamp: Date | string;
 }
 
-export default function ChatHistory() {
-	console.log('=== CHAT HISTORY: Component rendering ===');
+interface ChatHistoryProps {
+	chatSessions: ChatSession[];
+}
+
+export default function ChatHistory({ chatSessions }: ChatHistoryProps) {
+	console.log('=== CHAT HISTORY: Component rendering with props ===', { 
+		sessionsCount: chatSessions.length,
+		firstSessionTitle: chatSessions[0]?.title || 'No sessions'
+	});
 	
-	const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
 	const [isMounted, setIsMounted] = useState(false);
 	const [debugInfo, setDebugInfo] = useState('Component created');
 	const router = useRouter();
 
-	// Simple function to load chat sessions
-	const loadChatSessions = () => {
+	// Debug function to check localStorage (no longer manages state)
+	const debugLocalStorage = () => {
 		if (typeof window === 'undefined') return;
 		
 		try {
-			console.log('=== CHAT HISTORY: loadChatSessions called ===');
+			console.log('=== CHAT HISTORY: debugLocalStorage called ===');
 			
 			// Test localStorage
 			localStorage.setItem('test', 'test-value');
@@ -47,18 +53,17 @@ export default function ChatHistory() {
 			if (saved && saved.trim() !== '' && saved !== 'null') {
 				try {
 					const parsed = JSON.parse(saved);
-					console.log('=== CHAT HISTORY: Parsed sessions ===', parsed);
-					setChatSessions(parsed);
+					console.log('=== CHAT HISTORY: Parsed sessions from localStorage ===', parsed);
+					console.log('=== CHAT HISTORY: Props chatSessions ===', chatSessions);
+					console.log('=== CHAT HISTORY: localStorage vs props match ===', JSON.stringify(parsed) === JSON.stringify(chatSessions));
 				} catch (parseError) {
 					console.error('=== CHAT HISTORY: Parse error ===', parseError);
-					setChatSessions([]);
 				}
 			} else {
-				console.log('=== CHAT HISTORY: No valid chatSessions found ===');
-				setChatSessions([]);
+				console.log('=== CHAT HISTORY: No valid chatSessions found in localStorage ===');
 			}
 		} catch (error) {
-			console.error('=== CHAT HISTORY: Error loading chat sessions ===', error);
+			console.error('=== CHAT HISTORY: Error debugging localStorage ===', error);
 		}
 	};
 
@@ -67,10 +72,10 @@ export default function ChatHistory() {
 		console.log('=== CHAT HISTORY: useEffect running ===');
 		setDebugInfo('useEffect started');
 		setIsMounted(true);
-		loadChatSessions();
+		debugLocalStorage();
 		
-		// Refresh every 3 seconds
-		const interval = setInterval(loadChatSessions, 3000);
+		// Debug localStorage every 3 seconds to compare with props
+		const interval = setInterval(debugLocalStorage, 3000);
 		return () => clearInterval(interval);
 	}, []);
 
@@ -105,12 +110,12 @@ export default function ChatHistory() {
 				Found {chatSessions.length} chat sessions
 			</div>
 			
-			{/* Refresh button */}
+			{/* Debug button */}
 			<button
-				onClick={loadChatSessions}
+				onClick={debugLocalStorage}
 				className="w-full p-2 bg-green-500 text-white text-xs rounded hover:bg-green-600 mb-3"
 			>
-				🔄 Refresh
+				🔍 Debug localStorage
 			</button>
 			
 			{/* Test button */}
@@ -124,7 +129,7 @@ export default function ChatHistory() {
 					};
 					localStorage.setItem('chatSessions', JSON.stringify([testSession]));
 					console.log('Created test session:', testSession);
-					loadChatSessions();
+					debugLocalStorage();
 				}}
 				className="w-full p-2 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 mb-3"
 			>
