@@ -34,44 +34,16 @@ export default function DashboardPage() {
 	const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
 	const [isHydrated, setIsHydrated] = useState(false);
 
-	// Debug function to check localStorage state
-	const debugLocalStorage = () => {
-		if (typeof window === 'undefined') return;
-		
-		try {
-			const saved = localStorage.getItem('chatSessions');
-			console.log('=== DASHBOARD: DEBUG localStorage ===');
-			console.log('=== DASHBOARD: Raw localStorage value ===', saved);
-			
-			if (saved && saved.trim() !== '' && saved !== 'null') {
-				const parsed = JSON.parse(saved);
-				console.log('=== DASHBOARD: Parsed localStorage ===', parsed);
-				console.log('=== DASHBOARD: Current state vs localStorage ===', {
-					stateSessionsCount: chatSessions.length,
-					localStorageSessionsCount: parsed.length,
-					stateFirstSessionTitle: chatSessions[0]?.title || 'No sessions',
-					localStorageFirstSessionTitle: parsed[0]?.title || 'No sessions',
-					stateFirstSessionMessagesCount: chatSessions[0]?.messages?.length || 0,
-					localStorageFirstSessionMessagesCount: parsed[0]?.messages?.length || 0
-				});
-			} else {
-				console.log('=== DASHBOARD: No localStorage data found ===');
-			}
-		} catch (error) {
-			console.error('=== DASHBOARD: DEBUG localStorage error ===', error);
-		}
-	};
+
 
 	// Load chat sessions from localStorage with enhanced error handling
 	useEffect(() => {
 		if (typeof window !== 'undefined') {
 			try {
 				const saved = localStorage.getItem('chatSessions');
-				console.log('=== DASHBOARD: Loading chat sessions from localStorage ===', { saved });
 				
 				if (saved && saved.trim() !== '' && saved !== 'null') {
 					const parsed = JSON.parse(saved);
-					console.log('=== DASHBOARD: Parsed chat sessions ===', parsed);
 					
 					// Verify the data structure and preserve titles
 					const validatedSessions = parsed.map((session: any) => ({
@@ -81,14 +53,12 @@ export default function DashboardPage() {
 						timestamp: session.timestamp ? new Date(session.timestamp) : new Date()
 					}));
 					
-					console.log('=== DASHBOARD: Validated and set chat sessions ===', validatedSessions);
 					setChatSessions(validatedSessions);
 				} else {
-					console.log('=== DASHBOARD: No chat sessions found in localStorage ===');
 					setChatSessions([]);
 				}
 			} catch (error) {
-				console.error('=== DASHBOARD: Error loading chat sessions ===', error);
+				console.error('Error loading chat sessions:', error);
 				setChatSessions([]);
 			}
 			setIsHydrated(true);
@@ -112,21 +82,7 @@ export default function DashboardPage() {
 								<h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
 								<p className="text-gray-600 mt-2">Track your progress and recent activities</p>
 								
-								{/* Debug localStorage button */}
-								<div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-									<div className="flex items-center justify-between">
-										<span className="text-sm text-blue-800">Debug: localStorage State</span>
-										<button
-											onClick={debugLocalStorage}
-											className="px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600"
-										>
-											Check State
-										</button>
-									</div>
-									<div className="text-xs text-blue-600 mt-1">
-										Chat Sessions: {chatSessions.length} | Hydrated: {isHydrated ? 'Yes' : 'No'}
-									</div>
-								</div>
+
 							</div>
 
 							{/* Progress Overview */}

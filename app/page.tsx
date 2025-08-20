@@ -16,53 +16,45 @@ type ChatSession = {
 	timestamp: Date;
 };
 
-// Custom hook for localStorage persistence - HYDRATION SAFE
-function useLocalStorage<T>(key: string, initialValue: T) {
-	const [storedValue, setStoredValue] = useState<T>(initialValue);
-	const [isHydrated, setIsHydrated] = useState(false);
+	// Custom hook for localStorage persistence - HYDRATION SAFE
+	function useLocalStorage<T>(key: string, initialValue: T) {
+		const [storedValue, setStoredValue] = useState<T>(initialValue);
+		const [isHydrated, setIsHydrated] = useState(false);
 
-	// Hydrate from localStorage after component mounts (client-side only)
-	useEffect(() => {
-		if (typeof window !== 'undefined') {
+		// Hydrate from localStorage after component mounts (client-side only)
+		useEffect(() => {
+			if (typeof window !== 'undefined') {
+				try {
+					const item = window.localStorage.getItem(key);
+					if (item) {
+						const parsed = JSON.parse(item);
+						setStoredValue(parsed);
+					}
+				} catch (error) {
+					console.error(`Error reading localStorage key "${key}":`, error);
+				}
+				setIsHydrated(true);
+			}
+		}, [key]);
+
+		const setValue = useCallback((value: T | ((val: T) => T)) => {
 			try {
-				const item = window.localStorage.getItem(key);
-				if (item) {
-					const parsed = JSON.parse(item);
-					setStoredValue(parsed);
-					console.log(`=== CUSTOM HOOK: Hydrated from localStorage for ${key} ===`, parsed);
+				const valueToStore = value instanceof Function ? value(storedValue) : value;
+				setStoredValue(valueToStore);
+				
+				if (typeof window !== 'undefined' && isHydrated) {
+					window.localStorage.setItem(key, JSON.stringify(valueToStore));
 				}
 			} catch (error) {
-				console.error(`Error reading localStorage key "${key}":`, error);
+				console.error(`Error setting localStorage key "${key}":`, error);
 			}
-			setIsHydrated(true);
-		}
-	}, [key]);
+		}, [key, storedValue, isHydrated]);
 
-	const setValue = useCallback((value: T | ((val: T) => T)) => {
-		try {
-			const valueToStore = value instanceof Function ? value(storedValue) : value;
-			setStoredValue(valueToStore);
-			
-			if (typeof window !== 'undefined' && isHydrated) {
-				window.localStorage.setItem(key, JSON.stringify(valueToStore));
-				console.log(`=== CUSTOM HOOK: localStorage save SUCCESSFUL for ${key} ===`);
-				console.log(`=== CUSTOM HOOK: Saved value ===`, valueToStore);
-				
-				// Debug: Check if titles are being saved
-				if (key === 'chatSessions' && Array.isArray(valueToStore)) {
-					console.log(`=== CUSTOM HOOK: Session titles being saved ===`, valueToStore.map(s => ({ id: s.id, title: s.title })));
-				}
-			}
-		} catch (error) {
-			console.error(`Error setting localStorage key "${key}":`, error);
-		}
-	}, [key, storedValue, isHydrated]);
-
-	return [storedValue, setValue, isHydrated] as const;
-}
+		return [storedValue, setValue, isHydrated] as const;
+	}
 
 export default function ChatHome() {
-	console.log('=== CHAT PAGE: Component rendering ===');
+	
 	
 	const router = useRouter();
 	
@@ -70,7 +62,6 @@ export default function ChatHome() {
 	const defaultSessionIdRef = useRef<string>('');
 	if (!defaultSessionIdRef.current) {
 		defaultSessionIdRef.current = Date.now().toString();
-		console.log('=== CHAT PAGE: Created stable defaultSessionId ===', defaultSessionIdRef.current);
 	}
 	const defaultSessionId = defaultSessionIdRef.current;
 	
@@ -92,33 +83,11 @@ export default function ChatHome() {
 	// Get current session
 	const currentSession = chatSessions.find(session => session.id === currentSessionId);
 	const messages = currentSession?.messages || [];
-	
-	// Debug: Log current session changes
-	useEffect(() => {
-		if (currentSession) {
-			console.log('=== CHAT PAGE: Current session updated ===', { 
-				id: currentSession.id, 
-				title: currentSession.title, 
-				messagesCount: currentSession.messages.length 
-			});
-		}
-	}, [currentSession]);
-	
-	// Debug: Track initialization state changes
-	useEffect(() => {
-		console.log('=== CHAT PAGE: isInitialized changed ===', isInitialized);
-	}, [isInitialized]);
-	
-	// Debug: Track hydration state changes
-	useEffect(() => {
-		console.log('=== CHAT PAGE: isHydrated changed ===', isHydrated);
-	}, [isHydrated]);
 
 	// Create new chat session
 	const createNewChat = () => {
 		if (isCreatingSession) return; // Prevent multiple simultaneous creations
 		
-		console.log('=== CHAT PAGE: Creating new chat session... ===');
 		setIsCreatingSession(true);
 		const newSession: ChatSession = {
 			id: Date.now().toString(),
@@ -126,7 +95,6 @@ export default function ChatHome() {
 			messages: [{ role: 'assistant', content: 'Hi! I can help with GCSE Maths using Mentara. Ask a question or upload an image and tell me about it.' }],
 			timestamp: new Date()
 		};
-		console.log('=== CHAT PAGE: New session created:', newSession);
 		setChatSessions(prev => [newSession, ...prev]);
 		setCurrentSessionId(newSession.id);
 		setIsInitialized(true);
@@ -139,21 +107,9 @@ export default function ChatHome() {
 
 	// Switch to a different chat session
 	const switchToSession = (sessionId: string) => {
-		console.log('=== CHAT PAGE: Switching to session ===', { sessionId, currentSessionId });
-		
-		// Find the session we're switching to
-		const targetSession = chatSessions.find(s => s.id === sessionId);
-		console.log('=== CHAT PAGE: Target session details ===', { 
-			id: targetSession?.id, 
-			title: targetSession?.title, 
-			messagesCount: targetSession?.messages?.length 
-		});
-		
 		setCurrentSessionId(sessionId);
 		setInput('');
 		setUploadName(null);
-		
-		console.log('=== CHAT PAGE: Session switch complete ===');
 	};
 
 	// Delete a chat session
@@ -213,28 +169,14 @@ export default function ChatHome() {
 		// Store the current session data to ensure we don't lose it
 		const currentSession = chatSessions.find(s => s.id === currentSessionId);
 		if (!currentSession) {
-			console.error('=== CHAT PAGE: Current session not found ===', { currentSessionId, chatSessions });
 			setIsSending(false);
 			return;
 		}
-
-		console.log('=== CHAT PAGE: Starting message send ===', {
-			sessionId: currentSessionId,
-			currentTitle: currentSession.title,
-			currentMessagesCount: currentSession.messages.length,
-			userMessage: userMsg.content
-		});
 
 		// Store the title that should be preserved
 		const titleToPreserve = currentSession.messages.length === 1 
 			? text.slice(0, 30) + (text.length > 30 ? '...' : '')
 			: currentSession.title;
-
-		console.log('=== CHAT PAGE: Title to preserve ===', { 
-			originalTitle: currentSession.title, 
-			titleToPreserve, 
-			isFirstUserMessage: currentSession.messages.length === 1 
-		});
 
 		setInput('');
 		try {
@@ -246,11 +188,7 @@ export default function ChatHome() {
 			const data = await resp.json();
 			const reply = data?.reply || 'Sorry, I could not respond right now.';
 			
-			console.log('=== CHAT PAGE: Got assistant reply, updating session ===', {
-				sessionId: currentSessionId,
-				replyLength: reply.length,
-				expectedTitle: currentSession.title
-			});
+
 			
 			// SINGLE ATOMIC UPDATE: Add both user message and assistant reply in one state update
 			setChatSessions(prev => {
@@ -268,31 +206,14 @@ export default function ChatHome() {
 							timestamp: new Date()
 						};
 						
-						console.log('=== CHAT PAGE: ATOMIC UPDATE - Both messages added ===', { 
-							oldTitle: session.title, 
-							newTitle: updatedSession.title,
-							oldMessagesCount: session.messages.length,
-							newMessagesCount: updatedSession.messages.length,
-							titlePreserved: session.title === updatedSession.title || updatedSession.title === titleToPreserve,
-							titleToPreserve,
-							actualNewTitle: updatedSession.title
-						});
-						
-						// Verify title preservation
-						if (updatedSession.title !== titleToPreserve) {
-							console.error('=== CHAT PAGE: TITLE NOT PRESERVED IN ATOMIC UPDATE! ===', {
-								expectedTitle: titleToPreserve,
-								actualTitle: updatedSession.title,
-								sessionId: session.id
-							});
-						}
+
 						
 						return updatedSession;
 					}
 					return session;
 				});
 				
-				console.log('=== CHAT PAGE: Final session state after atomic update ===', updated);
+
 				return updated;
 			});
 		} catch (e) {
@@ -311,11 +232,7 @@ export default function ChatHome() {
 							],
 							timestamp: new Date()
 						};
-						console.log('=== CHAT PAGE: Error case - Both messages added with title preserved ===', { 
-							oldTitle: session.title, 
-							newTitle: updatedSession.title,
-							messagesCount: updatedSession.messages.length 
-						});
+
 						return updatedSession;
 					}
 					return session;
@@ -327,84 +244,28 @@ export default function ChatHome() {
 		}
 	};
 
-	// Manual localStorage save function - backup method
-	const saveToLocalStorage = () => {
-		if (typeof window === 'undefined') return;
-		
-		try {
-			const jsonString = JSON.stringify(chatSessions);
-			localStorage.setItem('chatSessions', jsonString);
-			console.log('=== CHAT PAGE: MANUAL localStorage save SUCCESSFUL ===');
-			console.log('=== CHAT PAGE: Manual save - sessions count ===', chatSessions.length);
-			
-			// Verify the save
-			const saved = localStorage.getItem('chatSessions');
-			if (saved) {
-				const parsed = JSON.parse(saved);
-				console.log('=== CHAT PAGE: Manual save verification - saved sessions count ===', parsed.length);
-				console.log('=== CHAT PAGE: Manual save verification - first session messages count ===', parsed[0]?.messages?.length || 0);
-			}
-		} catch (error) {
-			console.error('=== CHAT PAGE: MANUAL localStorage save FAILED ===', error);
-		}
-	};
 
-	// Debug function to check localStorage state
-	const debugLocalStorage = () => {
-		if (typeof window === 'undefined') return;
-		
-		try {
-			const saved = localStorage.getItem('chatSessions');
-			console.log('=== CHAT PAGE: DEBUG localStorage ===');
-			console.log('=== CHAT PAGE: Raw localStorage value ===', saved);
-			
-			if (saved && saved.trim() !== '' && saved !== 'null') {
-				const parsed = JSON.parse(saved);
-				console.log('=== CHAT PAGE: Parsed localStorage ===', parsed);
-				console.log('=== CHAT PAGE: Current state vs localStorage ===', {
-					stateSessionsCount: chatSessions.length,
-					localStorageSessionsCount: parsed.length,
-					stateFirstSessionTitle: chatSessions[0]?.title || 'No sessions',
-					localStorageFirstSessionTitle: parsed[0]?.title || 'No sessions',
-					stateFirstSessionMessagesCount: chatSessions[0]?.messages?.length || 0,
-					localStorageFirstSessionMessagesCount: parsed[0]?.messages?.length || 0
-				});
-			} else {
-				console.log('=== CHAT PAGE: No localStorage data found ===');
-			}
-		} catch (error) {
-			console.error('=== CHAT PAGE: DEBUG localStorage error ===', error);
-		}
-	};
 
 	// Initialize default session if none exist - wait for hydration (RUN ONLY ONCE)
 	useEffect(() => {
 		if (!isHydrated) return; // Wait for hydration to complete
 		if (isInitialized) return; // Only run once
 		
-		console.log('=== CHAT PAGE: Initialization useEffect running ===');
-		
 		if (chatSessions.length === 0) {
-			console.log('=== CHAT PAGE: No sessions found, creating default ===');
 			const defaultSession: ChatSession = {
 				id: defaultSessionId, // Use the stable ID we created
 				title: 'New Chat',
 				messages: [{ role: 'assistant', content: 'Hi! I can help with GCSE Maths using Mentara. Ask a question or upload an image and tell me about it.' }],
 				timestamp: new Date()
 			};
-			console.log('=== CHAT PAGE: Creating default session with stable ID ===', defaultSession);
 			setChatSessions([defaultSession]);
 			setCurrentSessionId(defaultSession.id);
 		} else {
-			console.log('=== CHAT PAGE: Sessions found, setting current ===');
 			setCurrentSessionId(chatSessions[0].id);
 		}
 		
 		setIsInitialized(true);
-		console.log('=== CHAT PAGE: Initialization complete ===');
 	}, [isHydrated]); // Only depend on hydration, not on chatSessions or isInitialized
-
-	console.log('=== CHAT PAGE: About to return JSX ===');
 	
 	// Show loading state until hydration is complete
 	if (!isHydrated) {
@@ -425,15 +286,6 @@ export default function ChatHome() {
 				<LeftSidebar onNewChat={createNewChat} chatSessions={chatSessions}>
 					{/* Chat History */}
 					<div className="flex-1 overflow-y-auto">
-						{/* Debug: Show all session titles */}
-						<div className="mb-3 p-2 bg-red-50 border border-red-200 rounded text-xs">
-							<strong>DEBUG - All Session Titles:</strong>
-							{chatSessions.map((s, i) => (
-								<div key={s.id} className="text-red-700">
-									{i + 1}. ID: {s.id.slice(-4)} | Title: "{s.title}" | Messages: {s.messages.length}
-								</div>
-							))}
-						</div>
 						
 						{chatSessions.map((session, index) => (
 							<div key={session.id} className="mb-2">
@@ -522,29 +374,7 @@ export default function ChatHome() {
 								</div>
 							)}
 							
-							{/* Debug localStorage save button */}
-							<div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-								<div className="flex items-center justify-between">
-									<span className="text-sm text-blue-800">Debug: localStorage Save</span>
-									<div className="flex space-x-2">
-										<button
-											onClick={saveToLocalStorage}
-											className="px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600"
-										>
-											Save Now
-										</button>
-										<button
-											onClick={debugLocalStorage}
-											className="px-3 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600"
-										>
-											Check State
-										</button>
-									</div>
-								</div>
-								<div className="text-xs text-blue-600 mt-1">
-									Sessions: {chatSessions.length} | Current: {currentSessionId ? 'Yes' : 'No'}
-								</div>
-							</div>
+
 							
 							<div className="relative">
 								{/* Image attachment button on the left */}

@@ -77,10 +77,6 @@ export default function LeftSidebar({ children, onNewChat, chatSessions }: LeftS
 			{/* Chat History - Show on all pages */}
 			{children && (
 				<div className="flex-1 overflow-y-auto">
-					{/* Debug info */}
-					<div className="text-xs text-gray-400 p-2 bg-gray-50 rounded mb-2">
-						LeftSidebar: Children rendered, pathname: {pathname}
-					</div>
 					{/* Pass chatSessions to children */}
 					{React.cloneElement(children as React.ReactElement, { chatSessions: chatSessions })}
 				</div>
