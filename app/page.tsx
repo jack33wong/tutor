@@ -182,41 +182,33 @@ export default function ChatHome() {
 		}
 	};
 
-	// Save chat sessions to localStorage
+	// Save chat sessions to localStorage (combined effect)
 	useEffect(() => {
-		if (chatSessions.length > 0) {
-			console.log('=== CHAT PAGE: Saving chat sessions to localStorage ===', chatSessions);
-			const jsonString = JSON.stringify(chatSessions);
-			console.log('=== CHAT PAGE: JSON string to save ===', jsonString);
-			
-			localStorage.setItem('chatSessions', jsonString);
-			
-			// Test if it was saved
-			const saved = localStorage.getItem('chatSessions');
-			console.log('=== CHAT PAGE: Verification - localStorage now contains ===', saved);
-			
-			// Check if the save was successful
-			if (saved === jsonString) {
-				console.log('=== CHAT PAGE: localStorage save successful ===');
-			} else {
-				console.error('=== CHAT PAGE: localStorage save failed - mismatch ===');
-			}
-		}
-	}, [chatSessions]);
-
-	// Immediate localStorage save for initial session
-	useEffect(() => {
-		console.log('=== CHAT PAGE: IMMEDIATE localStorage save effect triggered ===');
+		console.log('=== CHAT PAGE: localStorage save effect triggered ===');
 		console.log('=== CHAT PAGE: chatSessions.length ===', chatSessions.length);
 		console.log('=== CHAT PAGE: typeof window ===', typeof window);
 		
 		if (chatSessions.length > 0 && typeof window !== 'undefined') {
-			console.log('=== CHAT PAGE: IMMEDIATE localStorage save for initial session ===');
+			console.log('=== CHAT PAGE: Saving chat sessions to localStorage ===', chatSessions);
+			const jsonString = JSON.stringify(chatSessions);
+			console.log('=== CHAT PAGE: JSON string to save ===', jsonString);
+			
 			try {
-				localStorage.setItem('chatSessions', JSON.stringify(chatSessions));
-				console.log('=== CHAT PAGE: Initial session saved to localStorage ===');
+				localStorage.setItem('chatSessions', jsonString);
+				console.log('=== CHAT PAGE: localStorage save successful ===');
+				
+				// Test if it was saved
+				const saved = localStorage.getItem('chatSessions');
+				console.log('=== CHAT PAGE: Verification - localStorage now contains ===', saved);
+				
+				// Check if the save was successful
+				if (saved === jsonString) {
+					console.log('=== CHAT PAGE: localStorage save verification successful ===');
+				} else {
+					console.error('=== CHAT PAGE: localStorage save verification failed - mismatch ===');
+				}
 			} catch (error) {
-				console.error('=== CHAT PAGE: Initial localStorage save failed ===', error);
+				console.error('=== CHAT PAGE: localStorage save failed ===', error);
 			}
 		} else {
 			console.log('=== CHAT PAGE: Conditions not met for localStorage save ===');
