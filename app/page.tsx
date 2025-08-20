@@ -210,6 +210,21 @@ export default function ChatHome() {
 		setIsSending(true);
 		const userMsg: ChatItem = { role: 'user', content: text + (uploadName ? `\n(Attached: ${uploadName})` : '') };
 		
+		// Store the current session data to ensure we don't lose it
+		const currentSession = chatSessions.find(s => s.id === currentSessionId);
+		if (!currentSession) {
+			console.error('=== CHAT PAGE: Current session not found ===', { currentSessionId, chatSessions });
+			setIsSending(false);
+			return;
+		}
+
+		console.log('=== CHAT PAGE: Starting message send ===', {
+			sessionId: currentSessionId,
+			currentTitle: currentSession.title,
+			currentMessagesCount: currentSession.messages.length,
+			userMessage: userMsg.content
+		});
+
 		// Update messages in current session with user message AND title update
 		setChatSessions(prev => {
 			const updated = prev.map(session => {
@@ -224,12 +239,21 @@ export default function ChatHome() {
 						console.log('=== CHAT PAGE: First user message, updating title to ===', newTitle);
 					}
 					
-					return {
+					const updatedSession = {
 						...session,
 						title: newTitle,
 						messages: [...session.messages, userMsg],
 						timestamp: new Date()
 					};
+					
+					console.log('=== CHAT PAGE: User message added ===', {
+						oldTitle: session.title,
+						newTitle: updatedSession.title,
+						oldMessagesCount: session.messages.length,
+						newMessagesCount: updatedSession.messages.length
+					});
+					
+					return updatedSession;
 				}
 				return session;
 			});
@@ -247,26 +271,46 @@ export default function ChatHome() {
 			const data = await resp.json();
 			const reply = data?.reply || 'Sorry, I could not respond right now.';
 			
-			// Add assistant reply to current session
+			console.log('=== CHAT PAGE: Got assistant reply, updating session ===', {
+				sessionId: currentSessionId,
+				replyLength: reply.length,
+				expectedTitle: currentSession.title
+			});
+			
+			// Add assistant reply to current session - use functional update to ensure we have latest state
 			setChatSessions(prev => {
 				const updated = prev.map(session => {
 					if (session.id === currentSessionId) {
-						// Preserve the existing title and all other session properties
+						// IMPORTANT: Preserve the existing title and all other session properties
 						const updatedSession = {
 							...session,
 							messages: [...session.messages, { role: 'assistant' as const, content: reply }],
 							timestamp: new Date()
 						};
-						console.log('=== CHAT PAGE: Assistant reply added, preserving title ===', { 
+						
+						console.log('=== CHAT PAGE: Assistant reply added ===', { 
 							oldTitle: session.title, 
 							newTitle: updatedSession.title,
-							messagesCount: updatedSession.messages.length 
+							oldMessagesCount: session.messages.length,
+							newMessagesCount: updatedSession.messages.length,
+							titlePreserved: session.title === updatedSession.title
 						});
+						
+						// Verify title preservation
+						if (session.title !== updatedSession.title) {
+							console.error('=== CHAT PAGE: TITLE LOST! ===', {
+								oldTitle: session.title,
+								newTitle: updatedSession.title,
+								sessionId: session.id
+							});
+						}
+						
 						return updatedSession;
 					}
 					return session;
 				});
-				console.log('=== CHAT PAGE: Added assistant reply to session ===', updated);
+				
+				console.log('=== CHAT PAGE: Final session state after assistant reply ===', updated);
 				return updated;
 			});
 		} catch (e) {
@@ -315,6 +359,34 @@ export default function ChatHome() {
 			}
 		} catch (error) {
 			console.error('=== CHAT PAGE: MANUAL localStorage save FAILED ===', error);
+		}
+	};
+
+	// Debug function to check localStorage state
+	const debugLocalStorage = () => {
+		if (typeof window === 'undefined') return;
+		
+		try {
+			const saved = localStorage.getItem('chatSessions');
+			console.log('=== CHAT PAGE: DEBUG localStorage ===');
+			console.log('=== CHAT PAGE: Raw localStorage value ===', saved);
+			
+			if (saved && saved.trim() !== '' && saved !== 'null') {
+				const parsed = JSON.parse(saved);
+				console.log('=== CHAT PAGE: Parsed localStorage ===', parsed);
+				console.log('=== CHAT PAGE: Current state vs localStorage ===', {
+					stateSessionsCount: chatSessions.length,
+					localStorageSessionsCount: parsed.length,
+					stateFirstSessionTitle: chatSessions[0]?.title || 'No sessions',
+					localStorageFirstSessionTitle: parsed[0]?.title || 'No sessions',
+					stateFirstSessionMessagesCount: chatSessions[0]?.messages?.length || 0,
+					localStorageFirstSessionMessagesCount: parsed[0]?.messages?.length || 0
+				});
+			} else {
+				console.log('=== CHAT PAGE: No localStorage data found ===');
+			}
+		} catch (error) {
+			console.error('=== CHAT PAGE: DEBUG localStorage error ===', error);
 		}
 	};
 
@@ -466,12 +538,20 @@ export default function ChatHome() {
 							<div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
 								<div className="flex items-center justify-between">
 									<span className="text-sm text-blue-800">Debug: localStorage Save</span>
-									<button
-										onClick={saveToLocalStorage}
-										className="px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600"
-									>
-										Save Now
-									</button>
+									<div className="flex space-x-2">
+										<button
+											onClick={saveToLocalStorage}
+											className="px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600"
+										>
+											Save Now
+										</button>
+										<button
+											onClick={debugLocalStorage}
+											className="px-3 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600"
+										>
+											Check State
+										</button>
+									</div>
 								</div>
 								<div className="text-xs text-blue-600 mt-1">
 									Sessions: {chatSessions.length} | Current: {currentSessionId ? 'Yes' : 'No'}
