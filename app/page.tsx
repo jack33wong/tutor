@@ -31,17 +31,6 @@ export default function ChatHome() {
 			timestamp: new Date()
 		};
 		console.log('=== CHAT PAGE: IMMEDIATE session creation in useState ===', defaultSession);
-		
-		// Also save to localStorage immediately
-		if (typeof window !== 'undefined') {
-			try {
-				localStorage.setItem('chatSessions', JSON.stringify([defaultSession]));
-				console.log('=== CHAT PAGE: IMMEDIATE localStorage save ===', 'Success');
-			} catch (error) {
-				console.error('=== CHAT PAGE: IMMEDIATE localStorage save failed ===', error);
-			}
-		}
-		
 		return [defaultSession];
 	});
 	
@@ -214,6 +203,19 @@ export default function ChatHome() {
 			}
 		}
 	}, [chatSessions]);
+
+	// Immediate localStorage save for initial session
+	useEffect(() => {
+		if (chatSessions.length > 0 && typeof window !== 'undefined') {
+			console.log('=== CHAT PAGE: IMMEDIATE localStorage save for initial session ===');
+			try {
+				localStorage.setItem('chatSessions', JSON.stringify(chatSessions));
+				console.log('=== CHAT PAGE: Initial session saved to localStorage ===');
+			} catch (error) {
+				console.error('=== CHAT PAGE: Initial localStorage save failed ===', error);
+			}
+		}
+	}, []); // Empty dependency array - runs once after mount
 
 	// Handle session restoration when currentSessionId changes
 	useEffect(() => {
