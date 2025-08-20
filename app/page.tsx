@@ -31,6 +31,17 @@ export default function ChatHome() {
 			timestamp: new Date()
 		};
 		console.log('=== CHAT PAGE: IMMEDIATE session creation in useState ===', defaultSession);
+		
+		// Also save to localStorage immediately
+		if (typeof window !== 'undefined') {
+			try {
+				localStorage.setItem('chatSessions', JSON.stringify([defaultSession]));
+				console.log('=== CHAT PAGE: IMMEDIATE localStorage save ===', 'Success');
+			} catch (error) {
+				console.error('=== CHAT PAGE: IMMEDIATE localStorage save failed ===', error);
+			}
+		}
+		
 		return [defaultSession];
 	});
 	
