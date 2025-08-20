@@ -206,6 +206,10 @@ export default function ChatHome() {
 
 	// Immediate localStorage save for initial session
 	useEffect(() => {
+		console.log('=== CHAT PAGE: IMMEDIATE localStorage save effect triggered ===');
+		console.log('=== CHAT PAGE: chatSessions.length ===', chatSessions.length);
+		console.log('=== CHAT PAGE: typeof window ===', typeof window);
+		
 		if (chatSessions.length > 0 && typeof window !== 'undefined') {
 			console.log('=== CHAT PAGE: IMMEDIATE localStorage save for initial session ===');
 			try {
@@ -214,6 +218,10 @@ export default function ChatHome() {
 			} catch (error) {
 				console.error('=== CHAT PAGE: Initial localStorage save failed ===', error);
 			}
+		} else {
+			console.log('=== CHAT PAGE: Conditions not met for localStorage save ===');
+			console.log('=== CHAT PAGE: chatSessions.length > 0:', chatSessions.length > 0);
+			console.log('=== CHAT PAGE: typeof window !== undefined:', typeof window !== 'undefined');
 		}
 	}, [chatSessions]); // Depend on chatSessions - runs when it's first populated
 
