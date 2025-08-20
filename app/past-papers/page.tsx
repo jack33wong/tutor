@@ -3,7 +3,20 @@
 import { examPapers } from '@/data/examPapers';
 import { sampleUserProgress } from '@/data/userProgress';
 import LeftSidebar from '@/components/LeftSidebar';
-import ChatHistory from '@/components/ChatHistory';
+import dynamic from 'next/dynamic';
+
+const ChatHistory = dynamic(() => import('@/components/ChatHistory'), { 
+	ssr: false,
+	loading: () => (
+		<div className="mb-6 border-4 border-blue-500 p-4 bg-blue-50">
+			<h3 className="text-sm font-medium text-gray-700 mb-3">Loading Chat History...</h3>
+			<div className="animate-pulse space-y-2">
+				<div className="h-4 bg-blue-200 rounded"></div>
+				<div className="h-4 bg-blue-200 rounded w-3/4"></div>
+			</div>
+		</div>
+	)
+});
 
 export default function PastPapersPage() {
 	return (
