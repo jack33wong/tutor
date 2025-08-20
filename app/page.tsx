@@ -177,20 +177,30 @@ export default function ChatHome() {
 		setIsSending(true);
 		const userMsg: ChatItem = { role: 'user', content: text + (uploadName ? `\n(Attached: ${uploadName})` : '') };
 		
-		// Update session title FIRST if this is the first user message
-		if (currentSession && currentSession.messages.length === 1) {
-			console.log('=== CHAT PAGE: First user message, updating title before adding message ===');
-			updateSessionTitle(currentSessionId, text);
-		}
-		
-		// Update messages in current session with user message
+		// Update messages in current session with user message AND title update
 		setChatSessions(prev => {
-			const updated = prev.map(session => 
-				session.id === currentSessionId 
-					? { ...session, messages: [...session.messages, userMsg] }
-					: session
-			);
-			console.log('=== CHAT PAGE: Added user message to session ===', updated);
+			const updated = prev.map(session => {
+				if (session.id === currentSessionId) {
+					// Check if this is the first user message (session has only 1 message - the assistant's welcome)
+					const shouldUpdateTitle = session.messages.length === 1;
+					const newTitle = shouldUpdateTitle 
+						? text.slice(0, 30) + (text.length > 30 ? '...' : '')
+						: session.title;
+					
+					if (shouldUpdateTitle) {
+						console.log('=== CHAT PAGE: First user message, updating title to ===', newTitle);
+					}
+					
+					return {
+						...session,
+						title: newTitle,
+						messages: [...session.messages, userMsg],
+						timestamp: new Date()
+					};
+				}
+				return session;
+			});
+			console.log('=== CHAT PAGE: Added user message to session with title update ===', updated);
 			return updated;
 		});
 
@@ -294,6 +304,16 @@ export default function ChatHome() {
 				<LeftSidebar onNewChat={createNewChat}>
 					{/* Chat History */}
 					<div className="flex-1 overflow-y-auto">
+						{/* Debug: Show all session titles */}
+						<div className="mb-3 p-2 bg-red-50 border border-red-200 rounded text-xs">
+							<strong>DEBUG - All Session Titles:</strong>
+							{chatSessions.map((s, i) => (
+								<div key={s.id} className="text-red-700">
+									{i + 1}. ID: {s.id.slice(-4)} | Title: "{s.title}" | Messages: {s.messages.length}
+								</div>
+							))}
+						</div>
+						
 						{chatSessions.map((session, index) => (
 							<div key={session.id} className="mb-2">
 								<button
