@@ -215,7 +215,7 @@ export default function ChatHome() {
 				console.error('=== CHAT PAGE: Initial localStorage save failed ===', error);
 			}
 		}
-	}, []); // Empty dependency array - runs once after mount
+	}, [chatSessions]); // Depend on chatSessions - runs when it's first populated
 
 	// Handle session restoration when currentSessionId changes
 	useEffect(() => {
