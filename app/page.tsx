@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Send, ImageIcon, Pencil, Plus, MessageCircle, LayoutDashboard, FileText } from 'lucide-react';
 import DrawingPad from '@/components/DrawingPad';
 import MarkdownMessage from '@/components/MarkdownMessage';
@@ -16,6 +16,39 @@ type ChatSession = {
 	timestamp: Date;
 };
 
+// Custom hook for localStorage persistence
+function useLocalStorage<T>(key: string, initialValue: T) {
+	const [storedValue, setStoredValue] = useState<T>(() => {
+		if (typeof window === 'undefined') {
+			return initialValue;
+		}
+		try {
+			const item = window.localStorage.getItem(key);
+			return item ? JSON.parse(item) : initialValue;
+		} catch (error) {
+			console.error(`Error reading localStorage key "${key}":`, error);
+			return initialValue;
+		}
+	});
+
+	const setValue = useCallback((value: T | ((val: T) => T)) => {
+		try {
+			const valueToStore = value instanceof Function ? value(storedValue) : value;
+			setStoredValue(valueToStore);
+			
+			if (typeof window !== 'undefined') {
+				window.localStorage.setItem(key, JSON.stringify(valueToStore));
+				console.log(`=== CUSTOM HOOK: localStorage save SUCCESSFUL for ${key} ===`);
+				console.log(`=== CUSTOM HOOK: Saved value ===`, valueToStore);
+			}
+		} catch (error) {
+			console.error(`Error setting localStorage key "${key}":`, error);
+		}
+	}, [key, storedValue]);
+
+	return [storedValue, setValue] as const;
+}
+
 export default function ChatHome() {
 	console.log('=== CHAT PAGE: Component rendering ===');
 	
@@ -25,16 +58,12 @@ export default function ChatHome() {
 	const defaultSessionId = Date.now().toString();
 	
 	// Initialize with a default session immediately
-	const [chatSessions, setChatSessions] = useState<ChatSession[]>(() => {
-		const defaultSession: ChatSession = {
-			id: defaultSessionId,
-			title: 'New Chat',
-			messages: [{ role: 'assistant', content: 'Hi! I can help with GCSE Maths using Mentara. Ask a question or upload an image and tell me about it.' }],
-			timestamp: new Date()
-		};
-		console.log('=== CHAT PAGE: IMMEDIATE session creation in useState ===', defaultSession);
-		return [defaultSession];
-	});
+	const [chatSessions, setChatSessions] = useLocalStorage<ChatSession[]>('chatSessions', [{
+		id: defaultSessionId,
+		title: 'New Chat',
+		messages: [{ role: 'assistant', content: 'Hi! I can help with GCSE Maths using Mentara. Ask a question or upload an image and tell me about it.' }],
+		timestamp: new Date()
+	}]);
 	
 	const [currentSessionId, setCurrentSessionId] = useState<string>(() => {
 		console.log('=== CHAT PAGE: IMMEDIATE currentSessionId set ===', defaultSessionId);
@@ -65,11 +94,7 @@ export default function ChatHome() {
 			timestamp: new Date()
 		};
 		console.log('=== CHAT PAGE: New session created:', newSession);
-		setChatSessions(prev => {
-			const updated = [newSession, ...prev];
-			console.log('=== CHAT PAGE: Updated chat sessions:', updated);
-			return updated;
-		});
+		setChatSessions(prev => [newSession, ...prev]);
 		setCurrentSessionId(newSession.id);
 		setIsInitialized(true);
 		setInput('');
@@ -184,62 +209,6 @@ export default function ChatHome() {
 		}
 	};
 
-	// Save chat sessions to localStorage - SIMPLIFIED and RELIABLE
-	useEffect(() => {
-		console.log('=== CHAT PAGE: SIMPLIFIED localStorage save effect triggered ===');
-		console.log('=== CHAT PAGE: chatSessions.length ===', chatSessions.length);
-		
-		// Only save if we have sessions and we're on the client
-		if (chatSessions.length > 0 && typeof window !== 'undefined') {
-			try {
-				const jsonString = JSON.stringify(chatSessions);
-				localStorage.setItem('chatSessions', jsonString);
-				console.log('=== CHAT PAGE: SIMPLIFIED localStorage save SUCCESSFUL ===');
-				console.log('=== CHAT PAGE: Saved sessions count ===', chatSessions.length);
-				
-				// Verify the save
-				const saved = localStorage.getItem('chatSessions');
-				if (saved) {
-					const parsed = JSON.parse(saved);
-					console.log('=== CHAT PAGE: Verification - saved sessions count ===', parsed.length);
-					console.log('=== CHAT PAGE: First session messages count ===', parsed[0]?.messages?.length || 0);
-				}
-			} catch (error) {
-				console.error('=== CHAT PAGE: SIMPLIFIED localStorage save FAILED ===', error);
-			}
-		}
-	}, [chatSessions]);
-
-	// Test useEffect - this should ALWAYS run
-	useEffect(() => {
-		console.log('=== CHAT PAGE: TEST useEffect - this should always run ===');
-		console.log('=== CHAT PAGE: Component mounted/updated ===');
-	}, []); // Empty dependency array - runs on every render
-
-	// Simple test - no useEffect
-	console.log('=== CHAT PAGE: Direct console log test ===');
-
-	// Handle session restoration when currentSessionId changes
-	useEffect(() => {
-		if (currentSessionId && chatSessions.length > 0) {
-			const currentSession = chatSessions.find(session => session.id === currentSessionId);
-			if (currentSession) {
-				console.log('Current session loaded:', currentSession.id, 'with', currentSession.messages.length, 'messages');
-			}
-		}
-	}, [currentSessionId, chatSessions]);
-
-	// Load chat sessions from localStorage on mount
-	useEffect(() => {
-		if (isInitialized) return; // Prevent multiple initializations
-		
-		console.log('=== CHAT PAGE: Loading chat sessions from localStorage ===');
-		
-		// FORCE session creation for debugging
-		console.log('=== CHAT PAGE: FORCING session creation for debugging ===');
-		initializeDefaultSession();
-	}, [isInitialized]);
-
 	// Manual localStorage save function - backup method
 	const saveToLocalStorage = () => {
 		if (typeof window === 'undefined') return;
@@ -262,21 +231,25 @@ export default function ChatHome() {
 		}
 	};
 
-	// Initialize default session
-	const initializeDefaultSession = () => {
-		console.log('=== CHAT PAGE: initializeDefaultSession called ===');
-		const defaultSession: ChatSession = {
-			id: Date.now().toString(),
-			title: 'New Chat',
-			messages: [{ role: 'assistant', content: 'Hi! I can help with GCSE Maths using Mentara. Ask a question or upload an image and tell me about it.' }],
-			timestamp: new Date()
-		};
-		console.log('=== CHAT PAGE: Created default session:', defaultSession);
-		setChatSessions([defaultSession]);
-		setCurrentSessionId(defaultSession.id);
-		setIsInitialized(true);
-		console.log('=== CHAT PAGE: Default session set, currentSessionId:', defaultSession.id);
-	};
+	// Initialize default session if none exist
+	useEffect(() => {
+		if (chatSessions.length === 0 && !isInitialized) {
+			console.log('=== CHAT PAGE: No sessions found, creating default ===');
+			const defaultSession: ChatSession = {
+				id: Date.now().toString(),
+				title: 'New Chat',
+				messages: [{ role: 'assistant', content: 'Hi! I can help with GCSE Maths using Mentara. Ask a question or upload an image and tell me about it.' }],
+				timestamp: new Date()
+			};
+			setChatSessions([defaultSession]);
+			setCurrentSessionId(defaultSession.id);
+			setIsInitialized(true);
+		} else if (chatSessions.length > 0 && !isInitialized) {
+			console.log('=== CHAT PAGE: Sessions found, setting current ===');
+			setCurrentSessionId(chatSessions[0].id);
+			setIsInitialized(true);
+		}
+	}, [chatSessions.length, isInitialized, setChatSessions]);
 
 	console.log('=== CHAT PAGE: About to return JSX ===');
 	
@@ -337,20 +310,21 @@ export default function ChatHome() {
 									<p className="text-gray-600">Start a conversation by typing a message below.</p>
 								</div>
 							) : (
-								messages.map((message, index) => (
-									<div key={index} className={`mb-6 ${message.role === 'user' ? 'text-right' : 'text-left'}`}>
-										<div className={`inline-block max-w-3xl ${message.role === 'user' ? 'ml-auto' : 'mr-auto'}`}>
-											<div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed ${
-												message.role === 'user' 
-													? 'bg-primary-600 text-white' 
-													: 'bg-white border border-gray-200 text-gray-900 shadow-sm'
-											}`}>
-												{message.role === 'user' ? (
-													<div className="whitespace-pre-wrap">{message.content}</div>
-												) : (
-													<MarkdownMessage content={message.content} />
-												)}
-											</div>
+								messages.map((msg, index) => (
+									<div
+										key={index}
+										className={`flex ${
+											msg.role === 'user' ? 'justify-end' : 'justify-start'
+										}`}
+									>
+										<div
+											className={`max-w-xl px-4 py-2 rounded-lg shadow ${
+												msg.role === 'user'
+													? 'bg-primary-600 text-white'
+													: 'bg-gray-200 text-gray-800'
+											}`}
+										>
+											<MarkdownMessage content={msg.content} />
 										</div>
 									</div>
 								))
