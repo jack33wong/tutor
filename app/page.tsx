@@ -286,6 +286,10 @@ export default function ChatHome() {
 				<LeftSidebar onNewChat={createNewChat}>
 					{/* Chat History */}
 					<div className="flex-1 overflow-y-auto">
+						{/* Recent Chats Header */}
+						<div className="mb-4">
+							<h3 className="text-sm font-medium text-gray-700 mb-3 px-1">Recent Chats</h3>
+						</div>
 						
 						{chatSessions.map((session, index) => (
 							<div key={session.id} className="mb-2">
