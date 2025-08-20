@@ -32,19 +32,13 @@ export default function ChatHome() {
 
 	// Create new chat session
 	const createNewChat = () => {
-		console.log('Creating new chat session...');
 		const newSession: ChatSession = {
 			id: Date.now().toString(),
 			title: 'New Chat',
 			messages: [{ role: 'assistant', content: 'Hi! I can help with GCSE Maths using Mentara. Ask a question or upload an image and tell me about it.' }],
 			timestamp: new Date()
 		};
-		console.log('New session created:', newSession);
-		setChatSessions(prev => {
-			const updated = [newSession, ...prev];
-			console.log('Updated chat sessions:', updated);
-			return updated;
-		});
+		setChatSessions(prev => [newSession, ...prev]);
 		setCurrentSessionId(newSession.id);
 		setInput('');
 		setUploadName(null);
@@ -77,20 +71,12 @@ export default function ChatHome() {
 	};
 
 	const send = async () => {
-		console.log('Send function called');
-		console.log('Current session ID:', currentSessionId);
-		console.log('Current session:', currentSession);
-		console.log('Chat sessions:', chatSessions);
-		
 		const text = input.trim();
-		console.log('Input text:', text);
 		if (!text) {
-			console.log('No text to send');
 			return;
 		}
 		
 		if (!currentSessionId) {
-			console.log('No current session ID, creating new session');
 			createNewChat();
 			// Wait a bit for the new session to be created
 			setTimeout(() => {
@@ -100,9 +86,7 @@ export default function ChatHome() {
 		}
 		
 		setIsSending(true);
-		console.log('Setting isSending to true');
 		const userMsg: ChatItem = { role: 'user', content: text + (uploadName ? `\n(Attached: ${uploadName})` : '') };
-		console.log('User message:', userMsg);
 		
 		// Update messages in current session
 		setChatSessions(prev => {
@@ -111,7 +95,6 @@ export default function ChatHome() {
 					? { ...session, messages: [...session.messages, userMsg] }
 					: session
 			);
-			console.log('Updated chat sessions after user message:', updated);
 			return updated;
 		});
 
@@ -122,17 +105,13 @@ export default function ChatHome() {
 
 		setInput('');
 		try {
-			console.log('Making API request to /api/chat');
 			const resp = await fetch('/api/chat', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ message: text, imageName: uploadName || undefined }),
 			});
-			console.log('API response status:', resp.status);
 			const data = await resp.json();
-			console.log('API response data:', data);
 			const reply = data?.reply || 'Sorry, I could not respond right now.';
-			console.log('Setting assistant message:', reply);
 			
 			// Add assistant reply to current session
 			setChatSessions(prev => {
@@ -141,7 +120,6 @@ export default function ChatHome() {
 						? { ...session, messages: [...session.messages, { role: 'assistant' as const, content: reply }] }
 						: session
 				);
-				console.log('Updated chat sessions after assistant reply:', updated);
 				return updated;
 			});
 		} catch (e) {
@@ -152,11 +130,9 @@ export default function ChatHome() {
 						? { ...session, messages: [...session.messages, { role: 'assistant' as const, content: 'Network error. Please try again.' }] }
 						: session
 				);
-				console.log('Updated chat sessions after error:', updated);
 				return updated;
 			});
 		} finally {
-			console.log('Setting isSending to false');
 			setIsSending(false);
 		}
 	};
@@ -168,14 +144,11 @@ export default function ChatHome() {
 
 	// Load chat sessions from localStorage on mount
 	useEffect(() => {
-		console.log('Loading chat sessions from localStorage...');
 		const saved = localStorage.getItem('chatSessions');
-		console.log('Saved sessions:', saved);
 		
 		if (saved) {
 			try {
 				const parsed = JSON.parse(saved);
-				console.log('Parsed sessions:', parsed);
 				
 				// Convert timestamp strings back to Date objects
 				const sessionsWithDates = parsed.map((session: any) => ({
@@ -187,31 +160,25 @@ export default function ChatHome() {
 				const sortedSessions = sessionsWithDates.sort((a: ChatSession, b: ChatSession) => 
 					new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
 				);
-				console.log('Sorted sessions:', sortedSessions);
 				
 				setChatSessions(sortedSessions);
 				
 				// Check if we need to restore a specific session (e.g., from dashboard)
 				const restoreSessionId = localStorage.getItem('restoreSessionId');
-				console.log('Restore session ID:', restoreSessionId);
 				
 				if (restoreSessionId) {
 					// Find the session to restore
 					const sessionToRestore = sortedSessions.find((session: ChatSession) => session.id === restoreSessionId);
-					console.log('Session to restore:', sessionToRestore);
 					
 					if (sessionToRestore) {
-						console.log('Setting current session ID to:', restoreSessionId);
 						setCurrentSessionId(restoreSessionId);
 					} else {
-						console.log('Session not found, using first session');
 						setCurrentSessionId(sortedSessions[0]?.id || '');
 					}
 					// Clear the restore flag
 					localStorage.removeItem('restoreSessionId');
 				} else {
 					// Set the first session as current if no restore needed
-					console.log('No restore needed, using first session:', sortedSessions[0]?.id);
 					setCurrentSessionId(sortedSessions[0]?.id || '');
 				}
 			} catch (e) {
@@ -220,7 +187,6 @@ export default function ChatHome() {
 				initializeDefaultSession();
 			}
 		} else {
-			console.log('No saved sessions, initializing default');
 			// No saved sessions, initialize with default
 			initializeDefaultSession();
 		}
@@ -228,17 +194,14 @@ export default function ChatHome() {
 
 	// Initialize default session
 	const initializeDefaultSession = () => {
-		console.log('Initializing default session...');
 		const defaultSession: ChatSession = {
 			id: Date.now().toString(),
 			title: 'New Chat',
 			messages: [{ role: 'assistant', content: 'Hi! I can help with GCSE Maths using Mentara. Ask a question or upload an image and tell me about it.' }],
 			timestamp: new Date()
 		};
-		console.log('Default session created:', defaultSession);
 		setChatSessions([defaultSession]);
 		setCurrentSessionId(defaultSession.id);
-		console.log('Default session ID set to:', defaultSession.id);
 	};
 
 	return (
@@ -248,43 +211,6 @@ export default function ChatHome() {
 				<LeftSidebar onNewChat={createNewChat}>
 					{/* Chat History */}
 					<div className="flex-1 overflow-y-auto">
-						{/* Debug button */}
-						<div className="p-2 mb-2">
-							<button
-								onClick={() => {
-									console.log('=== DEBUG INFO ===');
-									console.log('Current chatSessions:', chatSessions);
-									console.log('Current session ID:', currentSessionId);
-									console.log('localStorage chatSessions:', localStorage.getItem('chatSessions'));
-									console.log('localStorage restoreSessionId:', localStorage.getItem('restoreSessionId'));
-									console.log('==================');
-								}}
-								className="w-full px-3 py-2 text-xs bg-red-100 text-red-700 rounded border border-red-300 hover:bg-red-200 mb-2"
-							>
-								🔍 Debug Chat History
-							</button>
-							<button
-								onClick={() => {
-									const testSession: ChatSession = {
-										id: 'test-' + Date.now(),
-										title: 'Test Chat ' + new Date().toLocaleTimeString(),
-										messages: [
-											{ role: 'assistant', content: 'This is a test message' },
-											{ role: 'user', content: 'Hello, this is a test' },
-											{ role: 'assistant', content: 'Great! The test is working.' }
-										],
-										timestamp: new Date()
-									};
-									console.log('Creating test session:', testSession);
-									setChatSessions(prev => [testSession, ...prev]);
-									setCurrentSessionId(testSession.id);
-								}}
-								className="w-full px-3 py-2 text-xs bg-blue-100 text-blue-700 rounded border border-blue-300 hover:bg-blue-200"
-							>
-								🧪 Create Test Session
-							</button>
-						</div>
-						
 						{chatSessions.map((session, index) => (
 							<div key={session.id} className="mb-2">
 								<button

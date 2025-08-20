@@ -22,24 +22,18 @@ export default function ChatHistory() {
 		
 		// Load chat sessions from localStorage
 		try {
-			console.log('ChatHistory: Loading sessions from localStorage...');
 			const savedSessions = localStorage.getItem('chatSessions');
-			console.log('ChatHistory: Saved sessions:', savedSessions);
 			
 			if (savedSessions) {
 				const parsed = JSON.parse(savedSessions);
-				console.log('ChatHistory: Parsed sessions:', parsed);
 				
 				// Convert timestamp strings back to Date objects if needed
 				const sessionsWithDates = parsed.map((session: any) => ({
 					...session,
 					timestamp: typeof session.timestamp === 'string' ? new Date(session.timestamp) : session.timestamp
 				}));
-				console.log('ChatHistory: Sessions with dates:', sessionsWithDates);
 				
 				setChatSessions(sessionsWithDates);
-			} else {
-				console.log('ChatHistory: No saved sessions found');
 			}
 		} catch (error) {
 			console.error('ChatHistory: Error loading chat sessions:', error);
@@ -64,13 +58,10 @@ export default function ChatHistory() {
 	};
 
 	const handleChatClick = (sessionId: string) => {
-		console.log('ChatHistory: Clicked on session:', sessionId);
 		// Navigate to chat page and switch to the selected session
 		if (typeof window !== 'undefined') {
 			// Store the session ID to restore when the chat page loads
-			console.log('ChatHistory: Storing restoreSessionId:', sessionId);
 			localStorage.setItem('restoreSessionId', sessionId);
-			console.log('ChatHistory: Navigating to chat page...');
 			window.location.href = '/';
 		}
 	};
