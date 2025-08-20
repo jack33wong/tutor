@@ -20,6 +20,7 @@ export default function ChatHome() {
 	const router = useRouter();
 	const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
 	const [currentSessionId, setCurrentSessionId] = useState<string>('');
+	const [isInitialized, setIsInitialized] = useState(false);
 	const [input, setInput] = useState('');
 	const [uploadName, setUploadName] = useState<string | null>(null);
 	const [showNotepad, setShowNotepad] = useState(false);
@@ -35,7 +36,7 @@ export default function ChatHome() {
 	const createNewChat = () => {
 		if (isCreatingSession) return; // Prevent multiple simultaneous creations
 		
-		console.log('Creating new chat session...');
+		console.log('=== CHAT PAGE: Creating new chat session... ===');
 		setIsCreatingSession(true);
 		const newSession: ChatSession = {
 			id: Date.now().toString(),
@@ -43,13 +44,14 @@ export default function ChatHome() {
 			messages: [{ role: 'assistant', content: 'Hi! I can help with GCSE Maths using Mentara. Ask a question or upload an image and tell me about it.' }],
 			timestamp: new Date()
 		};
-		console.log('New session created:', newSession);
+		console.log('=== CHAT PAGE: New session created:', newSession);
 		setChatSessions(prev => {
 			const updated = [newSession, ...prev];
-			console.log('Updated chat sessions:', updated);
+			console.log('=== CHAT PAGE: Updated chat sessions:', updated);
 			return updated;
 		});
 		setCurrentSessionId(newSession.id);
+		setIsInitialized(true);
 		setInput('');
 		setUploadName(null);
 		
@@ -89,15 +91,16 @@ export default function ChatHome() {
 			return;
 		}
 		
-		// If no current session, create one first
-		if (!currentSessionId) {
+		// Ensure we have a session before sending
+		if (!currentSessionId || chatSessions.length === 0) {
 			if (isCreatingSession) return; // Don't create multiple sessions
+			console.log('=== CHAT PAGE: No session available, creating new session before sending ===');
 			createNewChat();
 			// Wait for the session to be created, then send the message
 			setTimeout(() => {
 				// Now send the message with the new session
 				sendMessage(text);
-			}, 100);
+			}, 200);
 			return;
 		}
 		
@@ -183,61 +186,73 @@ export default function ChatHome() {
 
 	// Load chat sessions from localStorage on mount
 	useEffect(() => {
-		console.log('=== CHAT PAGE: Loading chat sessions from localStorage ===');
-		const saved = localStorage.getItem('chatSessions');
-		console.log('=== CHAT PAGE: localStorage.getItem("chatSessions"):', saved);
+		if (isInitialized) return; // Prevent multiple initializations
 		
-		if (saved) {
-			try {
-				const parsed = JSON.parse(saved);
-				console.log('=== CHAT PAGE: Parsed sessions:', parsed);
-				
-				// Convert timestamp strings back to Date objects
-				const sessionsWithDates = parsed.map((session: any) => ({
-					...session,
-					timestamp: new Date(session.timestamp)
-				}));
-				
-				// Sort sessions by timestamp (newest first)
-				const sortedSessions = sessionsWithDates.sort((a: ChatSession, b: ChatSession) => 
-					new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-				);
-				
-				console.log('=== CHAT PAGE: Setting chat sessions:', sortedSessions);
-				setChatSessions(sortedSessions);
-				
-				// Check if we need to restore a specific session (e.g., from dashboard)
-				const restoreSessionId = localStorage.getItem('restoreSessionId');
-				
-				if (restoreSessionId) {
-					// Find the session to restore
-					const sessionToRestore = sortedSessions.find((session: ChatSession) => session.id === restoreSessionId);
+		console.log('=== CHAT PAGE: Loading chat sessions from localStorage ===');
+		
+		try {
+			const saved = localStorage.getItem('chatSessions');
+			console.log('=== CHAT PAGE: localStorage.getItem("chatSessions"):', saved);
+			
+			if (saved && saved.trim() !== '' && saved !== 'null') {
+				try {
+					const parsed = JSON.parse(saved);
+					console.log('=== CHAT PAGE: Parsed sessions:', parsed);
 					
-					if (sessionToRestore) {
-						console.log('=== CHAT PAGE: Restoring session:', restoreSessionId, 'with', sessionToRestore.messages.length, 'messages');
-						setCurrentSessionId(restoreSessionId);
-					} else {
-						console.log('=== CHAT PAGE: Session not found, using first session');
-						setCurrentSessionId(sortedSessions[0]?.id || '');
+					if (Array.isArray(parsed) && parsed.length > 0) {
+						// Convert timestamp strings back to Date objects
+						const sessionsWithDates = parsed.map((session: any) => ({
+							...session,
+							timestamp: new Date(session.timestamp)
+						}));
+						
+						// Sort sessions by timestamp (newest first)
+						const sortedSessions = sessionsWithDates.sort((a: ChatSession, b: ChatSession) => 
+							new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+						);
+						
+						console.log('=== CHAT PAGE: Setting chat sessions:', sortedSessions);
+						setChatSessions(sortedSessions);
+						
+						// Check if we need to restore a specific session (e.g., from dashboard)
+						const restoreSessionId = localStorage.getItem('restoreSessionId');
+						
+						if (restoreSessionId) {
+							// Find the session to restore
+							const sessionToRestore = sortedSessions.find((session: ChatSession) => session.id === restoreSessionId);
+							
+							if (sessionToRestore) {
+								console.log('=== CHAT PAGE: Restoring session:', restoreSessionId, 'with', sessionToRestore.messages.length, 'messages');
+								setCurrentSessionId(restoreSessionId);
+							} else {
+								console.log('=== CHAT PAGE: Session not found, using first session');
+								setCurrentSessionId(sortedSessions[0]?.id || '');
+							}
+							// Clear the restore flag
+							localStorage.removeItem('restoreSessionId');
+						} else {
+							// Set the first session as current if no restore needed
+							console.log('=== CHAT PAGE: No restore needed, using first session:', sortedSessions[0]?.id);
+							setCurrentSessionId(sortedSessions[0]?.id || '');
+						}
+						
+						setIsInitialized(true);
+						return;
 					}
-					// Clear the restore flag
-					localStorage.removeItem('restoreSessionId');
-				} else {
-					// Set the first session as current if no restore needed
-					console.log('=== CHAT PAGE: No restore needed, using first session:', sortedSessions[0]?.id);
-					setCurrentSessionId(sortedSessions[0]?.id || '');
+				} catch (parseError) {
+					console.error('=== CHAT PAGE: Error parsing chat sessions:', parseError);
 				}
-			} catch (e) {
-				console.error('=== CHAT PAGE: Error loading chat sessions:', e);
-				// If there's an error, initialize with default session
-				initializeDefaultSession();
 			}
-		} else {
-			// No saved sessions, initialize with default
-			console.log('=== CHAT PAGE: No saved sessions, initializing default session ===');
+			
+			// If we get here, either no saved sessions or invalid data
+			console.log('=== CHAT PAGE: No valid saved sessions, initializing default session ===');
+			initializeDefaultSession();
+			
+		} catch (error) {
+			console.error('=== CHAT PAGE: Error accessing localStorage:', error);
 			initializeDefaultSession();
 		}
-	}, []);
+	}, [isInitialized]);
 
 	// Initialize default session
 	const initializeDefaultSession = () => {
@@ -251,6 +266,7 @@ export default function ChatHome() {
 		console.log('=== CHAT PAGE: Created default session:', defaultSession);
 		setChatSessions([defaultSession]);
 		setCurrentSessionId(defaultSession.id);
+		setIsInitialized(true);
 		console.log('=== CHAT PAGE: Default session set, currentSessionId:', defaultSession.id);
 	};
 
