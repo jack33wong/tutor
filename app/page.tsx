@@ -35,6 +35,7 @@ export default function ChatHome() {
 	const createNewChat = () => {
 		if (isCreatingSession) return; // Prevent multiple simultaneous creations
 		
+		console.log('Creating new chat session...');
 		setIsCreatingSession(true);
 		const newSession: ChatSession = {
 			id: Date.now().toString(),
@@ -42,7 +43,12 @@ export default function ChatHome() {
 			messages: [{ role: 'assistant', content: 'Hi! I can help with GCSE Maths using Mentara. Ask a question or upload an image and tell me about it.' }],
 			timestamp: new Date()
 		};
-		setChatSessions(prev => [newSession, ...prev]);
+		console.log('New session created:', newSession);
+		setChatSessions(prev => {
+			const updated = [newSession, ...prev];
+			console.log('Updated chat sessions:', updated);
+			return updated;
+		});
 		setCurrentSessionId(newSession.id);
 		setInput('');
 		setUploadName(null);
@@ -157,7 +163,12 @@ export default function ChatHome() {
 
 	// Save chat sessions to localStorage
 	useEffect(() => {
+		console.log('Saving chat sessions to localStorage:', chatSessions);
 		localStorage.setItem('chatSessions', JSON.stringify(chatSessions));
+		
+		// Test if it was saved
+		const saved = localStorage.getItem('chatSessions');
+		console.log('Verification - localStorage now contains:', saved);
 	}, [chatSessions]);
 
 	// Handle session restoration when currentSessionId changes
