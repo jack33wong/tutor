@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Send, ImageIcon, Pencil, Plus, MessageCircle, LayoutDashboard, FileText } from 'lucide-react';
 import DrawingPad from '@/components/DrawingPad';
-import MarkdownMessage from '@/components/MarkdownMessage';
+import ChatMessage from '@/components/ChatMessage';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import LeftSidebar from '@/components/LeftSidebar';
@@ -459,7 +459,7 @@ export default function ChatHome() {
 														: 'bg-gray-200 text-gray-800'
 												}`}
 											>
-												<MarkdownMessage content={msg.content} />
+												<ChatMessage content={msg.content} role={msg.role} />
 											</div>
 										</div>
 									))}
