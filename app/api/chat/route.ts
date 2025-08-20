@@ -20,22 +20,43 @@ export async function POST(req: NextRequest) {
     
     try {
       if (imageData && imageName) {
-        // For images, provide guidance since ChatGPT doesn't support image input in free tier
-        reply = `I can see you've uploaded an image! 
+        // For images, try Gemini first (which supports image analysis), then fallback to ChatGPT
+        try {
+          reply = await callGeminiWithImage(userMessage, imageData, imageName);
+        } catch (geminiError) {
+          console.log('Gemini image analysis failed, trying ChatGPT...');
+          try {
+            reply = await callChatGPT(userMessage);
+          } catch (chatgptError) {
+            console.error('Both Gemini and ChatGPT failed:', { geminiError, chatgptError });
+            // Final fallback for images
+            reply = `I can see you've uploaded an image! 
 
-Since I'm using ChatGPT (which doesn't support image analysis in the free tier), could you please:
+Since both AI services are having issues, could you please:
 
 1. **Describe what you see** in the image
 2. **Tell me the specific question** or problem
 3. **Share any equations or numbers** shown
 
 I'm here to help with GCSE Maths and can guide you through solving any mathematical concept!`;
+          }
+        }
       } else {
-        // Use ChatGPT for text-only messages
-        reply = await callChatGPT(userMessage);
+        // Try Gemini first, then fallback to ChatGPT
+        try {
+          reply = await callGemini(userMessage);
+        } catch (geminiError) {
+          console.log('Gemini failed, trying ChatGPT...');
+          try {
+            reply = await callChatGPT(userMessage);
+          } catch (chatgptError) {
+            console.error('Both Gemini and ChatGPT failed:', { geminiError, chatgptError });
+            throw new Error('All AI services unavailable');
+          }
+        }
       }
     } catch (error) {
-      console.error('ChatGPT API call failed:', error);
+      console.error('All AI API calls failed:', error);
       // Final fallback response
       reply = 'I\'m here to help with your GCSE Maths questions! Please ask me anything about mathematics, and I\'ll do my best to assist you.';
     }
@@ -95,24 +116,90 @@ async function callChatGPT(message: string): Promise<string> {
   }
 }
 
-// Alternative ChatGPT API call (fallback)
-async function callAlternativeTextAPI(message: string): Promise<string> {
+// Gemini API function
+async function callGemini(message: string): Promise<string> {
   try {
-    console.log('Trying alternative ChatGPT API call...');
-    return await callChatGPT(message);
+    console.log('Calling Gemini API...');
+    
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${process.env.GEMINI_API_KEY}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{
+            text: `You are a friendly GCSE Maths tutor called Mentara. Be concise, clear, and helpful. When providing mathematical formulas, use LaTeX format with proper delimiters. For example, use \\[ ... \\] for display math or \\( ... \\) for inline math. Focus on GCSE Maths topics like algebra, geometry, fractions, statistics, and trigonometry.
+
+User question: ${message}`
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 500,
+        }
+      })
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      console.log('Gemini response received');
+      return data.candidates?.[0]?.content?.parts?.[0]?.text || 'I understand your question. Let me help you with that.';
+    } else {
+      console.error('Gemini API error:', response.status, response.statusText);
+      throw new Error(`Gemini API error: ${response.status}`);
+    }
   } catch (error) {
-    console.error('Alternative ChatGPT call failed:', error);
+    console.error('Gemini API call failed:', error);
     throw error;
   }
 }
 
-// Third alternative ChatGPT API call (final fallback)
-async function callThirdAlternativeAPI(message: string): Promise<string> {
+// Gemini API function with image support
+async function callGeminiWithImage(message: string, imageData: string, imageName: string): Promise<string> {
   try {
-    console.log('Trying third alternative ChatGPT API call...');
-    return await callChatGPT(message);
+    console.log('Calling Gemini API with image...');
+    
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${process.env.GEMINI_API_KEY}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [
+            {
+              text: `You are a friendly GCSE Maths tutor called Mentara. Be concise, clear, and helpful. When providing mathematical formulas, use LaTeX format with proper delimiters. For example, use \\[ ... \\] for display math or \\( ... \\) for inline math. Focus on GCSE Maths topics like algebra, geometry, fractions, statistics, and trigonometry.
+
+User question: ${message}
+
+Please analyze the uploaded image and provide mathematical assistance.`
+            },
+            {
+              inlineData: {
+                mimeType: "image/jpeg",
+                data: imageData.split(',')[1] // Remove the "data:image/jpeg;base64," prefix
+              }
+            }
+          ]
+        }],
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 500,
+        }
+      })
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      console.log('Gemini image response received');
+      return data.candidates?.[0]?.content?.parts?.[0]?.text || 'I can see the image! Let me analyze it and help you with the mathematical problem.';
+    } else {
+      console.error('Gemini image API error:', response.status, response.statusText);
+      throw new Error(`Gemini image API error: ${response.status}`);
+    }
   } catch (error) {
-    console.error('Third alternative ChatGPT call failed:', error);
+    console.error('Gemini image API call failed:', error);
     throw error;
   }
 }
