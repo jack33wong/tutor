@@ -71,12 +71,16 @@ export default function GeometryDiagram({ geometryData, className = '' }: Geomet
       try {
         const jsxgraphModule = await import('jsxgraph');
         setJXG(jsxgraphModule.default);
-      } catch (error) {
-        // Fallback: try to use global JXG if available
-        if (typeof window !== 'undefined' && (window as any).JXG) {
-          setJXG((window as any).JXG);
+              } catch (error) {
+          console.error('Failed to load JSXGraph:', error);
+          // Fallback: try to use global JXG if available
+          if (typeof window !== 'undefined' && (window as any).JXG) {
+            setJXG((window as any).JXG);
+          } else {
+            // Set JXG to null to show fallback UI
+            setJXG(null);
+          }
         }
-      }
     };
 
     loadJSXGraph();
@@ -313,6 +317,27 @@ export default function GeometryDiagram({ geometryData, className = '' }: Geomet
       }
     };
   }, [JXG]);
+
+  // Show fallback UI if JSXGraph failed to load
+  if (!JXG) {
+    return (
+      <div className={className}>
+        <div className="mb-4">
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Geometry Diagram</h3>
+          <p className="text-sm text-gray-600">Interactive diagram based on AI response</p>
+        </div>
+        <div className="w-full h-96 border border-gray-300 rounded-lg bg-gray-50 flex items-center justify-center">
+          <div className="text-center text-gray-500">
+            <svg className="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6-4h6m2 5.291A7.962 7.962 0 0112 15c-2.34 0-4.47-.881-6.08-2.33" />
+            </svg>
+            <p className="text-sm">Geometry diagram unavailable</p>
+            <p className="text-xs mt-1">JSXGraph library failed to load</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={className}>

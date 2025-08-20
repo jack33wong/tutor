@@ -17,6 +17,7 @@
     "clsx": "^2.0.0",
     "framer-motion": "^10.16.0",
     "jsxgraph": "^1.11.1",
+    "katex": "^0.16.22",
     "lucide-react": "^0.292.0",
     "next": "^14.0.0",
     "postcss": "^8.4.0",
@@ -31,6 +32,7 @@
     "typescript": "^5.0.0"
   },
   "devDependencies": {
+    "@types/katex": "^0.16.7",
     "eslint": "^8.0.0",
     "eslint-config-next": "^14.0.0"
   },

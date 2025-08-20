@@ -130,6 +130,7 @@ export default function MarkdownMessage({ content, className = '', isGeometryRes
   
   // Process the content for LaTeX
   const processedContent = processLatex(content);
+
   
   return (
     <div className={className}>
