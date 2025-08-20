@@ -17,6 +17,8 @@ type ChatSession = {
 };
 
 export default function ChatHome() {
+	console.log('=== CHAT PAGE: Component rendering ===');
+	
 	const router = useRouter();
 	
 	// Create a consistent session ID
@@ -261,6 +263,8 @@ export default function ChatHome() {
 		console.log('=== CHAT PAGE: Default session set, currentSessionId:', defaultSession.id);
 	};
 
+	console.log('=== CHAT PAGE: About to return JSX ===');
+	
 	return (
 		<div className="min-h-screen bg-gray-50">
 			<div className="flex h-screen">
