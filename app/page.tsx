@@ -8,7 +8,12 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import LeftSidebar from '@/components/LeftSidebar';
 
-type ChatItem = { role: 'user' | 'assistant'; content: string };
+type ChatItem = { 
+	role: 'user' | 'assistant'; 
+	content: string;
+	imageData?: string; // Store actual image data for thumbnails
+	imageName?: string; // Store image filename
+};
 type ChatSession = {
 	id: string;
 	title: string;
@@ -217,7 +222,9 @@ export default function ChatHome() {
 		setIsSending(true);
 		const userMsg: ChatItem = { 
 			role: 'user', 
-			content: text ? text + (uploadedImage ? `\n[📷 Image: ${uploadName}]` : '') : `[📷 Image: ${uploadName}]`
+			content: text || (uploadedImage ? `[📷 Image: ${uploadName}]` : ''),
+			imageData: uploadedImage || undefined,
+			imageName: uploadName || undefined
 		};
 		
 		// Store the current session data to ensure we don't lose it
@@ -459,7 +466,12 @@ export default function ChatHome() {
 														: 'bg-gray-200 text-gray-800'
 												}`}
 											>
-												<ChatMessage content={msg.content} role={msg.role} />
+												<ChatMessage 
+													content={msg.content} 
+													role={msg.role}
+													imageData={msg.imageData}
+													imageName={msg.imageName}
+												/>
 											</div>
 										</div>
 									))}
