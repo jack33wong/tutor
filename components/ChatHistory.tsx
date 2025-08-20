@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { MessageCircle, Clock } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -15,147 +15,82 @@ interface ChatSession {
 
 export default function ChatHistory() {
 	const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
-	const [isClient, setIsClient] = useState(false);
-	const [isLoading, setIsLoading] = useState(true);
 	const router = useRouter();
 
-	// Load chat sessions from localStorage
-	const loadChatSessions = useCallback(() => {
-		if (typeof window === 'undefined') return; // Don't run on server
+	// Simple function to load chat sessions
+	const loadChatSessions = () => {
+		if (typeof window === 'undefined') return;
 		
 		try {
-			const savedSessions = localStorage.getItem('chatSessions');
-			console.log('ChatHistory: Loading sessions, savedSessions:', savedSessions);
-			
-			if (savedSessions) {
-				const parsed = JSON.parse(savedSessions);
-				console.log('ChatHistory: Parsed sessions:', parsed);
-				
-				// Convert timestamp strings back to Date objects if needed
-				const sessionsWithDates = parsed.map((session: any) => ({
-					...session,
-					timestamp: typeof session.timestamp === 'string' ? new Date(session.timestamp) : session.timestamp
-				}));
-				
-				console.log('ChatHistory: Sessions with dates:', sessionsWithDates);
-				setChatSessions(sessionsWithDates);
-			} else {
-				console.log('ChatHistory: No saved sessions found');
-				setChatSessions([]);
+			const saved = localStorage.getItem('chatSessions');
+			if (saved) {
+				const parsed = JSON.parse(saved);
+				setChatSessions(parsed);
 			}
 		} catch (error) {
-			console.error('ChatHistory: Error loading chat sessions:', error);
-			setChatSessions([]);
-		} finally {
-			setIsLoading(false);
-		}
-	}, []);
-
-	useEffect(() => {
-		// Mark as client-side rendered
-		setIsClient(true);
-		
-		// Load chat sessions initially
-		loadChatSessions();
-		
-		// Set up interval to check for localStorage changes
-		const interval = setInterval(() => {
-			loadChatSessions();
-		}, 1000); // Check every second
-		
-		return () => {
-			clearInterval(interval);
-		};
-	}, [loadChatSessions]);
-
-	const formatTime = (timestamp: Date | string) => {
-		const now = new Date();
-		const date = timestamp instanceof Date ? timestamp : new Date(timestamp);
-		const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
-
-		if (diffInHours < 1) {
-			return 'Just now';
-		} else if (diffInHours < 24) {
-			return `${Math.floor(diffInHours)}h ago`;
-		} else {
-			return date.toLocaleDateString('en-GB', { 
-				day: 'numeric', 
-				month: 'short' 
-			});
+			console.error('Error loading chat sessions:', error);
 		}
 	};
 
+	// Load on mount
+	useEffect(() => {
+		loadChatSessions();
+		
+		// Refresh every 3 seconds
+		const interval = setInterval(loadChatSessions, 3000);
+		return () => clearInterval(interval);
+	}, []);
+
 	const handleChatClick = (sessionId: string) => {
-		// Navigate to chat page and switch to the selected session
 		if (typeof window !== 'undefined') {
-			// Store the session ID to restore when the chat page loads
 			localStorage.setItem('restoreSessionId', sessionId);
 			router.push('/');
 		}
 	};
 
-	// Don't render anything during server-side rendering
-	if (!isClient) {
-		return (
-			<div className="mb-6 border-2 border-blue-500 p-4">
-				<h3 className="text-sm font-medium text-gray-700 mb-3">Recent Chats (Loading...)</h3>
-				<div className="space-y-2">
-					<div className="p-2 rounded-lg bg-gray-100 animate-pulse">
-						<div className="h-4 bg-gray-200 rounded mb-1"></div>
-						<div className="h-3 bg-gray-200 rounded w-16"></div>
-					</div>
-					<div className="p-2 rounded-lg bg-gray-100 animate-pulse">
-						<div className="h-4 bg-gray-200 rounded mb-1"></div>
-						<div className="h-3 bg-gray-200 rounded w-20"></div>
-					</div>
-				</div>
-			</div>
-		);
-	}
-
-	// Simple test version - always show content
+	// Simple render - always show something
 	return (
-		<div className="mb-6 border-2 border-red-500 p-4">
-			<h3 className="text-sm font-medium text-gray-700 mb-3">Recent Chats (TEST)</h3>
-			<div className="space-y-2">
-				<div className="text-xs text-gray-400 p-2 bg-gray-50 rounded">
-					Debug: {chatSessions.length} sessions, Client: {isClient ? 'Yes' : 'No'}, Loading: {isLoading ? 'Yes' : 'No'}
+		<div className="mb-6 border-4 border-green-500 p-4 bg-green-50">
+			<h3 className="text-sm font-medium text-gray-700 mb-3">Recent Chats (SIMPLE)</h3>
+			
+			{/* Debug info */}
+			<div className="text-xs text-gray-600 p-2 bg-white rounded mb-3">
+				Found {chatSessions.length} chat sessions
+			</div>
+			
+			{/* Refresh button */}
+			<button
+				onClick={loadChatSessions}
+				className="w-full p-2 bg-green-500 text-white text-xs rounded hover:bg-green-600 mb-3"
+			>
+				🔄 Refresh
+			</button>
+			
+			{/* Chat sessions */}
+			{chatSessions.length === 0 ? (
+				<div className="text-center py-4">
+					<MessageCircle className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+					<p className="text-sm text-gray-500">No chat history yet</p>
+					<p className="text-xs text-gray-400">Start a new chat to begin</p>
 				</div>
-				<div className="text-xs text-gray-400 p-2 bg-gray-50 rounded">
-					LocalStorage test: {typeof window !== 'undefined' ? localStorage.getItem('chatSessions')?.substring(0, 100) + '...' : 'No window'}
-				</div>
-				{chatSessions.length === 0 ? (
-					<div className="text-center py-4">
-						<MessageCircle className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-						<p className="text-sm text-gray-500">No chat history yet</p>
-						<p className="text-xs text-gray-400">Start a new chat to begin</p>
-					</div>
-				) : (
-					chatSessions
-						.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-						.slice(0, 5)
-						.map((session) => (
+			) : (
+				<div className="space-y-2">
+					{chatSessions.slice(0, 5).map((session) => (
 						<div
 							key={session.id}
-							className="p-2 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors duration-200"
+							className="p-2 rounded-lg hover:bg-green-100 cursor-pointer transition-colors duration-200 border border-green-200"
 							onClick={() => handleChatClick(session.id)}
 						>
 							<div className="text-sm text-gray-600 truncate mb-1">
 								{session.title || 'New Chat'}
 							</div>
-							<div className="flex items-center justify-between text-xs text-gray-400">
-								<div className="flex items-center">
-									<Clock className="w-3 h-3 mr-1" />
-									{formatTime(session.timestamp)}
-								</div>
-								<span className="text-xs text-gray-400">
-									{session.messages.length} message{session.messages.length !== 1 ? 's' : ''}
-								</span>
+							<div className="text-xs text-gray-400">
+								{session.messages.length} message{session.messages.length !== 1 ? 's' : ''}
 							</div>
 						</div>
-					))
-				)}
-			</div>
+					))}
+				</div>
+			)}
 		</div>
 	);
 }
