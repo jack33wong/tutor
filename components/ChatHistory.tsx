@@ -21,6 +21,8 @@ export default function ChatHistory() {
 
 	// Load chat sessions from localStorage
 	const loadChatSessions = useCallback(() => {
+		if (typeof window === 'undefined') return; // Don't run on server
+		
 		try {
 			const savedSessions = localStorage.getItem('chatSessions');
 			console.log('ChatHistory: Loading sessions, savedSessions:', savedSessions);
@@ -95,8 +97,8 @@ export default function ChatHistory() {
 	// Don't render anything during server-side rendering
 	if (!isClient) {
 		return (
-			<div className="mb-6">
-				<h3 className="text-sm font-medium text-gray-700 mb-3">Recent Chats</h3>
+			<div className="mb-6 border-2 border-blue-500 p-4">
+				<h3 className="text-sm font-medium text-gray-700 mb-3">Recent Chats (Loading...)</h3>
 				<div className="space-y-2">
 					<div className="p-2 rounded-lg bg-gray-100 animate-pulse">
 						<div className="h-4 bg-gray-200 rounded mb-1"></div>
@@ -111,86 +113,48 @@ export default function ChatHistory() {
 		);
 	}
 
-	if (isLoading) {
-		return (
-			<div className="mb-6">
-				<h3 className="text-sm font-medium text-gray-700 mb-3">Recent Chats</h3>
-				<div className="space-y-2">
-					<div className="p-2 rounded-lg bg-gray-100 animate-pulse">
-						<div className="h-4 bg-gray-200 rounded mb-1"></div>
-						<div className="h-3 bg-gray-200 rounded w-16"></div>
-					</div>
-					<div className="p-2 rounded-lg bg-gray-100 animate-pulse">
-						<div className="h-4 bg-gray-200 rounded mb-1"></div>
-						<div className="h-3 bg-gray-200 rounded w-20"></div>
-					</div>
-				</div>
-			</div>
-		);
-	}
-
-	if (chatSessions.length === 0) {
-		return (
-			<div className="mb-6">
-				<h3 className="text-sm font-medium text-gray-700 mb-3 flex items-center justify-between">
-					Recent Chats
-					<button
-						onClick={loadChatSessions}
-						className="text-xs text-gray-500 hover:text-gray-700 p-1 rounded hover:bg-gray-100"
-						title="Refresh chat history"
-					>
-						↻
-					</button>
-				</h3>
-				<div className="text-center py-4">
-					<MessageCircle className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-					<p className="text-sm text-gray-500">No chat history yet</p>
-					<p className="text-xs text-gray-400">Start a new chat to begin</p>
-				</div>
-			</div>
-		);
-	}
-
+	// Simple test version - always show content
 	return (
-		<div className="mb-6">
-			<h3 className="text-sm font-medium text-gray-700 mb-3 flex items-center justify-between">
-				Recent Chats
-				<button
-					onClick={loadChatSessions}
-					className="text-xs text-gray-500 hover:text-gray-700 p-1 rounded hover:bg-gray-100"
-					title="Refresh chat history"
-				>
-					↻
-				</button>
-			</h3>
+		<div className="mb-6 border-2 border-red-500 p-4">
+			<h3 className="text-sm font-medium text-gray-700 mb-3">Recent Chats (TEST)</h3>
 			<div className="space-y-2">
-				{/* Debug info */}
 				<div className="text-xs text-gray-400 p-2 bg-gray-50 rounded">
 					Debug: {chatSessions.length} sessions, Client: {isClient ? 'Yes' : 'No'}, Loading: {isLoading ? 'Yes' : 'No'}
 				</div>
-				{chatSessions
-					.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-					.slice(0, 5)
-					.map((session) => (
-					<div
-						key={session.id}
-						className="p-2 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors duration-200"
-						onClick={() => handleChatClick(session.id)}
-					>
-						<div className="text-sm text-gray-600 truncate mb-1">
-							{session.title || 'New Chat'}
-						</div>
-						<div className="flex items-center justify-between text-xs text-gray-400">
-							<div className="flex items-center">
-								<Clock className="w-3 h-3 mr-1" />
-								{formatTime(session.timestamp)}
-							</div>
-							<span className="text-xs text-gray-400">
-								{session.messages.length} message{session.messages.length !== 1 ? 's' : ''}
-							</span>
-						</div>
+				<div className="text-xs text-gray-400 p-2 bg-gray-50 rounded">
+					LocalStorage test: {typeof window !== 'undefined' ? localStorage.getItem('chatSessions')?.substring(0, 100) + '...' : 'No window'}
+				</div>
+				{chatSessions.length === 0 ? (
+					<div className="text-center py-4">
+						<MessageCircle className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+						<p className="text-sm text-gray-500">No chat history yet</p>
+						<p className="text-xs text-gray-400">Start a new chat to begin</p>
 					</div>
-				))}
+				) : (
+					chatSessions
+						.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+						.slice(0, 5)
+						.map((session) => (
+						<div
+							key={session.id}
+							className="p-2 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors duration-200"
+							onClick={() => handleChatClick(session.id)}
+						>
+							<div className="text-sm text-gray-600 truncate mb-1">
+								{session.title || 'New Chat'}
+							</div>
+							<div className="flex items-center justify-between text-xs text-gray-400">
+								<div className="flex items-center">
+									<Clock className="w-3 h-3 mr-1" />
+									{formatTime(session.timestamp)}
+								</div>
+								<span className="text-xs text-gray-400">
+									{session.messages.length} message{session.messages.length !== 1 ? 's' : ''}
+								</span>
+							</div>
+						</div>
+					))
+				)}
 			</div>
 		</div>
 	);
