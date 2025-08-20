@@ -66,16 +66,16 @@ export default function ChatHome() {
 	
 	const router = useRouter();
 	
-	// Create a consistent session ID
-	const defaultSessionId = Date.now().toString();
+	// Create a consistent session ID - use useRef to ensure it's stable across re-renders
+	const defaultSessionIdRef = useRef<string>('');
+	if (!defaultSessionIdRef.current) {
+		defaultSessionIdRef.current = Date.now().toString();
+		console.log('=== CHAT PAGE: Created stable defaultSessionId ===', defaultSessionIdRef.current);
+	}
+	const defaultSessionId = defaultSessionIdRef.current;
 	
-	// Initialize with a default session immediately
-	const [chatSessions, setChatSessions, isHydrated] = useLocalStorage<ChatSession[]>('chatSessions', [{
-		id: defaultSessionId,
-		title: 'New Chat',
-		messages: [{ role: 'assistant', content: 'Hi! I can help with GCSE Maths using Mentara. Ask a question or upload an image and tell me about it.' }],
-		timestamp: new Date()
-	}]);
+	// Initialize with empty array - let the useEffect handle creating default session if needed
+	const [chatSessions, setChatSessions, isHydrated] = useLocalStorage<ChatSession[]>('chatSessions', []);
 	
 	const [currentSessionId, setCurrentSessionId] = useState<string>(() => {
 		console.log('=== CHAT PAGE: IMMEDIATE currentSessionId set ===', defaultSessionId);
@@ -400,11 +400,12 @@ export default function ChatHome() {
 		if (chatSessions.length === 0) {
 			console.log('=== CHAT PAGE: No sessions found, creating default ===');
 			const defaultSession: ChatSession = {
-				id: Date.now().toString(),
+				id: defaultSessionId, // Use the stable ID we created
 				title: 'New Chat',
 				messages: [{ role: 'assistant', content: 'Hi! I can help with GCSE Maths using Mentara. Ask a question or upload an image and tell me about it.' }],
 				timestamp: new Date()
 			};
+			console.log('=== CHAT PAGE: Creating default session with stable ID ===', defaultSession);
 			setChatSessions([defaultSession]);
 			setCurrentSessionId(defaultSession.id);
 		} else {
