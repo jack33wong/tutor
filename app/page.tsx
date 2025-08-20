@@ -68,16 +68,6 @@ export default function ChatHome() {
 		setChatSessions(prev => {
 			const updated = [newSession, ...prev];
 			console.log('=== CHAT PAGE: Updated chat sessions:', updated);
-			
-			// DIRECT localStorage save - save immediately after creating new session
-			console.log('=== CHAT PAGE: DIRECT localStorage save in createNewChat ===');
-			try {
-				localStorage.setItem('chatSessions', JSON.stringify(updated));
-				console.log('=== CHAT PAGE: DIRECT localStorage save for new session successful ===');
-			} catch (error) {
-				console.error('=== CHAT PAGE: DIRECT localStorage save for new session failed ===', error);
-			}
-			
 			return updated;
 		});
 		setCurrentSessionId(newSession.id);
@@ -145,23 +135,13 @@ export default function ChatHome() {
 		setIsSending(true);
 		const userMsg: ChatItem = { role: 'user', content: text + (uploadName ? `\n(Attached: ${uploadName})` : '') };
 		
-		// Update messages in current session
+		// Update messages in current session with user message
 		setChatSessions(prev => {
 			const updated = prev.map(session => 
 				session.id === currentSessionId 
 					? { ...session, messages: [...session.messages, userMsg] }
 					: session
 			);
-			
-			// DIRECT localStorage save - save immediately after updating
-			console.log('=== CHAT PAGE: DIRECT localStorage save in sendMessage ===');
-			try {
-				localStorage.setItem('chatSessions', JSON.stringify(updated));
-				console.log('=== CHAT PAGE: DIRECT localStorage save successful ===');
-			} catch (error) {
-				console.error('=== CHAT PAGE: DIRECT localStorage save failed ===', error);
-			}
-			
 			return updated;
 		});
 
@@ -187,16 +167,6 @@ export default function ChatHome() {
 						? { ...session, messages: [...session.messages, { role: 'assistant' as const, content: reply }] }
 						: session
 				);
-				
-				// DIRECT localStorage save - save immediately after updating with assistant reply
-				console.log('=== CHAT PAGE: DIRECT localStorage save with assistant reply ===');
-				try {
-					localStorage.setItem('chatSessions', JSON.stringify(updated));
-					console.log('=== CHAT PAGE: DIRECT localStorage save with reply successful ===');
-				} catch (error) {
-					console.error('=== CHAT PAGE: DIRECT localStorage save with reply failed ===', error);
-				}
-				
 				return updated;
 			});
 		} catch (e) {
@@ -207,16 +177,6 @@ export default function ChatHome() {
 						? { ...session, messages: [...session.messages, { role: 'assistant' as const, content: 'Network error. Please try again.' }] }
 						: session
 				);
-				
-				// DIRECT localStorage save - save immediately after error message
-				console.log('=== CHAT PAGE: DIRECT localStorage save with error message ===');
-				try {
-					localStorage.setItem('chatSessions', JSON.stringify(updated));
-					console.log('=== CHAT PAGE: DIRECT localStorage save with error successful ===');
-				} catch (error) {
-					console.error('=== CHAT PAGE: DIRECT localStorage save with error failed ===', error);
-				}
-				
 				return updated;
 			});
 		} finally {
@@ -224,41 +184,31 @@ export default function ChatHome() {
 		}
 	};
 
-	// Save chat sessions to localStorage (combined effect)
+	// Save chat sessions to localStorage - SIMPLIFIED and RELIABLE
 	useEffect(() => {
-		console.log('=== CHAT PAGE: localStorage save effect triggered ===');
+		console.log('=== CHAT PAGE: SIMPLIFIED localStorage save effect triggered ===');
 		console.log('=== CHAT PAGE: chatSessions.length ===', chatSessions.length);
-		console.log('=== CHAT PAGE: typeof window ===', typeof window);
-		console.log('=== CHAT PAGE: chatSessions value ===', chatSessions);
 		
+		// Only save if we have sessions and we're on the client
 		if (chatSessions.length > 0 && typeof window !== 'undefined') {
-			console.log('=== CHAT PAGE: Saving chat sessions to localStorage ===', chatSessions);
-			const jsonString = JSON.stringify(chatSessions);
-			console.log('=== CHAT PAGE: JSON string to save ===', jsonString);
-			
 			try {
+				const jsonString = JSON.stringify(chatSessions);
 				localStorage.setItem('chatSessions', jsonString);
-				console.log('=== CHAT PAGE: localStorage save successful ===');
+				console.log('=== CHAT PAGE: SIMPLIFIED localStorage save SUCCESSFUL ===');
+				console.log('=== CHAT PAGE: Saved sessions count ===', chatSessions.length);
 				
-				// Test if it was saved
+				// Verify the save
 				const saved = localStorage.getItem('chatSessions');
-				console.log('=== CHAT PAGE: Verification - localStorage now contains ===', saved);
-				
-				// Check if the save was successful
-				if (saved === jsonString) {
-					console.log('=== CHAT PAGE: localStorage save verification successful ===');
-				} else {
-					console.error('=== CHAT PAGE: localStorage save verification failed - mismatch ===');
+				if (saved) {
+					const parsed = JSON.parse(saved);
+					console.log('=== CHAT PAGE: Verification - saved sessions count ===', parsed.length);
+					console.log('=== CHAT PAGE: First session messages count ===', parsed[0]?.messages?.length || 0);
 				}
 			} catch (error) {
-				console.error('=== CHAT PAGE: localStorage save failed ===', error);
+				console.error('=== CHAT PAGE: SIMPLIFIED localStorage save FAILED ===', error);
 			}
-		} else {
-			console.log('=== CHAT PAGE: Conditions not met for localStorage save ===');
-			console.log('=== CHAT PAGE: chatSessions.length > 0:', chatSessions.length > 0);
-			console.log('=== CHAT PAGE: typeof window !== undefined:', typeof window !== 'undefined');
 		}
-	}, [chatSessions]); // Depend on chatSessions - runs when it's first populated
+	}, [chatSessions]);
 
 	// Test useEffect - this should ALWAYS run
 	useEffect(() => {
@@ -289,6 +239,28 @@ export default function ChatHome() {
 		console.log('=== CHAT PAGE: FORCING session creation for debugging ===');
 		initializeDefaultSession();
 	}, [isInitialized]);
+
+	// Manual localStorage save function - backup method
+	const saveToLocalStorage = () => {
+		if (typeof window === 'undefined') return;
+		
+		try {
+			const jsonString = JSON.stringify(chatSessions);
+			localStorage.setItem('chatSessions', jsonString);
+			console.log('=== CHAT PAGE: MANUAL localStorage save SUCCESSFUL ===');
+			console.log('=== CHAT PAGE: Manual save - sessions count ===', chatSessions.length);
+			
+			// Verify the save
+			const saved = localStorage.getItem('chatSessions');
+			if (saved) {
+				const parsed = JSON.parse(saved);
+				console.log('=== CHAT PAGE: Manual save verification - saved sessions count ===', parsed.length);
+				console.log('=== CHAT PAGE: Manual save verification - first session messages count ===', parsed[0]?.messages?.length || 0);
+			}
+		} catch (error) {
+			console.error('=== CHAT PAGE: MANUAL localStorage save FAILED ===', error);
+		}
+	};
 
 	// Initialize default session
 	const initializeDefaultSession = () => {
@@ -400,6 +372,22 @@ export default function ChatHome() {
 									</div>
 								</div>
 							)}
+							
+							{/* Debug localStorage save button */}
+							<div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+								<div className="flex items-center justify-between">
+									<span className="text-sm text-blue-800">Debug: localStorage Save</span>
+									<button
+										onClick={saveToLocalStorage}
+										className="px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600"
+									>
+										Save Now
+									</button>
+								</div>
+								<div className="text-xs text-blue-600 mt-1">
+									Sessions: {chatSessions.length} | Current: {currentSessionId ? 'Yes' : 'No'}
+								</div>
+							</div>
 							
 							<div className="relative">
 								{/* Image attachment button on the left */}
