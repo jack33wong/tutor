@@ -445,7 +445,7 @@ export default function ChatHome() {
 								<button
 									onClick={send}
 									disabled={isSending || !input.trim() || !currentSessionId || isCreatingSession}
-									className="absolute right-3 top-1/2 transform -translate-y-1/2 p-4 rounded-2xl bg-primary-600 hover:bg-primary-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white shadow-sm hover:shadow-md transition-all duration-200"
+									className="absolute right-3 top-1/2 transform -translate-y-1/2 w-12 h-12 rounded-full bg-primary-600 hover:bg-primary-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white shadow-sm hover:shadow-md transition-all duration-200 flex items-center justify-center"
 									title={!currentSessionId ? 'No active session' : isSending ? 'Sending...' : isCreatingSession ? 'Creating session...' : !input.trim() ? 'Type a message' : 'Send message'}
 								>
 									<Send className="w-5 h-5" />
