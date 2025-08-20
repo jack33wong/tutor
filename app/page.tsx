@@ -75,10 +75,52 @@ export default function ChatHome() {
 	const [isInitialized, setIsInitialized] = useState(false);
 	const [input, setInput] = useState('');
 	const [uploadName, setUploadName] = useState<string | null>(null);
+	const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+	const [isUploading, setIsUploading] = useState(false);
 	const [showNotepad, setShowNotepad] = useState(false);
 	const [isSending, setIsSending] = useState(false);
 	const [isCreatingSession, setIsCreatingSession] = useState(false);
 	const fileRef = useRef<HTMLInputElement | null>(null);
+
+	// Clear uploaded image
+	const clearImage = () => {
+		setUploadName(null);
+		setUploadedImage(null);
+		if (fileRef.current) {
+			fileRef.current.value = '';
+		}
+	};
+
+	// Handle image upload
+	const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const file = e.target.files?.[0];
+		if (file) {
+			// Validate file size (max 5MB)
+			if (file.size > 5 * 1024 * 1024) {
+				alert('Image size must be less than 5MB');
+				return;
+			}
+
+			// Validate file type
+			if (!file.type.startsWith('image/')) {
+				alert('Please select a valid image file');
+				return;
+			}
+
+			setUploadName(file.name);
+			setIsUploading(true);
+
+			// Create preview URL
+			const reader = new FileReader();
+			reader.onload = (event) => {
+				if (event.target?.result) {
+					setUploadedImage(event.target.result as string);
+				}
+				setIsUploading(false);
+			};
+			reader.readAsDataURL(file);
+		}
+	};
 
 	// Get current session
 	const currentSession = chatSessions.find(session => session.id === currentSessionId);
@@ -164,7 +206,10 @@ export default function ChatHome() {
 		if (!currentSessionId) return;
 		
 		setIsSending(true);
-		const userMsg: ChatItem = { role: 'user', content: text + (uploadName ? `\n(Attached: ${uploadName})` : '') };
+		const userMsg: ChatItem = { 
+			role: 'user', 
+			content: text + (uploadedImage ? `\n[Image attached: ${uploadName}]` : '') 
+		};
 		
 		// Store the current session data to ensure we don't lose it
 		const currentSession = chatSessions.find(s => s.id === currentSessionId);
@@ -195,6 +240,8 @@ export default function ChatHome() {
 		});
 
 		setInput('');
+		// Clear image after sending
+		clearImage();
 		try {
 			const resp = await fetch('/api/chat', {
 				method: 'POST',
@@ -237,6 +284,8 @@ export default function ChatHome() {
 			});
 		} catch (e) {
 			console.error('Error in send function:', e);
+			// Clear image on error as well
+			clearImage();
 			// Error case: Add error message to the existing session - ensure we preserve the user message
 			setChatSessions(prev => {
 				const updated = prev.map(session => {
@@ -441,12 +490,7 @@ export default function ChatHome() {
 									type="file"
 									accept="image/*"
 									className="hidden"
-									onChange={(e) => {
-										const file = e.target.files?.[0];
-										if (file) {
-											setUploadName(file.name);
-										}
-									}}
+									onChange={handleImageUpload}
 								/>
 								{/* Textarea with integrated buttons */}
 								<textarea
@@ -483,15 +527,41 @@ export default function ChatHome() {
 							
 							{/* Upload name display */}
 							{uploadName && (
-								<div className="mt-3 flex items-center space-x-2 text-sm text-gray-600">
-									<ImageIcon className="w-4 h-4" />
-									<span>{uploadName}</span>
-									<button
-										onClick={() => setUploadName(null)}
-										className="text-red-500 hover:text-red-700"
-									>
-										×
-									</button>
+								<div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+									<div className="flex items-center space-x-3">
+										{uploadedImage && (
+											<div className="relative">
+												<img 
+													src={uploadedImage} 
+													alt="Uploaded image" 
+													className="w-16 h-16 object-cover rounded-lg"
+												/>
+												<button
+													onClick={clearImage}
+													className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-sm hover:bg-red-600 transition-colors"
+													title="Remove image"
+												>
+													×
+												</button>
+											</div>
+										)}
+										<div className="flex-1">
+											<div className="flex items-center space-x-2 text-sm text-gray-600">
+												<ImageIcon className="w-4 h-4" />
+												<span className="font-medium">{uploadName}</span>
+												{isUploading && (
+													<div className="flex items-center space-x-1">
+														<div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
+														<div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+														<div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+													</div>
+												)}
+											</div>
+											<p className="text-xs text-gray-500 mt-1">
+												Image attached and ready to send
+											</p>
+										</div>
+									</div>
 								</div>
 							)}
 						</div>
