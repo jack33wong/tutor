@@ -100,78 +100,57 @@ async function callHuggingFaceText(message: string): Promise<string> {
   }
 }
 
-// Alternative free AI engine (Replicate - generous free tier)
+// Alternative free AI engine (using public models that don't require tokens)
 async function callAlternativeTextAPI(message: string): Promise<string> {
   try {
-    console.log('Attempting Replicate free AI API...');
+    console.log('Attempting alternative free AI API...');
     
-    // Use Replicate's free tier with Llama 2 model
-    const response = await fetch('https://api.replicate.com/v1/predictions', {
+    // Use a different free Hugging Face model that's more reliable
+    const response = await fetch('https://api-inference.huggingface.co/models/facebook/opt-1.3b', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Token ${process.env.REPLICATE_API_TOKEN || 'r8_...'}` // Free tier token
       },
       body: JSON.stringify({
-        version: "meta/llama-2-7b-chat:13c3cdee13ee059ab779f0291d29074d770d5a2f3bfd2b3d2b3d2b3d2b3d2b3d2b",
-        input: {
-          prompt: `You are a helpful GCSE Maths tutor. Answer this question clearly and concisely: ${message}`,
-          max_tokens: 500,
-          temperature: 0.7
+        inputs: `You are a GCSE Maths tutor. Answer this question: ${message}`,
+        parameters: {
+          max_length: 400,
+          temperature: 0.7,
+          do_sample: true,
+          top_p: 0.9
         }
       })
     });
 
-    console.log('Replicate API response status:', response.status);
+    console.log('Alternative API response status:', response.status);
 
     if (response.ok) {
       const data = await response.json();
-      console.log('Replicate API response data:', data);
+      console.log('Alternative API response data:', data);
       
-      // Replicate returns a prediction ID, we need to poll for results
-      if (data.id) {
-        return await pollReplicateResult(data.id);
+      if (data[0]?.generated_text) {
+        // Clean up the response to remove the prompt
+        let responseText = data[0].generated_text;
+        if (responseText.includes('You are a GCSE Maths tutor. Answer this question:')) {
+          responseText = responseText.split('You are a GCSE Maths tutor. Answer this question:')[1]?.trim() || responseText;
+        }
+        return responseText || 'I understand your question. Let me help you with that.';
       } else {
         return 'I understand your question. Let me help you with that.';
       }
     } else {
-      console.error('Replicate API error:', response.status, response.statusText);
+      console.error('Alternative API error:', response.status, response.statusText);
       // Try another free alternative
       return await callThirdAlternativeAPI(message);
     }
   } catch (error) {
-    console.error('Replicate API call failed:', error);
+    console.error('Alternative API call failed:', error);
     // Try another free alternative
     return await callThirdAlternativeAPI(message);
   }
 }
 
-// Poll Replicate prediction result
-async function pollReplicateResult(predictionId: string): Promise<string> {
-  try {
-    const response = await fetch(`https://api.replicate.com/v1/predictions/${predictionId}`, {
-      headers: {
-        'Authorization': `Token ${process.env.REPLICATE_API_TOKEN || 'r8_...'}`
-      }
-    });
-    
-    if (response.ok) {
-      const data = await response.json();
-      if (data.status === 'succeeded') {
-        return data.output || 'I understand your question. Let me help you with that.';
-      } else if (data.status === 'processing') {
-        // Wait a bit and try again
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        return await pollReplicateResult(predictionId);
-      }
-    }
-    
-    return 'I understand your question. Let me help you with that.';
-  } catch (error) {
-    console.error('Replicate polling failed:', error);
-    return 'I understand your question. Let me help you with that.';
-  }
-}
+
 
 // Third alternative: Use a completely free text generation service
 async function callThirdAlternativeAPI(message: string): Promise<string> {
@@ -199,7 +178,17 @@ async function callThirdAlternativeAPI(message: string): Promise<string> {
     if (response.ok) {
       const data = await response.json();
       console.log('Third API response data:', data);
-      return data[0]?.generated_text || 'I understand your question. Let me help you with that.';
+      
+      if (data[0]?.generated_text) {
+        // Clean up the response to remove the prompt
+        let responseText = data[0].generated_text;
+        if (responseText.includes('You are a GCSE Maths tutor. Answer:')) {
+          responseText = responseText.split('You are a GCSE Maths tutor. Answer:')[1]?.trim() || responseText;
+        }
+        return responseText || 'I understand your question. Let me help you with that.';
+      } else {
+        return 'I understand your question. Let me help you with that.';
+      }
     } else {
       console.error('Third API error:', response.status, response.statusText);
       // Provide a helpful default response
@@ -216,28 +205,53 @@ async function callThirdAlternativeAPI(message: string): Promise<string> {
 function generateDefaultMathResponse(message: string): string {
   const lowerMessage = message.toLowerCase();
   
-  if (lowerMessage.includes('equation') || lowerMessage.includes('solve')) {
+  // More specific topic detection
+  if (lowerMessage.includes('equation') || lowerMessage.includes('solve') || lowerMessage.includes('=')) {
     return 'I can help you with solving equations! For GCSE Maths, remember to:\n\n1. **Collect like terms** on each side\n2. **Use inverse operations** to isolate the variable\n3. **Check your answer** by substituting back\n\nCould you share the specific equation you\'re working with?';
   }
   
-  if (lowerMessage.includes('fraction') || lowerMessage.includes('fractions')) {
+  if (lowerMessage.includes('fraction') || lowerMessage.includes('fractions') || lowerMessage.includes('/')) {
     return 'Fractions can be tricky! Here are some key GCSE concepts:\n\n1. **Adding/Subtracting**: Find common denominators\n2. **Multiplying**: Multiply numerators and denominators\n3. **Dividing**: Flip the second fraction and multiply\n\nWhat specific fraction problem are you stuck on?';
   }
   
-  if (lowerMessage.includes('algebra') || lowerMessage.includes('algebraic')) {
+  if (lowerMessage.includes('algebra') || lowerMessage.includes('algebraic') || lowerMessage.includes('x') || lowerMessage.includes('y')) {
     return 'Algebra is fundamental to GCSE Maths! Key areas include:\n\n1. **Expanding brackets** using FOIL method\n2. **Factorising** expressions\n3. **Solving equations** step by step\n\nWhich algebraic concept would you like help with?';
   }
   
-  if (lowerMessage.includes('geometry') || lowerMessage.includes('shape') || lowerMessage.includes('area')) {
+  if (lowerMessage.includes('geometry') || lowerMessage.includes('shape') || lowerMessage.includes('area') || lowerMessage.includes('perimeter') || lowerMessage.includes('volume')) {
     return 'Geometry is all about shapes and space! Important GCSE topics:\n\n1. **Area and perimeter** of 2D shapes\n2. **Volume and surface area** of 3D shapes\n3. **Angles** and their properties\n\nWhat geometric problem are you working on?';
   }
   
-  if (lowerMessage.includes('statistics') || lowerMessage.includes('data') || lowerMessage.includes('graph')) {
+  if (lowerMessage.includes('statistics') || lowerMessage.includes('data') || lowerMessage.includes('graph') || lowerMessage.includes('mean') || lowerMessage.includes('median') || lowerMessage.includes('probability')) {
     return 'Statistics helps us understand data! GCSE focuses on:\n\n1. **Mean, median, mode** calculations\n2. **Reading and interpreting** graphs\n3. **Probability** basics\n\nWhat statistical question do you have?';
   }
   
-  // Default helpful response
-  return 'I\'m here to help with GCSE Maths! I can assist with:\n\n• **Algebra** - equations, expressions, factorising\n• **Geometry** - shapes, areas, angles\n• **Fractions** - operations and problem solving\n• **Statistics** - data analysis and probability\n• **And much more!**\n\nPlease ask me a specific question or describe what you\'re working on.';
+  if (lowerMessage.includes('trigonometry') || lowerMessage.includes('sin') || lowerMessage.includes('cos') || lowerMessage.includes('tan')) {
+    return 'Trigonometry is essential for GCSE Maths! Key concepts include:\n\n1. **SOHCAHTOA** for right-angled triangles\n2. **Sine and cosine rules** for any triangle\n3. **Special angles** (30°, 45°, 60°)\n\nWhat trigonometry problem are you working on?';
+  }
+  
+  if (lowerMessage.includes('quadratic') || lowerMessage.includes('x²') || lowerMessage.includes('x^2')) {
+    return 'Quadratic equations are a key GCSE topic! Remember:\n\n1. **Factorising** when possible\n2. **Quadratic formula** when factorising fails\n3. **Completing the square** as an alternative\n\nWhat quadratic equation are you trying to solve?';
+  }
+  
+  // More dynamic default response based on message content
+  if (lowerMessage.includes('help') || lowerMessage.includes('stuck') || lowerMessage.includes('problem')) {
+    return 'I can see you need help with GCSE Maths! Let me guide you:\n\n• What specific topic are you studying?\n• Can you share the question or problem?\n• What have you tried so far?\n\nI\'m here to help you understand and solve any mathematical concept!';
+  }
+  
+  if (lowerMessage.includes('hello') || lowerMessage.includes('hi') || lowerMessage.includes('start')) {
+    return 'Hello! I\'m your GCSE Maths tutor. I can help you with:\n\n• **Algebra** - equations, expressions, factorising\n• **Geometry** - shapes, areas, angles\n• **Fractions** - operations and problem solving\n• **Statistics** - data analysis and probability\n• **And much more!**\n\nWhat would you like to learn about today?';
+  }
+  
+  // Generic but varied response
+  const responses = [
+    'I\'m here to help with GCSE Maths! What specific topic or problem would you like assistance with?',
+    'Great question! I can help you with GCSE Maths. Could you tell me more about what you\'re working on?',
+    'I\'m your GCSE Maths tutor and ready to help! What mathematical concept are you studying?',
+    'Excellent! I can assist with GCSE Maths. What specific area would you like to explore?'
+  ];
+  
+  return responses[Math.floor(Math.random() * responses.length)];
 }
 
 async function callHuggingFaceMultimodal(message: string, imageData: string): Promise<string> {
