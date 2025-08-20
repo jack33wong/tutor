@@ -3,8 +3,10 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function POST(req: NextRequest) {
   try {
     const { message, imageData, imageName }: { message?: string; imageData?: string; imageName?: string } = await req.json();
-    if (!message || typeof message !== 'string') {
-      return NextResponse.json({ error: 'Missing message' }, { status: 400 });
+    
+    // Allow requests with either a message or an image
+    if ((!message || typeof message !== 'string') && (!imageData || !imageName)) {
+      return NextResponse.json({ error: 'Missing message or image' }, { status: 400 });
     }
 
     const apiUrl = process.env.CHAT_API_URL || 'https://www.apifreellm.com/api/chat';
@@ -14,7 +16,8 @@ export async function POST(req: NextRequest) {
     const system = 'You are a friendly Mentara Maths tutor. Be concise and clear. When providing mathematical formulas, use LaTeX format with proper delimiters. For example, use \\[ ... \\] for display math or \\( ... \\) for inline math.';
     
     // Compose message with image context
-    let composed = `${system}\n\nUser: ${message}`;
+    let userMessage = message || 'Please analyze the uploaded image and provide mathematical assistance.';
+    let composed = `${system}\n\nUser: ${userMessage}`;
     
     if (imageData && imageName) {
       // Add image context to the message

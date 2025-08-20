@@ -252,14 +252,20 @@ export default function ChatHome() {
 		// Clear image after sending
 		clearImage();
 		try {
+			const requestBody = { 
+				message: text || (uploadedImage ? 'Please analyze this image' : ''), 
+				imageData: uploadedImage || undefined,
+				imageName: uploadName || undefined 
+			};
+			
+			console.log('=== API REQUEST DEBUG ===');
+			console.log('Request body:', requestBody);
+			console.log('Image data length:', uploadedImage ? uploadedImage.length : 0);
+			
 			const resp = await fetch('/api/chat', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ 
-					message: text, 
-					imageData: uploadedImage || undefined,
-					imageName: uploadName || undefined 
-				}),
+				body: JSON.stringify(requestBody),
 			});
 			const data = await resp.json();
 			const reply = data?.reply || 'Sorry, I could not respond right now.';
@@ -297,6 +303,12 @@ export default function ChatHome() {
 			});
 		} catch (e) {
 			console.error('Error in send function:', e);
+			console.error('Error details:', {
+				text,
+				uploadedImage: !!uploadedImage,
+				uploadName,
+				currentSessionId
+			});
 			// Clear image on error as well
 			clearImage();
 			// Error case: Add error message to the existing session - ensure we preserve the user message
