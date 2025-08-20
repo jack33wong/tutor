@@ -19,11 +19,10 @@ interface ChatSession {
 const ChatHistory = dynamic(() => import('@/components/ChatHistory'), { 
 	ssr: false,
 	loading: () => (
-		<div className="mb-6 border-4 border-blue-500 p-4 bg-blue-50">
-			<h3 className="text-sm font-medium text-gray-700 mb-3">Loading Chat History...</h3>
-			<div className="animate-pulse space-y-2">
-				<div className="h-4 bg-blue-200 rounded"></div>
-				<div className="h-4 bg-blue-200 rounded w-3/4"></div>
+		<div className="mb-4 p-3 bg-gray-50 rounded-lg">
+			<div className="flex items-center space-x-2">
+				<div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400"></div>
+				<span className="text-sm text-gray-500">Loading...</span>
 			</div>
 		</div>
 	)
