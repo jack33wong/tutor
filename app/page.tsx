@@ -204,15 +204,32 @@ export default function ChatHome() {
 			const data = await resp.json();
 			const reply = data?.reply || 'Sorry, I could not respond right now.';
 			
-			// Add assistant reply to the existing session
+			// Add assistant reply to the existing session - ensure we preserve the user message
 			setChatSessions(prev => {
 				const updated = prev.map(session => {
 					if (session.id === currentSessionId) {
-						return {
-							...session,
-							messages: [...session.messages, { role: 'assistant' as const, content: reply }],
-							timestamp: new Date()
-						};
+						// Verify that the user message is still there and add assistant reply
+						const currentMessages = session.messages;
+						const userMessageExists = currentMessages.some(msg => 
+							msg.role === 'user' && msg.content === userMsg.content
+						);
+						
+						// If user message exists, just add assistant reply
+						if (userMessageExists) {
+							return {
+								...session,
+								messages: [...currentMessages, { role: 'assistant' as const, content: reply }],
+								timestamp: new Date()
+							};
+						} else {
+							// If user message was lost, add both user message and assistant reply
+							return {
+								...session,
+								title: titleToPreserve,
+								messages: [...currentMessages, userMsg, { role: 'assistant' as const, content: reply }],
+								timestamp: new Date()
+							};
+						}
 					}
 					return session;
 				});
@@ -220,15 +237,32 @@ export default function ChatHome() {
 			});
 		} catch (e) {
 			console.error('Error in send function:', e);
-			// Error case: Add error message to the existing session
+			// Error case: Add error message to the existing session - ensure we preserve the user message
 			setChatSessions(prev => {
 				const updated = prev.map(session => {
 					if (session.id === currentSessionId) {
-						return {
-							...session,
-							messages: [...session.messages, { role: 'assistant' as const, content: 'Network error. Please try again.' }],
-							timestamp: new Date()
-						};
+						// Verify that the user message is still there and add error message
+						const currentMessages = session.messages;
+						const userMessageExists = currentMessages.some(msg => 
+							msg.role === 'user' && msg.content === userMsg.content
+						);
+						
+						// If user message exists, just add error message
+						if (userMessageExists) {
+							return {
+								...session,
+								messages: [...currentMessages, { role: 'assistant' as const, content: 'Network error. Please try again.' }],
+								timestamp: new Date()
+							};
+						} else {
+							// If user message was lost, add both user message and error message
+							return {
+								...session,
+								title: titleToPreserve,
+								messages: [...currentMessages, userMsg, { role: 'assistant' as const, content: 'Network error. Please try again.' }],
+								timestamp: new Date()
+							};
+						}
 					}
 					return session;
 				});
