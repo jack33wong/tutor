@@ -70,8 +70,8 @@ export default function ChatHistory({ chatSessions }: ChatHistoryProps) {
 							<div className="text-sm font-medium text-gray-700 truncate mb-1">
 								{session.title || 'New Chat'}
 							</div>
-							<div className="text-xs text-gray-500">
-								{session.messages.length} message{session.messages.length !== 1 ? 's' : ''}
+							<div className="text-xs text-gray-400 mt-1">
+								{new Date(session.timestamp).toLocaleDateString('en-GB')}
 							</div>
 						</div>
 					))}
