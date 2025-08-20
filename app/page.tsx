@@ -341,24 +341,42 @@ export default function ChatHome() {
 									<p className="text-gray-600">Start a conversation by typing a message below.</p>
 								</div>
 							) : (
-								messages.map((msg, index) => (
-									<div
-										key={index}
-										className={`flex ${
-											msg.role === 'user' ? 'justify-end' : 'justify-start'
-										}`}
-									>
+								<>
+									{messages.map((msg, index) => (
 										<div
-											className={`max-w-xl px-4 py-2 rounded-lg shadow ${
-												msg.role === 'user'
-													? 'bg-primary-600 text-white'
-													: 'bg-gray-200 text-gray-800'
+											key={index}
+											className={`flex ${
+												msg.role === 'user' ? 'justify-end' : 'justify-start'
 											}`}
 										>
-											<MarkdownMessage content={msg.content} />
+											<div
+												className={`max-w-xl px-4 py-2 rounded-lg shadow ${
+													msg.role === 'user'
+														? 'bg-primary-600 text-white'
+														: 'bg-gray-200 text-gray-800'
+												}`}
+											>
+												<MarkdownMessage content={msg.content} />
+											</div>
 										</div>
-									</div>
-								))
+									))}
+									
+									{/* Waiting animation when sending message */}
+									{isSending && (
+										<div className="flex justify-start">
+											<div className="max-w-xl px-4 py-2 rounded-lg shadow bg-gray-200 text-gray-800">
+												<div className="flex items-center space-x-2">
+													<div className="flex space-x-1">
+														<div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+														<div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+														<div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+													</div>
+													<span className="text-sm text-gray-500 ml-2">Mentara is thinking...</span>
+												</div>
+											</div>
+										</div>
+									)}
+								</>
 							)}
 						</div>
 					</div>
