@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { MessageCircle, Clock } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -20,12 +20,14 @@ export default function ChatHistory() {
 	const router = useRouter();
 
 	// Load chat sessions from localStorage
-	const loadChatSessions = () => {
+	const loadChatSessions = useCallback(() => {
 		try {
 			const savedSessions = localStorage.getItem('chatSessions');
+			console.log('ChatHistory: Loading sessions, savedSessions:', savedSessions);
 			
 			if (savedSessions) {
 				const parsed = JSON.parse(savedSessions);
+				console.log('ChatHistory: Parsed sessions:', parsed);
 				
 				// Convert timestamp strings back to Date objects if needed
 				const sessionsWithDates = parsed.map((session: any) => ({
@@ -33,8 +35,10 @@ export default function ChatHistory() {
 					timestamp: typeof session.timestamp === 'string' ? new Date(session.timestamp) : session.timestamp
 				}));
 				
+				console.log('ChatHistory: Sessions with dates:', sessionsWithDates);
 				setChatSessions(sessionsWithDates);
 			} else {
+				console.log('ChatHistory: No saved sessions found');
 				setChatSessions([]);
 			}
 		} catch (error) {
@@ -43,7 +47,7 @@ export default function ChatHistory() {
 		} finally {
 			setIsLoading(false);
 		}
-	};
+	}, []);
 
 	useEffect(() => {
 		// Mark as client-side rendered
@@ -52,28 +56,15 @@ export default function ChatHistory() {
 		// Load chat sessions initially
 		loadChatSessions();
 		
-		// Set up event listener for localStorage changes
-		const handleStorageChange = (e: StorageEvent) => {
-			if (e.key === 'chatSessions') {
-				loadChatSessions();
-			}
-		};
-		
-		// Listen for localStorage changes from other tabs/windows
-		window.addEventListener('storage', handleStorageChange);
-		
-		// Also listen for custom events (for same-tab updates)
-		const handleCustomStorageChange = () => {
+		// Set up interval to check for localStorage changes
+		const interval = setInterval(() => {
 			loadChatSessions();
-		};
-		
-		window.addEventListener('chatSessionsUpdated', handleCustomStorageChange);
+		}, 1000); // Check every second
 		
 		return () => {
-			window.removeEventListener('storage', handleStorageChange);
-			window.removeEventListener('chatSessionsUpdated', handleCustomStorageChange);
+			clearInterval(interval);
 		};
-	}, []);
+	}, [loadChatSessions]);
 
 	const formatTime = (timestamp: Date | string) => {
 		const now = new Date();
@@ -173,6 +164,10 @@ export default function ChatHistory() {
 				</button>
 			</h3>
 			<div className="space-y-2">
+				{/* Debug info */}
+				<div className="text-xs text-gray-400 p-2 bg-gray-50 rounded">
+					Debug: {chatSessions.length} sessions, Client: {isClient ? 'Yes' : 'No'}, Loading: {isLoading ? 'Yes' : 'No'}
+				</div>
 				{chatSessions
 					.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
 					.slice(0, 5)
