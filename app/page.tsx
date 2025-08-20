@@ -103,6 +103,16 @@ export default function ChatHome() {
 			});
 		}
 	}, [currentSession]);
+	
+	// Debug: Track initialization state changes
+	useEffect(() => {
+		console.log('=== CHAT PAGE: isInitialized changed ===', isInitialized);
+	}, [isInitialized]);
+	
+	// Debug: Track hydration state changes
+	useEffect(() => {
+		console.log('=== CHAT PAGE: isHydrated changed ===', isHydrated);
+	}, [isHydrated]);
 
 	// Create new chat session
 	const createNewChat = () => {
@@ -284,11 +294,14 @@ export default function ChatHome() {
 		}
 	};
 
-	// Initialize default session if none exist - wait for hydration
+	// Initialize default session if none exist - wait for hydration (RUN ONLY ONCE)
 	useEffect(() => {
 		if (!isHydrated) return; // Wait for hydration to complete
+		if (isInitialized) return; // Only run once
 		
-		if (chatSessions.length === 0 && !isInitialized) {
+		console.log('=== CHAT PAGE: Initialization useEffect running ===');
+		
+		if (chatSessions.length === 0) {
 			console.log('=== CHAT PAGE: No sessions found, creating default ===');
 			const defaultSession: ChatSession = {
 				id: Date.now().toString(),
@@ -298,13 +311,14 @@ export default function ChatHome() {
 			};
 			setChatSessions([defaultSession]);
 			setCurrentSessionId(defaultSession.id);
-			setIsInitialized(true);
-		} else if (chatSessions.length > 0 && !isInitialized) {
+		} else {
 			console.log('=== CHAT PAGE: Sessions found, setting current ===');
 			setCurrentSessionId(chatSessions[0].id);
-			setIsInitialized(true);
 		}
-	}, [chatSessions.length, isInitialized, setChatSessions, isHydrated]);
+		
+		setIsInitialized(true);
+		console.log('=== CHAT PAGE: Initialization complete ===');
+	}, [isHydrated]); // Only depend on hydration, not on chatSessions or isInitialized
 
 	console.log('=== CHAT PAGE: About to return JSX ===');
 	
