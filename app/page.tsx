@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react';
 import { LayoutDashboard, Pencil, Send, Image as ImageIcon, FileText } from 'lucide-react';
 import DrawingPad from '@/components/DrawingPad';
+import MarkdownMessage from '@/components/MarkdownMessage';
 import { useRouter } from 'next/navigation';
 
 type ChatItem = { role: 'user' | 'assistant'; content: string };
@@ -19,24 +20,37 @@ export default function ChatHome() {
 	const fileRef = useRef<HTMLInputElement | null>(null);
 
 	const send = async () => {
+		console.log('Send function called');
 		const text = input.trim();
-		if (!text) return;
+		console.log('Input text:', text);
+		if (!text) {
+			console.log('No text to send');
+			return;
+		}
 		setIsSending(true);
+		console.log('Setting isSending to true');
 		const userMsg: ChatItem = { role: 'user', content: text + (uploadName ? `\n(Attached: ${uploadName})` : '') };
+		console.log('User message:', userMsg);
 		setMessages(prev => [...prev, userMsg]);
 		setInput('');
 		try {
+			console.log('Making API request to /api/chat');
 			const resp = await fetch('/api/chat', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ message: text, imageName: uploadName || undefined }),
 			});
+			console.log('API response status:', resp.status);
 			const data = await resp.json();
+			console.log('API response data:', data);
 			const reply = data?.reply || 'Sorry, I could not respond right now.';
+			console.log('Setting assistant message:', reply);
 			setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
 		} catch (e) {
+			console.error('Error in send function:', e);
 			setMessages(prev => [...prev, { role: 'assistant', content: 'Network error. Please try again.' }]);
 		} finally {
+			console.log('Setting isSending to false');
 			setIsSending(false);
 		}
 	};
@@ -91,8 +105,12 @@ export default function ChatHome() {
 					<div className="flex-1 overflow-y-auto p-4 space-y-4">
 						{messages.map((m, idx) => (
 							<div key={idx} className={`max-w-2xl ${m.role === 'user' ? 'ml-auto' : ''}`}>
-								<div className={`px-4 py-3 rounded-lg text-sm whitespace-pre-wrap ${m.role === 'user' ? 'bg-primary-600 text-white' : 'bg-white border border-gray-200 text-gray-900'}`}>
-									{m.content}
+								<div className={`px-4 py-3 rounded-lg text-sm ${m.role === 'user' ? 'bg-primary-600 text-white whitespace-pre-wrap' : 'bg-white border border-gray-200 text-gray-900'}`}>
+									{m.role === 'user' ? (
+										m.content
+									) : (
+										<MarkdownMessage content={m.content} />
+									)}
 								</div>
 							</div>
 						))}
@@ -122,14 +140,24 @@ export default function ChatHome() {
 								<textarea
 									value={input}
 									onChange={(e) => setInput(e.target.value)}
+									onKeyDown={(e) => {
+										if (e.key === 'Enter' && !e.shiftKey) {
+											e.preventDefault();
+											console.log('Enter key pressed');
+											send();
+										}
+									}}
 									rows={1}
-									                    placeholder={uploadName ? `Message (attached: ${uploadName})` : 'Message Mentara...'}
+									placeholder={uploadName ? `Message (attached: ${uploadName})` : 'Message Mentara...'}
 									className="w-full resize-none px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
 								/>
 							</div>
 							<button
 								disabled={isSending}
-								onClick={send}
+								onClick={() => {
+									console.log('Send button clicked');
+									send();
+								}}
 								className="p-2 rounded-lg bg-primary-600 hover:bg-primary-700 text-white disabled:opacity-50"
 								title="Send"
 							>
