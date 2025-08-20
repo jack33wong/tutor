@@ -47,6 +47,11 @@ function useLocalStorage<T>(key: string, initialValue: T) {
 				window.localStorage.setItem(key, JSON.stringify(valueToStore));
 				console.log(`=== CUSTOM HOOK: localStorage save SUCCESSFUL for ${key} ===`);
 				console.log(`=== CUSTOM HOOK: Saved value ===`, valueToStore);
+				
+				// Debug: Check if titles are being saved
+				if (key === 'chatSessions' && Array.isArray(valueToStore)) {
+					console.log(`=== CUSTOM HOOK: Session titles being saved ===`, valueToStore.map(s => ({ id: s.id, title: s.title })));
+				}
 			}
 		} catch (error) {
 			console.error(`Error setting localStorage key "${key}":`, error);
@@ -130,11 +135,16 @@ export default function ChatHome() {
 
 	// Update session title based on first user message
 	const updateSessionTitle = (sessionId: string, firstUserMessage: string) => {
-		setChatSessions(prev => prev.map(session => 
-			session.id === sessionId 
-				? { ...session, title: firstUserMessage.slice(0, 30) + (firstUserMessage.length > 30 ? '...' : '') }
-				: session
-		));
+		console.log('=== CHAT PAGE: Updating session title ===', { sessionId, firstUserMessage });
+		setChatSessions(prev => {
+			const updated = prev.map(session => 
+				session.id === sessionId 
+					? { ...session, title: firstUserMessage.slice(0, 30) + (firstUserMessage.length > 30 ? '...' : ''), timestamp: new Date() }
+					: session
+			);
+			console.log('=== CHAT PAGE: Updated sessions with new title ===', updated);
+			return updated;
+		});
 	};
 
 	const send = async () => {
@@ -167,6 +177,12 @@ export default function ChatHome() {
 		setIsSending(true);
 		const userMsg: ChatItem = { role: 'user', content: text + (uploadName ? `\n(Attached: ${uploadName})` : '') };
 		
+		// Update session title FIRST if this is the first user message
+		if (currentSession && currentSession.messages.length === 1) {
+			console.log('=== CHAT PAGE: First user message, updating title before adding message ===');
+			updateSessionTitle(currentSessionId, text);
+		}
+		
 		// Update messages in current session with user message
 		setChatSessions(prev => {
 			const updated = prev.map(session => 
@@ -174,13 +190,9 @@ export default function ChatHome() {
 					? { ...session, messages: [...session.messages, userMsg] }
 					: session
 			);
+			console.log('=== CHAT PAGE: Added user message to session ===', updated);
 			return updated;
 		});
-
-		// Update session title if this is the first user message
-		if (currentSession && currentSession.messages.length === 1) {
-			updateSessionTitle(currentSessionId, text);
-		}
 
 		setInput('');
 		try {
@@ -199,6 +211,7 @@ export default function ChatHome() {
 						? { ...session, messages: [...session.messages, { role: 'assistant' as const, content: reply }] }
 						: session
 				);
+				console.log('=== CHAT PAGE: Added assistant reply to session ===', updated);
 				return updated;
 			});
 		} catch (e) {
