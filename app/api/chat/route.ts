@@ -4,11 +4,6 @@ export async function POST(req: NextRequest) {
   try {
     const { message, imageData, imageName }: { message?: string; imageData?: string; imageName?: string } = await req.json();
     
-    console.log('=== API REQUEST DEBUG ===');
-    console.log('Original message:', message);
-    console.log('Image data present:', !!imageData);
-    console.log('Image name:', imageName);
-    
     // Allow requests with either a message or an image
     if ((!message || typeof message !== 'string') && (!imageData || !imageName)) {
       return NextResponse.json({ error: 'Missing message or image' }, { status: 400 });
@@ -20,9 +15,6 @@ export async function POST(req: NextRequest) {
     // Compose message with image context
     let userMessage = message || 'Please analyze the uploaded image and provide mathematical assistance.';
     let composed = `${system}\n\nUser: ${userMessage}`;
-    
-    console.log('User message:', userMessage);
-    console.log('Composed message:', composed);
     
     if (imageData && imageName) {
       // Add image context to the message
@@ -71,17 +63,8 @@ If you cannot see the image content, ask the user to describe what they see or w
 // Local AI function that works immediately without external APIs
 async function callHuggingFaceText(message: string): Promise<string> {
   try {
-    console.log('=== LOCAL AI DEBUG ===');
-    console.log('Input message:', message);
-    console.log('Message length:', message.length);
-    console.log('Message type:', typeof message);
-    
     // Use our intelligent local response system instead of failing APIs
-    const response = generateIntelligentMathResponse(message);
-    console.log('Generated response:', response);
-    console.log('Response length:', response.length);
-    
-    return response;
+    return generateIntelligentMathResponse(message);
   } catch (error) {
     console.error('Local AI system failed:', error);
     // Fallback to intelligent default
@@ -121,9 +104,6 @@ async function callThirdAlternativeAPI(message: string): Promise<string> {
 
 // Intelligent local AI response system for GCSE Maths
 function generateIntelligentMathResponse(message: string): string {
-  console.log('=== INTELLIGENT AI FUNCTION CALLED ===');
-  console.log('Processing message:', message);
-  
   const lowerMessage = message.toLowerCase();
   
   // Extract mathematical content and provide intelligent responses
