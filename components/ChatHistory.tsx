@@ -64,7 +64,7 @@ export default function ChatHistory({ chatSessions }: ChatHistoryProps) {
 					{chatSessions.slice(0, 5).map((session) => (
 						<div
 							key={session.id}
-							className="p-3 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors duration-200 border border-gray-200 hover:border-gray-300"
+							className="p-3 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors duration-200"
 							onClick={() => handleChatClick(session.id)}
 						>
 							<div className="text-sm font-medium text-gray-700 truncate mb-1">
