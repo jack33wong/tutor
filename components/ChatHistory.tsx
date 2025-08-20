@@ -16,13 +16,11 @@ interface ChatSession {
 export default function ChatHistory() {
 	const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
 	const [isClient, setIsClient] = useState(false);
+	const [isLoading, setIsLoading] = useState(true);
 	const router = useRouter();
 
-	useEffect(() => {
-		// Mark as client-side rendered
-		setIsClient(true);
-		
-		// Load chat sessions from localStorage
+	// Load chat sessions from localStorage
+	const loadChatSessions = () => {
 		try {
 			const savedSessions = localStorage.getItem('chatSessions');
 			
@@ -36,10 +34,45 @@ export default function ChatHistory() {
 				}));
 				
 				setChatSessions(sessionsWithDates);
+			} else {
+				setChatSessions([]);
 			}
 		} catch (error) {
 			console.error('ChatHistory: Error loading chat sessions:', error);
+			setChatSessions([]);
+		} finally {
+			setIsLoading(false);
 		}
+	};
+
+	useEffect(() => {
+		// Mark as client-side rendered
+		setIsClient(true);
+		
+		// Load chat sessions initially
+		loadChatSessions();
+		
+		// Set up event listener for localStorage changes
+		const handleStorageChange = (e: StorageEvent) => {
+			if (e.key === 'chatSessions') {
+				loadChatSessions();
+			}
+		};
+		
+		// Listen for localStorage changes from other tabs/windows
+		window.addEventListener('storage', handleStorageChange);
+		
+		// Also listen for custom events (for same-tab updates)
+		const handleCustomStorageChange = () => {
+			loadChatSessions();
+		};
+		
+		window.addEventListener('chatSessionsUpdated', handleCustomStorageChange);
+		
+		return () => {
+			window.removeEventListener('storage', handleStorageChange);
+			window.removeEventListener('chatSessionsUpdated', handleCustomStorageChange);
+		};
 	}, []);
 
 	const formatTime = (timestamp: Date | string) => {
@@ -87,10 +120,37 @@ export default function ChatHistory() {
 		);
 	}
 
-	if (chatSessions.length === 0) {
+	if (isLoading) {
 		return (
 			<div className="mb-6">
 				<h3 className="text-sm font-medium text-gray-700 mb-3">Recent Chats</h3>
+				<div className="space-y-2">
+					<div className="p-2 rounded-lg bg-gray-100 animate-pulse">
+						<div className="h-4 bg-gray-200 rounded mb-1"></div>
+						<div className="h-3 bg-gray-200 rounded w-16"></div>
+					</div>
+					<div className="p-2 rounded-lg bg-gray-100 animate-pulse">
+						<div className="h-4 bg-gray-200 rounded mb-1"></div>
+						<div className="h-3 bg-gray-200 rounded w-20"></div>
+					</div>
+				</div>
+			</div>
+		);
+	}
+
+	if (chatSessions.length === 0) {
+		return (
+			<div className="mb-6">
+				<h3 className="text-sm font-medium text-gray-700 mb-3 flex items-center justify-between">
+					Recent Chats
+					<button
+						onClick={loadChatSessions}
+						className="text-xs text-gray-500 hover:text-gray-700 p-1 rounded hover:bg-gray-100"
+						title="Refresh chat history"
+					>
+						↻
+					</button>
+				</h3>
 				<div className="text-center py-4">
 					<MessageCircle className="w-8 h-8 text-gray-400 mx-auto mb-2" />
 					<p className="text-sm text-gray-500">No chat history yet</p>
@@ -102,7 +162,16 @@ export default function ChatHistory() {
 
 	return (
 		<div className="mb-6">
-			<h3 className="text-sm font-medium text-gray-700 mb-3">Recent Chats</h3>
+			<h3 className="text-sm font-medium text-gray-700 mb-3 flex items-center justify-between">
+				Recent Chats
+				<button
+					onClick={loadChatSessions}
+					className="text-xs text-gray-500 hover:text-gray-700 p-1 rounded hover:bg-gray-100"
+					title="Refresh chat history"
+				>
+					↻
+				</button>
+			</h3>
 			<div className="space-y-2">
 				{chatSessions
 					.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())

@@ -158,6 +158,11 @@ export default function ChatHome() {
 	// Save chat sessions to localStorage
 	useEffect(() => {
 		localStorage.setItem('chatSessions', JSON.stringify(chatSessions));
+		
+		// Dispatch custom event to notify other components that chat sessions have been updated
+		if (typeof window !== 'undefined') {
+			window.dispatchEvent(new CustomEvent('chatSessionsUpdated'));
+		}
 	}, [chatSessions]);
 
 	// Handle session restoration when currentSessionId changes
