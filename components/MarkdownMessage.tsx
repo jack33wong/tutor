@@ -8,21 +8,43 @@ import 'katex/dist/katex.min.css';
 type MarkdownMessageProps = {
   content: string;
   className?: string;
+  isGeometryResponse?: boolean;
 };
 
-export default function MarkdownMessage({ content, className = '' }: MarkdownMessageProps) {
+export default function MarkdownMessage({ content, className = '', isGeometryResponse = false }: MarkdownMessageProps) {
   
-  // Function to render LaTeX expressions with better formatting
-  const renderLatex = (text: string) => {
-    let processedText = text;
-    
-    console.log('Processing LaTeX text:', text);
-    
-    // Log all LaTeX commands found for debugging
-    const latexCommands = text.match(/\\[a-zA-Z]+(\{[^}]*\})*/g);
-    if (latexCommands) {
-      console.log('Found LaTeX commands:', latexCommands);
+  // Check if content is JSON
+  const isJsonContent = (text: string): boolean => {
+    try {
+      JSON.parse(text);
+      return true;
+    } catch {
+      return false;
     }
+  };
+
+  // Format JSON for display
+  const formatJson = (jsonString: string): string => {
+    try {
+      const parsed = JSON.parse(jsonString);
+      return `<pre style="background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; padding: 1rem; overflow-x: auto; font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace; font-size: 0.9em; line-height: 1.4;">${JSON.stringify(parsed, null, 2)}</pre>`;
+    } catch {
+      return `<pre style="background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; padding: 1rem; overflow-x: auto; font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace; font-size: 0.9em; line-height: 1.4; color: #dc3545;">Invalid JSON: ${jsonString}</pre>`;
+    }
+  };
+
+  // If this is a geometry response and contains JSON, format it
+  if (isGeometryResponse && isJsonContent(content)) {
+    return (
+      <div className={className}>
+        <div dangerouslySetInnerHTML={{ __html: formatJson(content) }} />
+      </div>
+    );
+  }
+
+  // Function to render LaTeX expressions with better formatting
+  const processLatex = (text: string): string => {
+    let processedText = text;
     
     // Handle display math blocks \[ ... \]
     processedText = processedText.replace(/\\\[(.*?)\\\]/g, (match, latex) => {
@@ -50,13 +72,11 @@ export default function MarkdownMessage({ content, className = '' }: MarkdownMes
     
     // Handle superscripts BEFORE fractions and other complex expressions
     processedText = processedText.replace(/([a-zA-Z0-9])\^(\d+)/g, (match, base, exponent) => {
-      console.log('Found superscript:', match, 'base:', base, 'exponent:', exponent);
       return `${base}<sup style="font-size: 0.75em; vertical-align: top; line-height: 0;">${exponent}</sup>`;
     });
     
     // Handle more complex superscripts with braces
     processedText = processedText.replace(/([a-zA-Z0-9])\^\{([^}]+)\}/g, (match, base, exponent) => {
-      console.log('Found complex superscript:', match, 'base:', base, 'exponent:', exponent);
       return `${base}<sup style="font-size: 0.75em; vertical-align: top; line-height: 0;">${exponent}</sup>`;
     });
     
@@ -67,7 +87,6 @@ export default function MarkdownMessage({ content, className = '' }: MarkdownMes
       const fullMatch = fractionMatch[0];
       const numerator = fractionMatch[1];
       const denominator = fractionMatch[2];
-      console.log('Found fraction:', fullMatch, 'num:', numerator, 'den:', denominator);
       
       const replacement = `<span style="font-family: serif; font-size: 1.1em; background: #f8f9fa; padding: 2px 6px; border-radius: 4px;">(${numerator})/(${denominator})</span>`;
       processedText = processedText.replace(fullMatch, replacement);
@@ -82,7 +101,6 @@ export default function MarkdownMessage({ content, className = '' }: MarkdownMes
     while ((sqrtMatch = sqrtRegex.exec(processedText)) !== null) {
       const fullMatch = sqrtMatch[0];
       const content = sqrtMatch[1];
-      console.log('Found sqrt:', fullMatch, 'content:', content);
       
       const replacement = `<span style="font-family: serif;">√(${content})</span>`;
       processedText = processedText.replace(fullMatch, replacement);
@@ -93,32 +111,25 @@ export default function MarkdownMessage({ content, className = '' }: MarkdownMes
     
     // Handle absolute values and other left/right brackets
     processedText = processedText.replace(/\\left\|([^}]+)\\right\|/g, (match, content) => {
-      console.log('Found abs:', match);
       return `<span style="font-family: serif;">|${content}|</span>`;
     });
     processedText = processedText.replace(/\\left\(([^}]+)\\right\)/g, (match, content) => {
-      console.log('Found parentheses:', match);
       return `<span style="font-family: serif;">(${content})</span>`;
     });
     processedText = processedText.replace(/\\left\[([^}]+)\\right\]/g, (match, content) => {
-      console.log('Found brackets:', match);
       return `<span style="font-family: serif;">[${content}]</span>`;
     });
     
     // Handle bars
     processedText = processedText.replace(/\\bar\{([^}]+)\}/g, (match, content) => {
-      console.log('Found bar:', match);
       return `<span style="font-family: serif; text-decoration: overline;">${content}</span>`;
     });
     
-
-    
-    console.log('Final processed text:', processedText);
     return processedText;
   };
   
   // Process the content for LaTeX
-  const processedContent = renderLatex(content);
+  const processedContent = processLatex(content);
   
   return (
     <div className={className}>

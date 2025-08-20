@@ -4,6 +4,7 @@ import { useRef, useState, useEffect } from 'react';
 import { LayoutDashboard, Pencil, Send, Image as ImageIcon, FileText, Plus, MessageCircle, Trash2 } from 'lucide-react';
 import DrawingPad from '@/components/DrawingPad';
 import MarkdownMessage from '@/components/MarkdownMessage';
+import GeometryDiagram from '@/components/GeometryDiagram';
 import { useRouter } from 'next/navigation';
 
 type ChatItem = { role: 'user' | 'assistant'; content: string };
@@ -12,19 +13,26 @@ type ChatSession = {
 	title: string;
 	messages: ChatItem[];
 	timestamp: Date;
+	geometryData?: any;
 };
 
 export default function ChatHome() {
 	const router = useRouter();
 	const [chatSessions, setChatSessions] = useState<ChatSession[]>([
 		{
-			id: '1',
-			title: 'New Chat',
-			messages: [{ role: 'assistant', content: 'Hi! I can help with GCSE Maths using Mentara. Ask a question or upload an image and tell me about it.' }],
-			timestamp: new Date()
+			id: 'geometry-test',
+			title: 'Geometry Test - Semicircle Proof',
+			messages: [
+				{
+					role: 'assistant',
+					content: 'I\'m ready to help with geometry problems. I\'ll provide responses in strict JSON format for diagram instructions. Click the "Load Geometry Question" button below to test the semicircle proof question.'
+				}
+			],
+			timestamp: new Date(),
+			geometryData: null
 		}
 	]);
-	const [currentSessionId, setCurrentSessionId] = useState<string>('1');
+	const [currentSessionId, setCurrentSessionId] = useState<string>('geometry-test');
 	const [input, setInput] = useState('');
 	const [uploadName, setUploadName] = useState<string | null>(null);
 	const [showNotepad, setShowNotepad] = useState(false);
@@ -34,6 +42,10 @@ export default function ChatHome() {
 	// Get current session
 	const currentSession = chatSessions.find(session => session.id === currentSessionId);
 	const messages = currentSession?.messages || [];
+	const geometryData = currentSession?.geometryData || null;
+
+	// Check if current session is a geometry test session
+	const isGeometrySession = currentSessionId === 'geometry-test';
 
 	// Create new chat session
 	const createNewChat = () => {
@@ -41,7 +53,8 @@ export default function ChatHome() {
 			id: Date.now().toString(),
 			title: 'New Chat',
 			messages: [{ role: 'assistant', content: 'Hi! I can help with GCSE Maths using Mentara. Ask a question or upload an image and tell me about it.' }],
-			timestamp: new Date()
+			timestamp: new Date(),
+			geometryData: null
 		};
 		setChatSessions(prev => [newSession, ...prev]);
 		setCurrentSessionId(newSession.id);
@@ -59,6 +72,7 @@ export default function ChatHome() {
 	// Delete a chat session
 	const deleteSession = (sessionId: string) => {
 		if (chatSessions.length === 1) return; // Don't delete the last session
+		if (sessionId === 'geometry-test') return; // Don't delete the geometry test session
 		setChatSessions(prev => prev.filter(session => session.id !== sessionId));
 		if (currentSessionId === sessionId) {
 			const remainingSessions = chatSessions.filter(session => session.id !== sessionId);
@@ -76,55 +90,57 @@ export default function ChatHome() {
 	};
 
 	const send = async () => {
-		console.log('Send function called');
-		const text = input.trim();
-		console.log('Input text:', text);
-		if (!text) {
-			console.log('No text to send');
-			return;
-		}
-		setIsSending(true);
-		console.log('Setting isSending to true');
-		const userMsg: ChatItem = { role: 'user', content: text + (uploadName ? `\n(Attached: ${uploadName})` : '') };
-		console.log('User message:', userMsg);
+		if (!input.trim() && !uploadName) return;
 		
-		// Update messages in current session
-		setChatSessions(prev => prev.map(session => 
-			session.id === currentSessionId 
-				? { ...session, messages: [...session.messages, userMsg] }
-				: session
-		));
-
-		// Update session title if this is the first user message
-		if (currentSession && currentSession.messages.length === 1) {
-			updateSessionTitle(currentSessionId, text);
+		const userMessage = { role: 'user' as const, content: input };
+		const currentSession = chatSessions.find(s => s.id === currentSessionId);
+		
+		if (currentSession) {
+			const updatedSession = {
+				...currentSession,
+				messages: [...currentSession.messages, userMessage]
+			};
+			
+			setChatSessions(prev => prev.map(s => s.id === currentSessionId ? updatedSession : s));
 		}
-
+		
 		setInput('');
+		setUploadName(null);
+		
 		try {
-			console.log('Making API request to /api/chat');
-			const resp = await fetch('/api/chat', {
+			const response = await fetch('/api/chat', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ message: text, imageName: uploadName || undefined }),
+				body: JSON.stringify({
+					messages: [...(currentSession?.messages || []), userMessage],
+					isGeometryRequest: isGeometrySession
+				})
 			});
-			console.log('API response status:', resp.status);
-			const data = await resp.json();
-			console.log('API response data:', data);
-			const reply = data?.reply || 'Sorry, I could not respond right now.';
-			console.log('Setting assistant message:', reply);
 			
-			// Add assistant reply to current session
+			const data = await response.json();
+			const reply = data?.reply || 'Sorry, I could not respond right now.';
+			
+			// Parse geometry data if this is a geometry session
+			let parsedGeometryData = null;
+			if (isGeometrySession) {
+				try {
+					parsedGeometryData = JSON.parse(reply);
+				} catch (error) {
+					console.error('Failed to parse geometry JSON:', error);
+				}
+			}
+			
+			// Add assistant reply and geometry data to current session
 			setChatSessions(prev => prev.map(session => 
 				session.id === currentSessionId 
-					? { ...session, messages: [...session.messages, { role: 'assistant', content: reply }] }
+					? { ...session, messages: [...session.messages, { role: 'assistant', content: reply }], geometryData: parsedGeometryData }
 					: session
 			));
 		} catch (e) {
 			console.error('Error in send function:', e);
 			setChatSessions(prev => prev.map(session => 
 				session.id === currentSessionId 
-					? { ...session, messages: [...session.messages, { role: 'assistant', content: 'Network error. Please try again.' }] }
+					? { ...session, messages: [...session.messages, { role: 'assistant', content: 'Network error. Please try again.' }], geometryData: null }
 					: session
 			));
 		} finally {
@@ -132,6 +148,8 @@ export default function ChatHome() {
 			setIsSending(false);
 		}
 	};
+
+
 
 	// Save chat sessions to localStorage
 	useEffect(() => {
@@ -264,14 +282,38 @@ export default function ChatHome() {
 											{m.role === 'user' ? (
 												<div className="whitespace-pre-wrap">{m.content}</div>
 											) : (
-												<MarkdownMessage content={m.content} />
+												<MarkdownMessage content={m.content} isGeometryResponse={isGeometrySession} />
 											)}
 										</div>
 									</div>
 								</div>
 							))}
+							
+							{/* Geometry Diagram */}
+							{isGeometrySession && geometryData && (
+								<div className="mt-6">
+									<h3 className="text-lg font-semibold mb-4">Geometry Diagram</h3>
+									<GeometryDiagram geometryData={geometryData} />
+								</div>
+							)}
 						</div>
 					</div>
+
+					{/* Geometry Test Section */}
+					{isGeometrySession && (
+						<div className="mb-6 p-4 bg-blue-50 rounded-lg">
+							<div className="flex flex-wrap gap-3">
+								<button
+									onClick={() => {
+										setInput('I want to prove that the angle inside a semi-circle is always right angle. The present diagram contain a circle with centre C and a triangle QRS with QR side as diameter already drawn. What extra line should be drawn to help me prove the statement. No need for full prove just where to draw the line');
+									}}
+									className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+								>
+									Load Geometry Question
+								</button>
+							</div>
+						</div>
+					)}
 
 					{/* Input Bar */}
 					<div className="border-t border-gray-200 bg-white p-6">
@@ -305,7 +347,6 @@ export default function ChatHome() {
 									onKeyDown={(e) => {
 										if (e.key === 'Enter' && !e.shiftKey) {
 											e.preventDefault();
-											console.log('Enter key pressed');
 											send();
 										}
 									}}
