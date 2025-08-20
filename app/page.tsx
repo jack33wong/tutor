@@ -180,7 +180,16 @@ export default function ChatHome() {
 
 	const send = async () => {
 		const text = input.trim();
-		if (!text) {
+		
+		console.log('=== SEND FUNCTION DEBUG ===');
+		console.log('Text:', text);
+		console.log('Uploaded Image:', uploadedImage);
+		console.log('Upload Name:', uploadName);
+		console.log('Current Session ID:', currentSessionId);
+		
+		// Allow sending if there's either text or an image
+		if (!text && !uploadedImage) {
+			console.log('No text and no image - returning early');
 			return;
 		}
 		
@@ -208,7 +217,7 @@ export default function ChatHome() {
 		setIsSending(true);
 		const userMsg: ChatItem = { 
 			role: 'user', 
-			content: text + (uploadedImage ? `\n[📷 Image: ${uploadName}]` : '') 
+			content: text ? text + (uploadedImage ? `\n[📷 Image: ${uploadName}]` : '') : `[📷 Image: ${uploadName}]`
 		};
 		
 		// Store the current session data to ensure we don't lose it
@@ -220,7 +229,7 @@ export default function ChatHome() {
 
 		// Store the title that should be preserved
 		const titleToPreserve = currentSession.messages.length === 1 
-			? text.slice(0, 30) + (text.length > 30 ? '...' : '')
+			? (text ? text.slice(0, 30) + (text.length > 30 ? '...' : '') : `Image: ${uploadName}`)
 			: currentSession.title;
 
 		// IMMEDIATELY add user message to chat for instant feedback
