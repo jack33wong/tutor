@@ -187,6 +187,7 @@ export default function ChatHome() {
 		console.log('=== CHAT PAGE: localStorage save effect triggered ===');
 		console.log('=== CHAT PAGE: chatSessions.length ===', chatSessions.length);
 		console.log('=== CHAT PAGE: typeof window ===', typeof window);
+		console.log('=== CHAT PAGE: chatSessions value ===', chatSessions);
 		
 		if (chatSessions.length > 0 && typeof window !== 'undefined') {
 			console.log('=== CHAT PAGE: Saving chat sessions to localStorage ===', chatSessions);
@@ -216,6 +217,12 @@ export default function ChatHome() {
 			console.log('=== CHAT PAGE: typeof window !== undefined:', typeof window !== 'undefined');
 		}
 	}, [chatSessions]); // Depend on chatSessions - runs when it's first populated
+
+	// Test useEffect - this should ALWAYS run
+	useEffect(() => {
+		console.log('=== CHAT PAGE: TEST useEffect - this should always run ===');
+		console.log('=== CHAT PAGE: Component mounted/updated ===');
+	}, []); // Empty dependency array - runs on every render
 
 	// Handle session restoration when currentSessionId changes
 	useEffect(() => {
