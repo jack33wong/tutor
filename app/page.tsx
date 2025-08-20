@@ -382,7 +382,7 @@ export default function ChatHome() {
 					</div>
 
 					{/* Input Bar */}
-					<div className="border-t border-gray-200 bg-white p-6">
+					<div className="bg-white p-6">
 						<div className="max-w-4xl mx-auto">
 							{/* Session status indicator */}
 							{(!currentSessionId || isCreatingSession) && (
