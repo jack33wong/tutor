@@ -68,7 +68,7 @@ export default function PastPapersPage() {
 		<div className="min-h-screen bg-gray-50">
 			<div className="flex h-screen">
 				{/* Left Sidebar */}
-				<LeftSidebar chatSessions={chatSessions}>
+				<LeftSidebar>
 					<ChatHistory chatSessions={chatSessions} />
 				</LeftSidebar>
 
