@@ -18,15 +18,8 @@ type ChatSession = {
 
 export default function ChatHome() {
 	const router = useRouter();
-	const [chatSessions, setChatSessions] = useState<ChatSession[]>([
-		{
-			id: '1',
-			title: 'New Chat',
-			messages: [{ role: 'assistant', content: 'Hi! I can help with GCSE Maths using Mentara. Ask a question or upload an image and tell me about it.' }],
-			timestamp: new Date()
-		}
-	]);
-	const [currentSessionId, setCurrentSessionId] = useState<string>('1');
+	const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
+	const [currentSessionId, setCurrentSessionId] = useState<string>('');
 	const [input, setInput] = useState('');
 	const [uploadName, setUploadName] = useState<string | null>(null);
 	const [showNotepad, setShowNotepad] = useState(false);
@@ -39,13 +32,19 @@ export default function ChatHome() {
 
 	// Create new chat session
 	const createNewChat = () => {
+		console.log('Creating new chat session...');
 		const newSession: ChatSession = {
 			id: Date.now().toString(),
 			title: 'New Chat',
 			messages: [{ role: 'assistant', content: 'Hi! I can help with GCSE Maths using Mentara. Ask a question or upload an image and tell me about it.' }],
 			timestamp: new Date()
 		};
-		setChatSessions(prev => [newSession, ...prev]);
+		console.log('New session created:', newSession);
+		setChatSessions(prev => {
+			const updated = [newSession, ...prev];
+			console.log('Updated chat sessions:', updated);
+			return updated;
+		});
 		setCurrentSessionId(newSession.id);
 		setInput('');
 		setUploadName(null);
@@ -91,11 +90,15 @@ export default function ChatHome() {
 		console.log('User message:', userMsg);
 		
 		// Update messages in current session
-		setChatSessions(prev => prev.map(session => 
-			session.id === currentSessionId 
-				? { ...session, messages: [...session.messages, userMsg] }
-				: session
-		));
+		setChatSessions(prev => {
+			const updated = prev.map(session => 
+				session.id === currentSessionId 
+					? { ...session, messages: [...session.messages, userMsg] }
+					: session
+			);
+			console.log('Updated chat sessions after user message:', updated);
+			return updated;
+		});
 
 		// Update session title if this is the first user message
 		if (currentSession && currentSession.messages.length === 1) {
@@ -117,18 +120,26 @@ export default function ChatHome() {
 			console.log('Setting assistant message:', reply);
 			
 			// Add assistant reply to current session
-			setChatSessions(prev => prev.map(session => 
-				session.id === currentSessionId 
-					? { ...session, messages: [...session.messages, { role: 'assistant', content: reply }] }
-					: session
-			));
+			setChatSessions(prev => {
+				const updated = prev.map(session => 
+					session.id === currentSessionId 
+						? { ...session, messages: [...session.messages, { role: 'assistant' as const, content: reply }] }
+						: session
+				);
+				console.log('Updated chat sessions after assistant reply:', updated);
+				return updated;
+			});
 		} catch (e) {
 			console.error('Error in send function:', e);
-			setChatSessions(prev => prev.map(session => 
-				session.id === currentSessionId 
-					? { ...session, messages: [...session.messages, { role: 'assistant', content: 'Network error. Please try again.' }] }
-					: session
-			));
+			setChatSessions(prev => {
+				const updated = prev.map(session => 
+					session.id === currentSessionId 
+						? { ...session, messages: [...session.messages, { role: 'assistant' as const, content: 'Network error. Please try again.' }] }
+						: session
+				);
+				console.log('Updated chat sessions after error:', updated);
+				return updated;
+			});
 		} finally {
 			console.log('Setting isSending to false');
 			setIsSending(false);
@@ -142,37 +153,75 @@ export default function ChatHome() {
 
 	// Load chat sessions from localStorage on mount
 	useEffect(() => {
+		console.log('Loading chat sessions from localStorage...');
 		const saved = localStorage.getItem('chatSessions');
+		console.log('Saved sessions:', saved);
+		
 		if (saved) {
 			try {
 				const parsed = JSON.parse(saved);
+				console.log('Parsed sessions:', parsed);
+				
 				// Convert timestamp strings back to Date objects
 				const sessionsWithDates = parsed.map((session: any) => ({
 					...session,
 					timestamp: new Date(session.timestamp)
 				}));
+				
 				// Sort sessions by timestamp (newest first)
 				const sortedSessions = sessionsWithDates.sort((a: ChatSession, b: ChatSession) => 
 					new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
 				);
+				console.log('Sorted sessions:', sortedSessions);
+				
 				setChatSessions(sortedSessions);
 				
 				// Check if we need to restore a specific session (e.g., from dashboard)
 				const restoreSessionId = localStorage.getItem('restoreSessionId');
+				console.log('Restore session ID:', restoreSessionId);
+				
 				if (restoreSessionId) {
 					// Find the session to restore
-					const sessionToRestore = sessionsWithDates.find((session: ChatSession) => session.id === restoreSessionId);
+					const sessionToRestore = sortedSessions.find((session: ChatSession) => session.id === restoreSessionId);
+					console.log('Session to restore:', sessionToRestore);
+					
 					if (sessionToRestore) {
+						console.log('Setting current session ID to:', restoreSessionId);
 						setCurrentSessionId(restoreSessionId);
+					} else {
+						console.log('Session not found, using first session');
+						setCurrentSessionId(sortedSessions[0]?.id || '');
 					}
 					// Clear the restore flag
 					localStorage.removeItem('restoreSessionId');
+				} else {
+					// Set the first session as current if no restore needed
+					console.log('No restore needed, using first session:', sortedSessions[0]?.id);
+					setCurrentSessionId(sortedSessions[0]?.id || '');
 				}
 			} catch (e) {
 				console.error('Error loading chat sessions:', e);
+				// If there's an error, initialize with default session
+				initializeDefaultSession();
 			}
+		} else {
+			console.log('No saved sessions, initializing default');
+			// No saved sessions, initialize with default
+			initializeDefaultSession();
 		}
 	}, []);
+
+	// Initialize default session
+	const initializeDefaultSession = () => {
+		const defaultSession: ChatSession = {
+			id: Date.now().toString(),
+			title: 'New Chat',
+			messages: [{ role: 'assistant', content: 'Hi! I can help with GCSE Maths using Mentara. Ask a question or upload an image and tell me about it.' }],
+			timestamp: new Date()
+		};
+		setChatSessions([defaultSession]);
+		setCurrentSessionId(defaultSession.id);
+	};
 
 	return (
 		<div className="min-h-screen bg-gray-50">
