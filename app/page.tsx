@@ -68,6 +68,16 @@ export default function ChatHome() {
 		setChatSessions(prev => {
 			const updated = [newSession, ...prev];
 			console.log('=== CHAT PAGE: Updated chat sessions:', updated);
+			
+			// DIRECT localStorage save - save immediately after creating new session
+			console.log('=== CHAT PAGE: DIRECT localStorage save in createNewChat ===');
+			try {
+				localStorage.setItem('chatSessions', JSON.stringify(updated));
+				console.log('=== CHAT PAGE: DIRECT localStorage save for new session successful ===');
+			} catch (error) {
+				console.error('=== CHAT PAGE: DIRECT localStorage save for new session failed ===', error);
+			}
+			
 			return updated;
 		});
 		setCurrentSessionId(newSession.id);
@@ -142,6 +152,16 @@ export default function ChatHome() {
 					? { ...session, messages: [...session.messages, userMsg] }
 					: session
 			);
+			
+			// DIRECT localStorage save - save immediately after updating
+			console.log('=== CHAT PAGE: DIRECT localStorage save in sendMessage ===');
+			try {
+				localStorage.setItem('chatSessions', JSON.stringify(updated));
+				console.log('=== CHAT PAGE: DIRECT localStorage save successful ===');
+			} catch (error) {
+				console.error('=== CHAT PAGE: DIRECT localStorage save failed ===', error);
+			}
+			
 			return updated;
 		});
 
@@ -167,6 +187,16 @@ export default function ChatHome() {
 						? { ...session, messages: [...session.messages, { role: 'assistant' as const, content: reply }] }
 						: session
 				);
+				
+				// DIRECT localStorage save - save immediately after updating with assistant reply
+				console.log('=== CHAT PAGE: DIRECT localStorage save with assistant reply ===');
+				try {
+					localStorage.setItem('chatSessions', JSON.stringify(updated));
+					console.log('=== CHAT PAGE: DIRECT localStorage save with reply successful ===');
+				} catch (error) {
+					console.error('=== CHAT PAGE: DIRECT localStorage save with reply failed ===', error);
+				}
+				
 				return updated;
 			});
 		} catch (e) {
@@ -177,6 +207,16 @@ export default function ChatHome() {
 						? { ...session, messages: [...session.messages, { role: 'assistant' as const, content: 'Network error. Please try again.' }] }
 						: session
 				);
+				
+				// DIRECT localStorage save - save immediately after error message
+				console.log('=== CHAT PAGE: DIRECT localStorage save with error message ===');
+				try {
+					localStorage.setItem('chatSessions', JSON.stringify(updated));
+					console.log('=== CHAT PAGE: DIRECT localStorage save with error successful ===');
+				} catch (error) {
+					console.error('=== CHAT PAGE: DIRECT localStorage save with error failed ===', error);
+				}
+				
 				return updated;
 			});
 		} finally {
