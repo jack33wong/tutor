@@ -160,6 +160,16 @@ export default function ChatHome() {
 		localStorage.setItem('chatSessions', JSON.stringify(chatSessions));
 	}, [chatSessions]);
 
+	// Handle session restoration when currentSessionId changes
+	useEffect(() => {
+		if (currentSessionId && chatSessions.length > 0) {
+			const currentSession = chatSessions.find(session => session.id === currentSessionId);
+			if (currentSession) {
+				console.log('Current session loaded:', currentSession.id, 'with', currentSession.messages.length, 'messages');
+			}
+		}
+	}, [currentSessionId, chatSessions]);
+
 	// Load chat sessions from localStorage on mount
 	useEffect(() => {
 		const saved = localStorage.getItem('chatSessions');
@@ -189,14 +199,17 @@ export default function ChatHome() {
 					const sessionToRestore = sortedSessions.find((session: ChatSession) => session.id === restoreSessionId);
 					
 					if (sessionToRestore) {
+						console.log('Restoring session:', restoreSessionId, 'with', sessionToRestore.messages.length, 'messages');
 						setCurrentSessionId(restoreSessionId);
 					} else {
+						console.log('Session not found, using first session');
 						setCurrentSessionId(sortedSessions[0]?.id || '');
 					}
 					// Clear the restore flag
 					localStorage.removeItem('restoreSessionId');
 				} else {
 					// Set the first session as current if no restore needed
+					console.log('No restore needed, using first session:', sortedSessions[0]?.id);
 					setCurrentSessionId(sortedSessions[0]?.id || '');
 				}
 			} catch (e) {

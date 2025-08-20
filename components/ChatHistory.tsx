@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { MessageCircle, Clock } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 type ChatItem = { role: 'user' | 'assistant'; content: string };
 
@@ -15,6 +16,7 @@ interface ChatSession {
 export default function ChatHistory() {
 	const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
 	const [isClient, setIsClient] = useState(false);
+	const router = useRouter();
 
 	useEffect(() => {
 		// Mark as client-side rendered
@@ -62,7 +64,7 @@ export default function ChatHistory() {
 		if (typeof window !== 'undefined') {
 			// Store the session ID to restore when the chat page loads
 			localStorage.setItem('restoreSessionId', sessionId);
-			window.location.href = '/';
+			router.push('/');
 		}
 	};
 
