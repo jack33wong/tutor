@@ -33,17 +33,62 @@ export default function PastPapersPage() {
 	const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
 	const [isHydrated, setIsHydrated] = useState(false);
 
-	// Load chat sessions from localStorage
+	// Debug function to check localStorage state
+	const debugLocalStorage = () => {
+		if (typeof window === 'undefined') return;
+		
+		try {
+			const saved = localStorage.getItem('chatSessions');
+			console.log('=== PAST PAPERS: DEBUG localStorage ===');
+			console.log('=== PAST PAPERS: Raw localStorage value ===', saved);
+			
+			if (saved && saved.trim() !== '' && saved !== 'null') {
+				const parsed = JSON.parse(saved);
+				console.log('=== PAST PAPERS: Parsed localStorage ===', parsed);
+				console.log('=== PAST PAPERS: Current state vs localStorage ===', {
+					stateSessionsCount: chatSessions.length,
+					localStorageSessionsCount: parsed.length,
+					stateFirstSessionTitle: chatSessions[0]?.title || 'No sessions',
+					localStorageFirstSessionTitle: parsed[0]?.title || 'No sessions',
+					stateFirstSessionMessagesCount: chatSessions[0]?.messages?.length || 0,
+					localStorageFirstSessionMessagesCount: parsed[0]?.messages?.length || 0
+				});
+			} else {
+				console.log('=== PAST PAPERS: No localStorage data found ===');
+			}
+		} catch (error) {
+			console.error('=== PAST PAPERS: DEBUG localStorage error ===', error);
+		}
+	};
+
+	// Load chat sessions from localStorage with enhanced error handling
 	useEffect(() => {
 		if (typeof window !== 'undefined') {
 			try {
 				const saved = localStorage.getItem('chatSessions');
+				console.log('=== PAST PAPERS: Loading chat sessions from localStorage ===', { saved });
+				
 				if (saved && saved.trim() !== '' && saved !== 'null') {
 					const parsed = JSON.parse(saved);
-					setChatSessions(parsed);
+					console.log('=== PAST PAPERS: Parsed chat sessions ===', parsed);
+					
+					// Verify the data structure and preserve titles
+					const validatedSessions = parsed.map((session: any) => ({
+						...session,
+						title: session.title || 'New Chat', // Ensure title is always present
+						messages: Array.isArray(session.messages) ? session.messages : [],
+						timestamp: session.timestamp ? new Date(session.timestamp) : new Date()
+					}));
+					
+					console.log('=== PAST PAPERS: Validated and set chat sessions ===', validatedSessions);
+					setChatSessions(validatedSessions);
+				} else {
+					console.log('=== PAST PAPERS: No chat sessions found in localStorage ===');
+					setChatSessions([]);
 				}
 			} catch (error) {
-				console.error('Error loading chat sessions:', error);
+				console.error('=== PAST PAPERS: Error loading chat sessions ===', error);
+				setChatSessions([]);
 			}
 			setIsHydrated(true);
 		}
@@ -65,6 +110,22 @@ export default function PastPapersPage() {
 							<div className="mb-8">
 								<h1 className="text-3xl font-bold text-gray-900">Past Papers</h1>
 								<p className="text-gray-600 mt-2">Practice with real GCSE Maths exam papers</p>
+								
+								{/* Debug localStorage button */}
+								<div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+									<div className="flex items-center justify-between">
+										<span className="text-sm text-blue-800">Debug: localStorage State</span>
+										<button
+											onClick={debugLocalStorage}
+											className="px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600"
+										>
+											Check State
+										</button>
+									</div>
+									<div className="text-xs text-blue-600 mt-1">
+										Chat Sessions: {chatSessions.length} | Hydrated: {isHydrated ? 'Yes' : 'No'}
+									</div>
+								</div>
 							</div>
 
 							{/* Exam Papers Grid */}
