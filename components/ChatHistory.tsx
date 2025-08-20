@@ -77,6 +77,24 @@ export default function ChatHistory() {
 				🔄 Refresh
 			</button>
 			
+			{/* Test button */}
+			<button
+				onClick={() => {
+					const testSession = {
+						id: 'test-' + Date.now(),
+						title: 'Test Chat',
+						messages: [{ role: 'assistant', content: 'This is a test message' }],
+						timestamp: new Date()
+					};
+					localStorage.setItem('chatSessions', JSON.stringify([testSession]));
+					console.log('Created test session:', testSession);
+					loadChatSessions();
+				}}
+				className="w-full p-2 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 mb-3"
+			>
+				🧪 Create Test Session
+			</button>
+			
 			{/* Chat sessions */}
 			{chatSessions.length === 0 ? (
 				<div className="text-center py-4">
