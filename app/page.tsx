@@ -1,23 +1,79 @@
 "use client";
 
-import { useRef, useState } from 'react';
-import { LayoutDashboard, Pencil, Send, Image as ImageIcon, FileText } from 'lucide-react';
+import { useRef, useState, useEffect } from 'react';
+import { LayoutDashboard, Pencil, Send, Image as ImageIcon, FileText, Plus, MessageCircle, Trash2 } from 'lucide-react';
 import DrawingPad from '@/components/DrawingPad';
 import MarkdownMessage from '@/components/MarkdownMessage';
 import { useRouter } from 'next/navigation';
 
 type ChatItem = { role: 'user' | 'assistant'; content: string };
+type ChatSession = {
+	id: string;
+	title: string;
+	messages: ChatItem[];
+	timestamp: Date;
+};
 
 export default function ChatHome() {
 	const router = useRouter();
-	const [messages, setMessages] = useState<ChatItem[]>([
-		        { role: 'assistant', content: 'Hi! I can help with GCSE Maths using Mentara. Ask a question or upload an image and tell me about it.' },
+	const [chatSessions, setChatSessions] = useState<ChatSession[]>([
+		{
+			id: '1',
+			title: 'New Chat',
+			messages: [{ role: 'assistant', content: 'Hi! I can help with GCSE Maths using Mentara. Ask a question or upload an image and tell me about it.' }],
+			timestamp: new Date()
+		}
 	]);
+	const [currentSessionId, setCurrentSessionId] = useState<string>('1');
 	const [input, setInput] = useState('');
 	const [uploadName, setUploadName] = useState<string | null>(null);
 	const [showNotepad, setShowNotepad] = useState(false);
 	const [isSending, setIsSending] = useState(false);
 	const fileRef = useRef<HTMLInputElement | null>(null);
+
+	// Get current session
+	const currentSession = chatSessions.find(session => session.id === currentSessionId);
+	const messages = currentSession?.messages || [];
+
+	// Create new chat session
+	const createNewChat = () => {
+		const newSession: ChatSession = {
+			id: Date.now().toString(),
+			title: 'New Chat',
+			messages: [{ role: 'assistant', content: 'Hi! I can help with GCSE Maths using Mentara. Ask a question or upload an image and tell me about it.' }],
+			timestamp: new Date()
+		};
+		setChatSessions(prev => [newSession, ...prev]);
+		setCurrentSessionId(newSession.id);
+		setInput('');
+		setUploadName(null);
+	};
+
+	// Switch to a different chat session
+	const switchToSession = (sessionId: string) => {
+		setCurrentSessionId(sessionId);
+		setInput('');
+		setUploadName(null);
+	};
+
+	// Delete a chat session
+	const deleteSession = (sessionId: string) => {
+		if (chatSessions.length === 1) return; // Don't delete the last session
+		setChatSessions(prev => prev.filter(session => session.id !== sessionId));
+		if (currentSessionId === sessionId) {
+			const remainingSessions = chatSessions.filter(session => session.id !== sessionId);
+			setCurrentSessionId(remainingSessions[0].id);
+		}
+	};
+
+	// Update session title based on first user message
+	const updateSessionTitle = (sessionId: string, firstUserMessage: string) => {
+		setChatSessions(prev => prev.map(session => 
+			session.id === sessionId 
+				? { ...session, title: firstUserMessage.slice(0, 30) + (firstUserMessage.length > 30 ? '...' : '') }
+				: session
+		));
+	};
 
 	const send = async () => {
 		console.log('Send function called');
@@ -31,7 +87,19 @@ export default function ChatHome() {
 		console.log('Setting isSending to true');
 		const userMsg: ChatItem = { role: 'user', content: text + (uploadName ? `\n(Attached: ${uploadName})` : '') };
 		console.log('User message:', userMsg);
-		setMessages(prev => [...prev, userMsg]);
+		
+		// Update messages in current session
+		setChatSessions(prev => prev.map(session => 
+			session.id === currentSessionId 
+				? { ...session, messages: [...session.messages, userMsg] }
+				: session
+		));
+
+		// Update session title if this is the first user message
+		if (currentSession && currentSession.messages.length === 1) {
+			updateSessionTitle(currentSessionId, text);
+		}
+
 		setInput('');
 		try {
 			console.log('Making API request to /api/chat');
@@ -45,23 +113,58 @@ export default function ChatHome() {
 			console.log('API response data:', data);
 			const reply = data?.reply || 'Sorry, I could not respond right now.';
 			console.log('Setting assistant message:', reply);
-			setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
+			
+			// Add assistant reply to current session
+			setChatSessions(prev => prev.map(session => 
+				session.id === currentSessionId 
+					? { ...session, messages: [...session.messages, { role: 'assistant', content: reply }] }
+					: session
+			));
 		} catch (e) {
 			console.error('Error in send function:', e);
-			setMessages(prev => [...prev, { role: 'assistant', content: 'Network error. Please try again.' }]);
+			setChatSessions(prev => prev.map(session => 
+				session.id === currentSessionId 
+					? { ...session, messages: [...session.messages, { role: 'assistant', content: 'Network error. Please try again.' }] }
+					: session
+			));
 		} finally {
 			console.log('Setting isSending to false');
 			setIsSending(false);
 		}
 	};
 
+	// Save chat sessions to localStorage
+	useEffect(() => {
+		localStorage.setItem('chatSessions', JSON.stringify(chatSessions));
+	}, [chatSessions]);
+
+	// Load chat sessions from localStorage on mount
+	useEffect(() => {
+		const saved = localStorage.getItem('chatSessions');
+		if (saved) {
+			try {
+				const parsed = JSON.parse(saved);
+				// Convert timestamp strings back to Date objects
+				const sessionsWithDates = parsed.map((session: any) => ({
+					...session,
+					timestamp: new Date(session.timestamp)
+				}));
+				setChatSessions(sessionsWithDates);
+			} catch (e) {
+				console.error('Error loading chat sessions:', e);
+			}
+		}
+	}, []);
+
 	return (
 		<div className="min-h-screen bg-gray-50">
 			<div className="flex h-screen">
 				{/* Sidebar */}
 				<aside className="w-64 bg-white border-r border-gray-200 p-4 hidden md:flex md:flex-col">
-					                <h2 className="text-lg font-semibold text-gray-900 mb-4">Mentara</h2>
-					<nav className="space-y-2">
+					<h2 className="text-lg font-semibold text-gray-900 mb-4">Mentara</h2>
+					
+					{/* Navigation */}
+					<nav className="space-y-2 mb-6">
 						<button
 							onClick={() => router.push('/dashboard')}
 							className="w-full flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-100"
@@ -78,8 +181,58 @@ export default function ChatHome() {
 						</button>
 					</nav>
 					
+					{/* New Chat Button */}
+					<button
+						onClick={createNewChat}
+						className="w-full flex items-center justify-start space-x-3 px-4 py-3 rounded-2xl bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-medium shadow-sm hover:shadow-md transition-all duration-200 mb-6"
+					>
+						<Plus className="w-5 h-5 flex-shrink-0" />
+						<span className="text-sm font-semibold">New Chat</span>
+					</button>
+
+					{/* Chat History */}
+					<div className="flex-1 overflow-y-auto">
+						<div className="space-y-1">
+							{chatSessions.map((session) => (
+								<div
+									key={session.id}
+									className={`group relative flex items-center space-x-2 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
+										currentSessionId === session.id
+											? 'bg-primary-100 text-primary-700'
+											: 'hover:bg-gray-100 text-gray-700'
+									}`}
+									onClick={() => switchToSession(session.id)}
+								>
+									<MessageCircle className="w-4 h-4 flex-shrink-0" />
+									<div className="flex-1 min-w-0">
+										<p className="text-sm font-medium truncate">{session.title}</p>
+										<p className="text-xs text-gray-500 truncate">
+											{session.timestamp.toLocaleDateString('en-GB', { 
+												day: 'numeric', 
+												month: 'short',
+												hour: '2-digit',
+												minute: '2-digit'
+											})}
+										</p>
+									</div>
+									{chatSessions.length > 1 && (
+										<button
+											onClick={(e) => {
+												e.stopPropagation();
+												deleteSession(session.id);
+											}}
+											className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 rounded transition-all"
+										>
+											<Trash2 className="w-3 h-3 text-red-500" />
+										</button>
+									)}
+								</div>
+							))}
+						</div>
+					</div>
+
 					{/* Notepad Section */}
-					<div className="mt-auto space-y-4">
+					<div className="mt-4 space-y-4">
 						<button
 							onClick={() => setShowNotepad(v => !v)}
 							className="w-full flex items-center justify-center space-x-2 px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-800"
@@ -97,11 +250,6 @@ export default function ChatHome() {
 
 				{/* Chat Area */}
 				<main className="flex-1 flex flex-col">
-					<header className="bg-white border-b border-gray-200 p-4">
-						                <h1 className="text-xl font-bold text-gray-900">Mentara</h1>
-						<p className="text-sm text-gray-600">Ask questions, attach an image (optional), and jot notes in the notepad.</p>
-					</header>
-
 					{/* Centered Conversation Area */}
 					<div className="flex-1 overflow-y-auto">
 						<div className="max-w-4xl mx-auto px-4 py-6">
@@ -162,7 +310,7 @@ export default function ChatHome() {
 										}
 									}}
 									rows={1}
-									placeholder={uploadName ? `Message (attached: ${uploadName})` : 'Message Mentara...'}
+									placeholder="Ask questions, attach an image (optional), and jot notes in the notepad"
 									className="w-full px-12 py-4 border border-gray-300 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-none bg-white"
 								/>
 								
