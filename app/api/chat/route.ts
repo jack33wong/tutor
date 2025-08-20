@@ -4,6 +4,11 @@ export async function POST(req: NextRequest) {
   try {
     const { message, imageData, imageName }: { message?: string; imageData?: string; imageName?: string } = await req.json();
     
+    console.log('=== API REQUEST DEBUG ===');
+    console.log('Original message:', message);
+    console.log('Image data present:', !!imageData);
+    console.log('Image name:', imageName);
+    
     // Allow requests with either a message or an image
     if ((!message || typeof message !== 'string') && (!imageData || !imageName)) {
       return NextResponse.json({ error: 'Missing message or image' }, { status: 400 });
@@ -15,6 +20,9 @@ export async function POST(req: NextRequest) {
     // Compose message with image context
     let userMessage = message || 'Please analyze the uploaded image and provide mathematical assistance.';
     let composed = `${system}\n\nUser: ${userMessage}`;
+    
+    console.log('User message:', userMessage);
+    console.log('Composed message:', composed);
     
     if (imageData && imageName) {
       // Add image context to the message
@@ -35,11 +43,11 @@ If you cannot see the image content, ask the user to describe what they see or w
         } catch (error) {
           console.log('Hugging Face multimodal failed, trying alternative...');
           // Fallback to text-only with image context
-          reply = await callHuggingFaceText(composed + '\n\n[Note: An image was uploaded but could not be processed. Please describe what you see.]');
+          reply = await callHuggingFaceText(userMessage);
         }
       } else {
         // Use Hugging Face text model for text-only
-        reply = await callHuggingFaceText(composed);
+        reply = await callHuggingFaceText(userMessage);
       }
     } catch (error) {
       console.error('AI API call failed:', error);
@@ -63,10 +71,17 @@ If you cannot see the image content, ask the user to describe what they see or w
 // Local AI function that works immediately without external APIs
 async function callHuggingFaceText(message: string): Promise<string> {
   try {
-    console.log('Using local AI response system...');
+    console.log('=== LOCAL AI DEBUG ===');
+    console.log('Input message:', message);
+    console.log('Message length:', message.length);
+    console.log('Message type:', typeof message);
     
     // Use our intelligent local response system instead of failing APIs
-    return generateIntelligentMathResponse(message);
+    const response = generateIntelligentMathResponse(message);
+    console.log('Generated response:', response);
+    console.log('Response length:', response.length);
+    
+    return response;
   } catch (error) {
     console.error('Local AI system failed:', error);
     // Fallback to intelligent default
