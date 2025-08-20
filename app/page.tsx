@@ -16,27 +16,34 @@ type ChatSession = {
 	timestamp: Date;
 };
 
-// Custom hook for localStorage persistence
+// Custom hook for localStorage persistence - HYDRATION SAFE
 function useLocalStorage<T>(key: string, initialValue: T) {
-	const [storedValue, setStoredValue] = useState<T>(() => {
-		if (typeof window === 'undefined') {
-			return initialValue;
+	const [storedValue, setStoredValue] = useState<T>(initialValue);
+	const [isHydrated, setIsHydrated] = useState(false);
+
+	// Hydrate from localStorage after component mounts (client-side only)
+	useEffect(() => {
+		if (typeof window !== 'undefined') {
+			try {
+				const item = window.localStorage.getItem(key);
+				if (item) {
+					const parsed = JSON.parse(item);
+					setStoredValue(parsed);
+					console.log(`=== CUSTOM HOOK: Hydrated from localStorage for ${key} ===`, parsed);
+				}
+			} catch (error) {
+				console.error(`Error reading localStorage key "${key}":`, error);
+			}
+			setIsHydrated(true);
 		}
-		try {
-			const item = window.localStorage.getItem(key);
-			return item ? JSON.parse(item) : initialValue;
-		} catch (error) {
-			console.error(`Error reading localStorage key "${key}":`, error);
-			return initialValue;
-		}
-	});
+	}, [key]);
 
 	const setValue = useCallback((value: T | ((val: T) => T)) => {
 		try {
 			const valueToStore = value instanceof Function ? value(storedValue) : value;
 			setStoredValue(valueToStore);
 			
-			if (typeof window !== 'undefined') {
+			if (typeof window !== 'undefined' && isHydrated) {
 				window.localStorage.setItem(key, JSON.stringify(valueToStore));
 				console.log(`=== CUSTOM HOOK: localStorage save SUCCESSFUL for ${key} ===`);
 				console.log(`=== CUSTOM HOOK: Saved value ===`, valueToStore);
@@ -44,9 +51,9 @@ function useLocalStorage<T>(key: string, initialValue: T) {
 		} catch (error) {
 			console.error(`Error setting localStorage key "${key}":`, error);
 		}
-	}, [key, storedValue]);
+	}, [key, storedValue, isHydrated]);
 
-	return [storedValue, setValue] as const;
+	return [storedValue, setValue, isHydrated] as const;
 }
 
 export default function ChatHome() {
@@ -58,7 +65,7 @@ export default function ChatHome() {
 	const defaultSessionId = Date.now().toString();
 	
 	// Initialize with a default session immediately
-	const [chatSessions, setChatSessions] = useLocalStorage<ChatSession[]>('chatSessions', [{
+	const [chatSessions, setChatSessions, isHydrated] = useLocalStorage<ChatSession[]>('chatSessions', [{
 		id: defaultSessionId,
 		title: 'New Chat',
 		messages: [{ role: 'assistant', content: 'Hi! I can help with GCSE Maths using Mentara. Ask a question or upload an image and tell me about it.' }],
@@ -231,8 +238,10 @@ export default function ChatHome() {
 		}
 	};
 
-	// Initialize default session if none exist
+	// Initialize default session if none exist - wait for hydration
 	useEffect(() => {
+		if (!isHydrated) return; // Wait for hydration to complete
+		
 		if (chatSessions.length === 0 && !isInitialized) {
 			console.log('=== CHAT PAGE: No sessions found, creating default ===');
 			const defaultSession: ChatSession = {
@@ -249,9 +258,21 @@ export default function ChatHome() {
 			setCurrentSessionId(chatSessions[0].id);
 			setIsInitialized(true);
 		}
-	}, [chatSessions.length, isInitialized, setChatSessions]);
+	}, [chatSessions.length, isInitialized, setChatSessions, isHydrated]);
 
 	console.log('=== CHAT PAGE: About to return JSX ===');
+	
+	// Show loading state until hydration is complete
+	if (!isHydrated) {
+		return (
+			<div className="min-h-screen bg-gray-50 flex items-center justify-center">
+				<div className="text-center">
+					<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+					<p className="text-gray-600">Loading chat...</p>
+				</div>
+			</div>
+		);
+	}
 	
 	return (
 		<div className="min-h-screen bg-gray-50">
