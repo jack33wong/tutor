@@ -226,6 +226,9 @@ export default function ChatHome() {
 		console.log('=== CHAT PAGE: Component mounted/updated ===');
 	}, []); // Empty dependency array - runs on every render
 
+	// Simple test - no useEffect
+	console.log('=== CHAT PAGE: Direct console log test ===');
+
 	// Handle session restoration when currentSessionId changes
 	useEffect(() => {
 		if (currentSessionId && chatSessions.length > 0) {
