@@ -24,6 +24,7 @@ export default function ChatHome() {
 	const [uploadName, setUploadName] = useState<string | null>(null);
 	const [showNotepad, setShowNotepad] = useState(false);
 	const [isSending, setIsSending] = useState(false);
+	const [isCreatingSession, setIsCreatingSession] = useState(false);
 	const fileRef = useRef<HTMLInputElement | null>(null);
 
 	// Get current session
@@ -32,6 +33,9 @@ export default function ChatHome() {
 
 	// Create new chat session
 	const createNewChat = () => {
+		if (isCreatingSession) return; // Prevent multiple simultaneous creations
+		
+		setIsCreatingSession(true);
 		const newSession: ChatSession = {
 			id: Date.now().toString(),
 			title: 'New Chat',
@@ -42,6 +46,9 @@ export default function ChatHome() {
 		setCurrentSessionId(newSession.id);
 		setInput('');
 		setUploadName(null);
+		
+		// Reset the flag after a short delay
+		setTimeout(() => setIsCreatingSession(false), 200);
 	};
 
 	// Switch to a different chat session
@@ -76,14 +83,25 @@ export default function ChatHome() {
 			return;
 		}
 		
+		// If no current session, create one first
 		if (!currentSessionId) {
+			if (isCreatingSession) return; // Don't create multiple sessions
 			createNewChat();
-			// Wait a bit for the new session to be created
+			// Wait for the session to be created, then send the message
 			setTimeout(() => {
-				send();
+				// Now send the message with the new session
+				sendMessage(text);
 			}, 100);
 			return;
 		}
+		
+		// Send the message with existing session
+		sendMessage(text);
+	};
+
+	// Separate function to actually send the message
+	const sendMessage = async (text: string) => {
+		if (!currentSessionId) return;
 		
 		setIsSending(true);
 		const userMsg: ChatItem = { role: 'user', content: text + (uploadName ? `\n(Attached: ${uploadName})` : '') };
@@ -286,11 +304,13 @@ export default function ChatHome() {
 					<div className="border-t border-gray-200 bg-white p-6">
 						<div className="max-w-4xl mx-auto">
 							{/* Session status indicator */}
-							{!currentSessionId && (
+							{(!currentSessionId || isCreatingSession) && (
 								<div className="mb-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
 									<div className="flex items-center text-yellow-800">
 										<div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-600 mr-2"></div>
-										<span className="text-sm">Initializing chat session...</span>
+										<span className="text-sm">
+											{isCreatingSession ? 'Creating new chat session...' : 'Initializing chat session...'}
+										</span>
 									</div>
 								</div>
 							)}
@@ -341,9 +361,9 @@ export default function ChatHome() {
 								{/* Send button on the right */}
 								<button
 									onClick={send}
-									disabled={isSending || !input.trim() || !currentSessionId}
+									disabled={isSending || !input.trim() || !currentSessionId || isCreatingSession}
 									className="absolute right-3 top-1/2 transform -translate-y-1/2 p-4 rounded-2xl bg-primary-600 hover:bg-primary-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white shadow-sm hover:shadow-md transition-all duration-200"
-									title={!currentSessionId ? 'No active session' : isSending ? 'Sending...' : !input.trim() ? 'Type a message' : 'Send message'}
+									title={!currentSessionId ? 'No active session' : isSending ? 'Sending...' : isCreatingSession ? 'Creating session...' : !input.trim() ? 'Type a message' : 'Send message'}
 								>
 									<Send className="w-5 h-5" />
 								</button>
