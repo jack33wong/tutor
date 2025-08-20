@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(req: NextRequest) {
   try {
-    const { message, imageName }: { message?: string; imageName?: string } = await req.json();
+    const { message, imageData, imageName }: { message?: string; imageData?: string; imageName?: string } = await req.json();
     if (!message || typeof message !== 'string') {
       return NextResponse.json({ error: 'Missing message' }, { status: 400 });
     }
@@ -10,8 +10,20 @@ export async function POST(req: NextRequest) {
     const apiUrl = process.env.CHAT_API_URL || 'https://www.apifreellm.com/api/chat';
     const apiKey = process.env.CHAT_API_KEY;
 
-    const system = 'You are a friendly Mentara Maths tutor. Be concise and clear. When providing mathematical formulas, use LaTeX format with proper delimiters. For example, use \\[ ... \\] for display math or \\( ... \\) for inline math. If an image is mentioned, you do not have access to its pixels; only refer to the description provided.';
-    const composed = `${system}\n\nUser: ${message}${imageName ? `\n(An image named \"${imageName}\" was uploaded.)` : ''}`;
+    // Enhanced system prompt for image handling
+    const system = 'You are a friendly Mentara Maths tutor. Be concise and clear. When providing mathematical formulas, use LaTeX format with proper delimiters. For example, use \\[ ... \\] for display math or \\( ... \\) for inline math.';
+    
+    // Compose message with image context
+    let composed = `${system}\n\nUser: ${message}`;
+    
+    if (imageData && imageName) {
+      // Add image context to the message
+      composed += `\n\n[Image Analysis Request]
+The user has uploaded an image named "${imageName}". 
+Please analyze this image and provide mathematical assistance based on what you can see.
+If the image contains mathematical problems, equations, graphs, or diagrams, please help solve or explain them.
+If you cannot see the image content, ask the user to describe what they see or what specific help they need.`;
+    }
 
     let reply: string | null = null;
     try {

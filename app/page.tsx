@@ -208,7 +208,7 @@ export default function ChatHome() {
 		setIsSending(true);
 		const userMsg: ChatItem = { 
 			role: 'user', 
-			content: text + (uploadedImage ? `\n[Image attached: ${uploadName}]` : '') 
+			content: text + (uploadedImage ? `\n[📷 Image: ${uploadName}]` : '') 
 		};
 		
 		// Store the current session data to ensure we don't lose it
@@ -246,7 +246,11 @@ export default function ChatHome() {
 			const resp = await fetch('/api/chat', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ message: text, imageName: uploadName || undefined }),
+				body: JSON.stringify({ 
+					message: text, 
+					imageData: uploadedImage || undefined,
+					imageName: uploadName || undefined 
+				}),
 			});
 			const data = await resp.json();
 			const reply = data?.reply || 'Sorry, I could not respond right now.';
@@ -503,7 +507,7 @@ export default function ChatHome() {
 										}
 									}}
 									rows={1}
-									placeholder="Ask questions, attach an image (optional), and jot notes in the notepad"
+									placeholder="Ask questions, attach an image, or both. You can send just an image!"
 									className="w-full px-12 py-4 border border-gray-300 rounded-2xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-none bg-white"
 								/>
 								{/* Notepad button to the left of send button */}
@@ -517,9 +521,24 @@ export default function ChatHome() {
 								{/* Send button on the right */}
 								<button
 									onClick={send}
-									disabled={isSending || !input.trim() || !currentSessionId || isCreatingSession}
-									className="absolute right-3 top-1/2 transform -translate-y-1/2 w-12 h-12 rounded-full bg-primary-600 hover:bg-primary-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white shadow-sm hover:shadow-md transition-all duration-200 flex items-center justify-center"
-									title={!currentSessionId ? 'No active session' : isSending ? 'Sending...' : isCreatingSession ? 'Creating session...' : !input.trim() ? 'Type a message' : 'Send message'}
+									disabled={isSending || (!input.trim() && !uploadedImage) || !currentSessionId || isCreatingSession}
+									className={`absolute right-3 top-1/2 transform -translate-y-1/2 w-12 h-12 rounded-full transition-all duration-200 flex items-center justify-center shadow-sm hover:shadow-md ${
+										uploadedImage && !input.trim() 
+											? 'bg-green-600 hover:bg-green-700 text-white' 
+											: 'bg-primary-600 hover:bg-primary-700 text-white'
+									} ${
+										isSending || (!input.trim() && !uploadedImage) || !currentSessionId || isCreatingSession
+											? 'bg-gray-400 cursor-not-allowed'
+											: ''
+									}`}
+									title={
+										!currentSessionId ? 'No active session' 
+										: isSending ? 'Sending...' 
+										: isCreatingSession ? 'Creating session...' 
+										: !input.trim() && !uploadedImage ? 'Type a message or attach an image' 
+										: uploadedImage && !input.trim() ? 'Send image' 
+										: 'Send message'
+									}
 								>
 									<Send className="w-5 h-5" />
 								</button>
