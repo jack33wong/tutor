@@ -225,40 +225,15 @@ export default function ChatHome() {
 			userMessage: userMsg.content
 		});
 
-		// Update messages in current session with user message AND title update
-		setChatSessions(prev => {
-			const updated = prev.map(session => {
-				if (session.id === currentSessionId) {
-					// Check if this is the first user message (session has only 1 message - the assistant's welcome)
-					const shouldUpdateTitle = session.messages.length === 1;
-					const newTitle = shouldUpdateTitle 
-						? text.slice(0, 30) + (text.length > 30 ? '...' : '')
-						: session.title;
-					
-					if (shouldUpdateTitle) {
-						console.log('=== CHAT PAGE: First user message, updating title to ===', newTitle);
-					}
-					
-					const updatedSession = {
-						...session,
-						title: newTitle,
-						messages: [...session.messages, userMsg],
-						timestamp: new Date()
-					};
-					
-					console.log('=== CHAT PAGE: User message added ===', {
-						oldTitle: session.title,
-						newTitle: updatedSession.title,
-						oldMessagesCount: session.messages.length,
-						newMessagesCount: updatedSession.messages.length
-					});
-					
-					return updatedSession;
-				}
-				return session;
-			});
-			console.log('=== CHAT PAGE: Added user message to session with title update ===', updated);
-			return updated;
+		// Store the title that should be preserved
+		const titleToPreserve = currentSession.messages.length === 1 
+			? text.slice(0, 30) + (text.length > 30 ? '...' : '')
+			: currentSession.title;
+
+		console.log('=== CHAT PAGE: Title to preserve ===', { 
+			originalTitle: currentSession.title, 
+			titleToPreserve, 
+			isFirstUserMessage: currentSession.messages.length === 1 
 		});
 
 		setInput('');
@@ -277,30 +252,37 @@ export default function ChatHome() {
 				expectedTitle: currentSession.title
 			});
 			
-			// Add assistant reply to current session - use functional update to ensure we have latest state
+			// SINGLE ATOMIC UPDATE: Add both user message and assistant reply in one state update
 			setChatSessions(prev => {
 				const updated = prev.map(session => {
 					if (session.id === currentSessionId) {
-						// IMPORTANT: Preserve the existing title and all other session properties
+						// Create the complete updated session with both messages
 						const updatedSession = {
 							...session,
-							messages: [...session.messages, { role: 'assistant' as const, content: reply }],
+							title: titleToPreserve, // Explicitly preserve the title
+							messages: [
+								...session.messages, 
+								userMsg, 
+								{ role: 'assistant' as const, content: reply }
+							],
 							timestamp: new Date()
 						};
 						
-						console.log('=== CHAT PAGE: Assistant reply added ===', { 
+						console.log('=== CHAT PAGE: ATOMIC UPDATE - Both messages added ===', { 
 							oldTitle: session.title, 
 							newTitle: updatedSession.title,
 							oldMessagesCount: session.messages.length,
 							newMessagesCount: updatedSession.messages.length,
-							titlePreserved: session.title === updatedSession.title
+							titlePreserved: session.title === updatedSession.title || updatedSession.title === titleToPreserve,
+							titleToPreserve,
+							actualNewTitle: updatedSession.title
 						});
 						
 						// Verify title preservation
-						if (session.title !== updatedSession.title) {
-							console.error('=== CHAT PAGE: TITLE LOST! ===', {
-								oldTitle: session.title,
-								newTitle: updatedSession.title,
+						if (updatedSession.title !== titleToPreserve) {
+							console.error('=== CHAT PAGE: TITLE NOT PRESERVED IN ATOMIC UPDATE! ===', {
+								expectedTitle: titleToPreserve,
+								actualTitle: updatedSession.title,
 								sessionId: session.id
 							});
 						}
@@ -310,21 +292,26 @@ export default function ChatHome() {
 					return session;
 				});
 				
-				console.log('=== CHAT PAGE: Final session state after assistant reply ===', updated);
+				console.log('=== CHAT PAGE: Final session state after atomic update ===', updated);
 				return updated;
 			});
 		} catch (e) {
 			console.error('Error in send function:', e);
+			// Error case: Add both user message and error message in one update
 			setChatSessions(prev => {
 				const updated = prev.map(session => {
 					if (session.id === currentSessionId) {
-						// Preserve the existing title and all other session properties
 						const updatedSession = {
 							...session,
-							messages: [...session.messages, { role: 'assistant' as const, content: 'Network error. Please try again.' }],
+							title: titleToPreserve, // Preserve the title
+							messages: [
+								...session.messages, 
+								userMsg, 
+								{ role: 'assistant' as const, content: 'Network error. Please try again.' }
+							],
 							timestamp: new Date()
 						};
-						console.log('=== CHAT PAGE: Error message added, preserving title ===', { 
+						console.log('=== CHAT PAGE: Error case - Both messages added with title preserved ===', { 
 							oldTitle: session.title, 
 							newTitle: updatedSession.title,
 							messagesCount: updatedSession.messages.length 
