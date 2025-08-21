@@ -15,8 +15,12 @@ export default function ChatMessage({ content, role, imageData, imageName }: Cha
   const hasImage = imageData && imageName;
   
   if (!hasImage) {
-    // Regular text message - use existing MarkdownMessage
-    return <MarkdownMessage content={content} />;
+    // Regular text message - use existing MarkdownMessage with top spacing for assistant
+    return (
+      <div className={role === 'assistant' ? 'mt-6' : ''}>
+        <MarkdownMessage content={content} />
+      </div>
+    );
   }
 
   return (

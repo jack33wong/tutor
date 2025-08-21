@@ -68,10 +68,25 @@ I'm here to help with GCSE Maths and can guide you through solving any mathemati
     // Normalize LaTeX formatting for better rendering
     reply = normalizeLatex(reply);
 
-    return NextResponse.json({ reply });
+    // Format the reply with Question and Answer template
+    const formattedReply = formatChatReply(userMessage, reply);
+
+    return NextResponse.json({ reply: formattedReply });
   } catch (e) {
     return NextResponse.json({ error: 'Failed to process chat' }, { status: 500 });
   }
+}
+
+// Format chat reply with Question and Answer template
+function formatChatReply(userMessage: string, aiReply: string): string {
+  // Clean up the user message for display
+  const question = userMessage.trim();
+  
+  // Clean up the AI reply
+  const answer = aiReply.trim();
+  
+  // Format with bold labels and proper spacing with extra line before Answer
+  return `**Question:**\n\n${question}\n\n---\n\n\n**Answer:**\n\n${answer}`;
 }
 
 // ChatGPT API function
@@ -90,7 +105,7 @@ async function callChatGPT(message: string): Promise<string> {
         messages: [
           {
             role: 'system',
-            content: 'You are a friendly GCSE Maths tutor called Mentara. Be concise, clear, and helpful. When providing mathematical formulas, use LaTeX format with proper delimiters. For example, use \\[ ... \\] for display math or \\( ... \\) for inline math. Focus on GCSE Maths topics like algebra, geometry, fractions, statistics, and trigonometry.'
+            content: 'You are a friendly GCSE Maths tutor called Mentara. Be concise, clear, and helpful. When providing mathematical formulas, use LaTeX format with proper delimiters. For example, use \\[ ... \\] for display math or \\( ... \\) for inline math. Focus on GCSE Maths topics like algebra, geometry, fractions, statistics, and trigonometry. Provide direct answers without repeating the question - the question will be displayed separately.'
           },
           {
             role: 'user',
@@ -129,7 +144,7 @@ async function callGemini(message: string): Promise<string> {
       body: JSON.stringify({
         contents: [{
           parts: [{
-            text: `You are a friendly GCSE Maths tutor called Mentara. Be concise, clear, and helpful. When providing mathematical formulas, use LaTeX format with proper delimiters. For example, use \\[ ... \\] for display math or \\( ... \\) for inline math. Focus on GCSE Maths topics like algebra, geometry, fractions, statistics, and trigonometry.
+            text: `You are a friendly GCSE Maths tutor called Mentara. Be concise, clear, and helpful. When providing mathematical formulas, use LaTeX format with proper delimiters. For example, use \\[ ... \\] for display math or \\( ... \\) for inline math. Focus on GCSE Maths topics like algebra, geometry, fractions, statistics, and trigonometry. Provide direct answers without repeating the question - the question will be displayed separately.
 
 User question: ${message}`
           }]
@@ -169,7 +184,7 @@ async function callGeminiWithImage(message: string, imageData: string, imageName
         contents: [{
           parts: [
             {
-              text: `You are a friendly GCSE Maths tutor called Mentara. Be concise, clear, and helpful. When providing mathematical formulas, use LaTeX format with proper delimiters. For example, use \\[ ... \\] for display math or \\( ... \\) for inline math. Focus on GCSE Maths topics like algebra, geometry, fractions, statistics, and trigonometry.
+              text: `You are a friendly GCSE Maths tutor called Mentara. Be concise, clear, and helpful. When providing mathematical formulas, use LaTeX format with proper delimiters. For example, use \\[ ... \\] for display math or \\( ... \\) for inline math. Focus on GCSE Maths topics like algebra, geometry, fractions, statistics, and trigonometry. Provide direct answers without repeating the question - the question will be displayed separately.
 
 User question: ${message}
 
