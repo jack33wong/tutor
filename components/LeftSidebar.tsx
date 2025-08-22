@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, FileText, MessageCircle, Plus, Trash2, HardDrive } from 'lucide-react';
+import { LayoutDashboard, FileText, MessageCircle, Plus, Trash2, HardDrive, CheckSquare } from 'lucide-react';
 
 
 
@@ -69,6 +69,17 @@ export default function LeftSidebar({ children, onNewChat, onClearStorage, stora
 				>
 					<FileText className="w-4 h-4" />
 					<span>Past Papers</span>
+				</Link>
+				<Link
+					href="/mark-homework"
+					className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors duration-200 mt-2 ${
+						pathname === '/mark-homework'
+							? 'bg-gray-100 hover:bg-gray-200 text-gray-800'
+							: 'hover:bg-gray-100 text-gray-600 hover:text-gray-800'
+					}`}
+				>
+					<CheckSquare className="w-4 h-4" />
+					<span>Mark Homework</span>
 				</Link>
 			</nav>
 
