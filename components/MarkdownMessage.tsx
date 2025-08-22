@@ -11,9 +11,39 @@ import 'katex/dist/katex.min.css';
 type MarkdownMessageProps = {
   content: string;
   className?: string;
+  isGeometryResponse?: boolean;
 };
 
-export default function MarkdownMessage({ content, className = '' }: MarkdownMessageProps) {
+export default function MarkdownMessage({ content, className = '', isGeometryResponse = false }: MarkdownMessageProps) {
+  // Check if content is JSON for geometry responses
+  const isJsonContent = (text: string): boolean => {
+    try {
+      JSON.parse(text);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  // Format JSON for display
+  const formatJson = (jsonString: string): string => {
+    try {
+      const parsed = JSON.parse(jsonString);
+      return `<pre style="background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; padding: 1rem; overflow-x: auto; font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace; font-size: 0.9em; line-height: 1.4;">${JSON.stringify(parsed, null, 2)}</pre>`;
+    } catch {
+      return `<pre style="background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; padding: 1rem; overflow-x: auto; font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace; font-size: 0.9em; line-height: 1.4; color: #dc3545;">Invalid JSON: ${jsonString}</pre>`;
+    }
+  };
+
+  // If this is a geometry response and contains JSON, format it
+  if (isGeometryResponse && isJsonContent(content)) {
+    return (
+      <div className={className}>
+        <div dangerouslySetInnerHTML={{ __html: formatJson(content) }} />
+      </div>
+    );
+  }
+
   return (
     <div className={className}>
       <ReactMarkdown
