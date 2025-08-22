@@ -8,11 +8,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing image data or name' }, { status: 400 });
     }
 
-    // Stage 1: GPT-5 Analysis - Generate marking instructions
-    const markingInstructions = await generateMarkingInstructions(imageData);
+    // Stage 1: GPT-4 Analysis - Generate marking instructions
+    let markingInstructions;
+    try {
+      markingInstructions = await generateMarkingInstructions(imageData);
+    } catch (error) {
+      console.error('Error in Stage 1:', error);
+      return NextResponse.json({ 
+        error: error instanceof Error ? error.message : 'Failed to generate marking instructions' 
+      }, { status: 500 });
+    }
     
     if (!markingInstructions) {
-      return NextResponse.json({ error: 'Failed to generate marking instructions' }, { status: 500 });
+      return NextResponse.json({ error: 'Failed to generate marking instructions - no response from AI' }, { status: 500 });
     }
 
     // Stage 2: Image Editing - Apply markings to the image
@@ -36,7 +44,13 @@ export async function POST(req: NextRequest) {
 
 async function generateMarkingInstructions(imageData: string): Promise<any> {
   try {
-    const openaiApiKey = '0rg3xtTr355b5skN3vn38eo0UY3WynaPokITf3rQDc9iaM4lyUGMEggD1WwLXwe9o2abKwT8T3BlbkFJ7iYCgwHIqqj1uIyQNkfJmItIUtnsj6W35RALlNpQT56I01CqTHbfnix-DEZ8fQo-0DRrq9DP4A';
+    // Use environment variable or fallback to the provided key
+    const openaiApiKey = process.env.OPENAI_API_KEY || '0rg3xtTr355b5skN3vn38eo0UY3WynaPokITf3rQDc9iaM4lyUGMEggD1WwLXwe9o2abKwT8T3BlbkFJ7iYCgwHIqqj1uIyQNkfJmItIUtnsj6W35RALlNpQT56I01CqTHbfnix-DEZ8fQo-0DRrq9DP4A';
+    
+    if (!openaiApiKey) {
+      console.error('No OpenAI API key provided');
+      return null;
+    }
     
     const systemPrompt = `You are an AI teacher that marks student homework. 
 You will be given an image of a student's handwritten work. 
@@ -93,7 +107,15 @@ Return ONLY the JSON object, no other text.`;
     if (!response.ok) {
       const errorData = await response.json();
       console.error('OpenAI API error:', errorData);
-      return null;
+      
+      // Return more specific error information
+      if (errorData.error?.code === 'invalid_api_key') {
+        throw new Error('Invalid OpenAI API key. Please check your API key configuration.');
+      } else if (errorData.error?.message) {
+        throw new Error(`OpenAI API error: ${errorData.error.message}`);
+      } else {
+        throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
+      }
     }
 
     const data = await response.json();
@@ -120,7 +142,13 @@ Return ONLY the JSON object, no other text.`;
 
 async function applyMarkingsToImage(originalImage: string, instructions: any): Promise<string | null> {
   try {
-    const openaiApiKey = '0rg3xtTr355b5skN3vn38eo0UY3WynaPokITf3rQDc9iaM4lyUGMEggD1WwLXwe9o2abKwT8T3BlbkFJ7iYCgwHIqqj1uIyQNkfJmItIUtnsj6W35RALlNpQT56I01CqTHbfnix-DEZ8fQo-0DRrq9DP4A';
+    // Use environment variable or fallback to the provided key
+    const openaiApiKey = process.env.OPENAI_API_KEY || '0rg3xtTr355b5skN3vn38eo0UY3WynaPokITf3rQDc9iaM4lyUGMEggD1WwLXwe9o2abKwT8T3BlbkFJ7iYCgwHIqqj1uIyQNkfJmItIUtnsj6W35RALlNpQT56I01CqTHbfnix-DEZ8fQo-0DRrq9DP4A';
+    
+    if (!openaiApiKey) {
+      console.error('No OpenAI API key provided');
+      return null;
+    }
     
     // Create a detailed prompt for the image editing model
     const editingPrompt = createEditingPrompt(instructions);
