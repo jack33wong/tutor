@@ -8,6 +8,11 @@ import ChatHistory from '@/components/ChatHistory';
 interface MarkingResult {
   markedImage: string;
   instructions: any;
+  ocrResults: Array<{
+    text: string;
+    bbox: [number, number, number, number];
+    confidence: number;
+  }>;
   message: string;
 }
 
@@ -246,25 +251,47 @@ export default function MarkHomeworkPage() {
                           <h3 className="text-lg font-semibold text-gray-900">Processing Your Homework</h3>
                           <p className="text-gray-600">This may take a few moments...</p>
                         </div>
-                        <div className="space-y-2 text-sm text-gray-500">
-                          <div className="flex items-center justify-center space-x-2">
-                            <CheckCircle className="w-4 h-4 text-green-500" />
-                            <span>Stage 1: Analyzing homework with AI</span>
-                          </div>
-                          <div className="flex items-center justify-center space-x-2">
-                            <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
-                            <span>Stage 2: Applying red pen corrections</span>
-                          </div>
-                        </div>
+                                                         <div className="space-y-2 text-sm text-gray-500">
+                                   <div className="flex items-center justify-center space-x-2">
+                                     <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
+                                     <span>Stage 1: OCR text extraction</span>
+                                   </div>
+                                   <div className="flex items-center justify-center space-x-2">
+                                     <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
+                                     <span>Stage 2: AI analysis & marking instructions</span>
+                                   </div>
+                                   <div className="flex items-center justify-center space-x-2">
+                                     <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
+                                     <span>Stage 3: Applying annotations to image</span>
+                                   </div>
+                                 </div>
                       </div>
                     </div>
                   )}
                 </div>
 
-                {/* Right Column - Results */}
-                <div className="space-y-6">
-                  {/* Marking Instructions */}
-                  {markingResult?.instructions && (
+                                         {/* Right Column - Results */}
+                         <div className="space-y-6">
+                           {/* OCR Results */}
+                           {markingResult?.ocrResults && (
+                             <div className="card">
+                               <h3 className="text-lg font-semibold text-gray-900 mb-4">OCR Text Extraction</h3>
+                               <div className="bg-gray-50 p-4 rounded-lg max-h-64 overflow-y-auto">
+                                 <div className="space-y-2">
+                                   {markingResult.ocrResults.map((ocr, index) => (
+                                     <div key={index} className="text-sm text-gray-700 p-2 bg-white rounded border">
+                                       <span className="font-medium">"{ocr.text}"</span>
+                                       <span className="text-gray-500 ml-2">at [{ocr.bbox.join(', ')}]</span>
+                                       <span className="text-gray-400 ml-2">({ocr.confidence.toFixed(1)}% confidence)</span>
+                                     </div>
+                                   ))}
+                                 </div>
+                               </div>
+                             </div>
+                           )}
+                           
+                           {/* Marking Instructions */}
+                           {markingResult?.instructions && (
                     <div className="card">
                       <h3 className="text-lg font-semibold text-gray-900 mb-4">Marking Instructions</h3>
                       <div className="bg-gray-50 p-4 rounded-lg">
@@ -317,9 +344,9 @@ export default function MarkHomeworkPage() {
                           1
                         </div>
                         <div>
-                          <h4 className="font-medium text-gray-900">AI Analysis</h4>
+                          <h4 className="font-medium text-gray-900">OCR Text Extraction</h4>
                           <p className="text-sm text-gray-600">
-                            GPT-4 analyzes your homework image and identifies mistakes, generating structured marking instructions.
+                            Tesseract OCR extracts text and precise coordinates from your homework image for accurate analysis.
                           </p>
                         </div>
                       </div>
@@ -329,9 +356,9 @@ export default function MarkHomeworkPage() {
                           2
                         </div>
                         <div>
-                          <h4 className="font-medium text-gray-900">Image Generation</h4>
+                          <h4 className="font-medium text-gray-900">AI Analysis</h4>
                           <p className="text-sm text-gray-600">
-                            DALL-E 3 creates a new image with red pen corrections overlaid, just like a teacher would mark it.
+                            GPT-4 analyzes the math and generates precise annotation instructions using OCR coordinates.
                           </p>
                         </div>
                       </div>
@@ -341,9 +368,9 @@ export default function MarkHomeworkPage() {
                           3
                         </div>
                         <div>
-                          <h4 className="font-medium text-gray-900">Download Result</h4>
+                          <h4 className="font-medium text-gray-900">Direct Annotation</h4>
                           <p className="text-sm text-gray-600">
-                            Get your marked homework image ready for printing or sharing with students.
+                            Annotations are drawn directly on the original image using Canvas API for precise placement.
                           </p>
                         </div>
                       </div>
