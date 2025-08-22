@@ -3,138 +3,50 @@
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import rehypeRaw from 'rehype-raw';
 import 'katex/dist/katex.min.css';
 
 type MarkdownMessageProps = {
   content: string;
   className?: string;
-  isGeometryResponse?: boolean;
 };
 
-export default function MarkdownMessage({ content, className = '', isGeometryResponse = false }: MarkdownMessageProps) {
-  
-  // Check if content is JSON
-  const isJsonContent = (text: string): boolean => {
-    try {
-      JSON.parse(text);
-      return true;
-    } catch {
-      return false;
-    }
-  };
-
-  // Format JSON for display
-  const formatJson = (jsonString: string): string => {
-    try {
-      const parsed = JSON.parse(jsonString);
-      return `<pre style="background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; padding: 1rem; overflow-x: auto; font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace; font-size: 0.9em; line-height: 1.4;">${JSON.stringify(parsed, null, 2)}</pre>`;
-    } catch {
-      return `<pre style="background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; padding: 1rem; overflow-x: auto; font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace; font-size: 0.9em; line-height: 1.4; color: #dc3545;">Invalid JSON: ${jsonString}</pre>`;
-    }
-  };
-
-  // If this is a geometry response and contains JSON, format it
-  if (isGeometryResponse && isJsonContent(content)) {
-    return (
-      <div className={className}>
-        <div dangerouslySetInnerHTML={{ __html: formatJson(content) }} />
-      </div>
-    );
-  }
-
-  // Function to render LaTeX expressions with better formatting
-  const processLatex = (text: string): string => {
-    let processedText = text;
-    
-    // Handle display math blocks \[ ... \]
-    processedText = processedText.replace(/\\\[(.*?)\\\]/g, (match, latex) => {
-      return `<div class="math-display" style="text-align: center; margin: 1rem 0; padding: 1rem; background: #f8f9fa; border-radius: 8px; font-family: 'Computer Modern', serif; border: 1px solid #e9ecef;">${latex}</div>`;
-    });
-    
-    // Handle inline math \( ... \)
-    processedText = processedText.replace(/\\\((.*?)\\\)/g, (match, latex) => {
-      return `<span class="math-inline" style="font-family: 'Computer Modern', serif; background: #f1f3f4; padding: 2px 6px; border-radius: 4px;">${latex}</span>`;
-    });
-    
-    // First, handle individual LaTeX symbols that might appear inside fractions
-    processedText = processedText.replace(/\\cdot/g, '<span style="font-family: serif;">·</span>');
-    processedText = processedText.replace(/\\cdots/g, '<span style="font-family: serif;">⋯</span>');
-    processedText = processedText.replace(/\\ldots/g, '<span style="font-family: serif;">…</span>');
-    processedText = processedText.replace(/\\dots/g, '<span style="font-family: serif;">…</span>');
-    processedText = processedText.replace(/\\times/g, '<span style="font-family: serif;">×</span>');
-    processedText = processedText.replace(/\\div/g, '<span style="font-family: serif;">÷</span>');
-    processedText = processedText.replace(/\\pm/g, '<span style="font-family: serif;">±</span>');
-    processedText = processedText.replace(/\\infty/g, '<span style="font-family: serif;">∞</span>');
-    processedText = processedText.replace(/\\pi/g, '<span style="font-family: serif;">π</span>');
-    processedText = processedText.replace(/\\theta/g, '<span style="font-family: serif;">θ</span>');
-    processedText = processedText.replace(/\\alpha/g, '<span style="font-family: serif;">α</span>');
-    processedText = processedText.replace(/\\beta/g, '<span style="font-family: serif;">β</span>');
-    
-    // Handle superscripts BEFORE fractions and other complex expressions
-    processedText = processedText.replace(/([a-zA-Z0-9])\^(\d+)/g, (match, base, exponent) => {
-      return `${base}<sup style="font-size: 0.75em; vertical-align: top; line-height: 0;">${exponent}</sup>`;
-    });
-    
-    // Handle more complex superscripts with braces
-    processedText = processedText.replace(/([a-zA-Z0-9])\^\{([^}]+)\}/g, (match, base, exponent) => {
-      return `${base}<sup style="font-size: 0.75em; vertical-align: top; line-height: 0;">${exponent}</sup>`;
-    });
-    
-    // Handle fractions with a more robust approach
-    let fractionMatch;
-    const fractionRegex = /\\frac\{([^}]+(?:\{[^}]*\}[^}]*)*)\}\{([^}]+(?:\{[^}]*\}[^}]*)*)\}/g;
-    while ((fractionMatch = fractionRegex.exec(processedText)) !== null) {
-      const fullMatch = fractionMatch[0];
-      const numerator = fractionMatch[1];
-      const denominator = fractionMatch[2];
-      
-      const replacement = `<span style="font-family: serif; font-size: 1.1em; background: #f8f9fa; padding: 2px 6px; border-radius: 4px;">(${numerator})/(${denominator})</span>`;
-      processedText = processedText.replace(fullMatch, replacement);
-      
-      // Reset regex lastIndex to avoid infinite loops
-      fractionRegex.lastIndex = 0;
-    }
-    
-    // Handle square roots with better nested brace handling
-    let sqrtMatch;
-    const sqrtRegex = /\\sqrt\{([^}]+(?:\{[^}]*\}[^}]*)*)\}/g;
-    while ((sqrtMatch = sqrtRegex.exec(processedText)) !== null) {
-      const fullMatch = sqrtMatch[0];
-      const content = sqrtMatch[1];
-      
-      const replacement = `<span style="font-family: serif;">√(${content})</span>`;
-      processedText = processedText.replace(fullMatch, replacement);
-      
-      // Reset regex lastIndex to avoid infinite loops
-      sqrtRegex.lastIndex = 0;
-    }
-    
-    // Handle absolute values and other left/right brackets
-    processedText = processedText.replace(/\\left\|([^}]+)\\right\|/g, (match, content) => {
-      return `<span style="font-family: serif;">|${content}|</span>`;
-    });
-    processedText = processedText.replace(/\\left\(([^}]+)\\right\)/g, (match, content) => {
-      return `<span style="font-family: serif;">(${content})</span>`;
-    });
-    processedText = processedText.replace(/\\left\[([^}]+)\\right\]/g, (match, content) => {
-      return `<span style="font-family: serif;">[${content}]</span>`;
-    });
-    
-    // Handle bars
-    processedText = processedText.replace(/\\bar\{([^}]+)\}/g, (match, content) => {
-      return `<span style="font-family: serif; text-decoration: overline;">${content}</span>`;
-    });
-    
-    return processedText;
-  };
-  
-  // Process the content for LaTeX
-  const processedContent = processLatex(content);
-
-  
+export default function MarkdownMessage({ content, className = '' }: MarkdownMessageProps) {
   return (
     <div className={className}>
-      <div dangerouslySetInnerHTML={{ __html: processedContent }} />
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm, remarkMath]}
+        rehypePlugins={[rehypeRaw, rehypeKatex]}
+        components={{
+          // Custom components for better styling
+          h1: ({ children }) => <h1 className="text-2xl font-bold mb-4">{children}</h1>,
+          h2: ({ children }) => <h2 className="text-xl font-semibold mb-3">{children}</h2>,
+          h3: ({ children }) => <h3 className="text-lg font-medium mb-2">{children}</h3>,
+          p: ({ children }) => <p className="mb-3 leading-relaxed">{children}</p>,
+          ul: ({ children }) => <ul className="list-disc list-inside mb-3 space-y-1">{children}</ul>,
+          ol: ({ children }) => <ol className="list-decimal list-inside mb-3 space-y-1">{children}</ol>,
+          li: ({ children }) => <li className="ml-2">{children}</li>,
+          blockquote: ({ children }) => <blockquote className="border-l-4 border-gray-300 pl-4 italic my-4">{children}</blockquote>,
+          code: ({ children }) => <code className="bg-gray-100 px-1 py-0.5 rounded text-sm font-mono">{children}</code>,
+          pre: ({ children }) => <pre className="bg-gray-100 p-3 rounded overflow-x-auto text-sm">{children}</pre>,
+          hr: () => <hr className="border-gray-300 my-6" />,
+          strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+          em: ({ children }) => <em className="italic text-gray-500">{children}</em>,
+          small: ({ children, ...props }) => (
+            <small 
+              className="text-xs text-gray-500 block mb-2" 
+              style={{ fontSize: '0.75em', lineHeight: '1.3' }}
+              {...props}
+            >
+              {children}
+            </small>
+          ),
+        }}
+      >
+        {content}
+      </ReactMarkdown>
     </div>
   );
 }
