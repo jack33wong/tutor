@@ -1,3 +1,5 @@
+import { fullExamPapers } from './fullExamPapers';
+
 export interface ExamQuestionMetadata {
   id: string;
   question: string;
@@ -335,4 +337,15 @@ export function formatExamMetadata(metadata: ExamQuestionMetadata): string {
 **Topic:** ${metadata.topic}
 
 </small>`;
+}
+
+// Function to get the correct answer for a question
+export function getCorrectAnswer(questionId: string): string | null {
+  for (const examPaper of fullExamPapers) {
+    const question = examPaper.questions.find(q => q.id === questionId);
+    if (question && question.answer) {
+      return question.answer;
+    }
+  }
+  return null;
 }

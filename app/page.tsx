@@ -7,6 +7,8 @@ import ChatMessage from '@/components/ChatMessage';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import LeftSidebar from '@/components/LeftSidebar';
+import { detectExamQuestion, getCorrectAnswer } from '@/data/pastExamQuestions';
+import { addCompletedQuestion, updateQuestionStatus, UserProgress, calculateProgressStats } from '@/data/progressTracking';
 
 type ChatItem = { 
 	role: 'user' | 'assistant'; 
@@ -240,6 +242,135 @@ export default function ChatHome() {
 	const [isSending, setIsSending] = useState(false);
 	const [isCreatingSession, setIsCreatingSession] = useState(false);
 	const fileRef = useRef<HTMLInputElement | null>(null);
+
+	// Progress tracking state
+	const [userProgress, setUserProgress] = useState<UserProgress>({
+		completedQuestions: [],
+		stats: calculateProgressStats([]),
+		lastUpdated: new Date()
+	});
+
+	// Load progress from localStorage on mount
+	useEffect(() => {
+		if (typeof window !== 'undefined') {
+			try {
+				const savedProgress = localStorage.getItem('userProgress');
+				if (savedProgress) {
+					const parsed = JSON.parse(savedProgress);
+					setUserProgress(parsed);
+				}
+			} catch (error) {
+				console.error('Error loading user progress:', error);
+			}
+		}
+	}, []);
+
+	// Function to detect if a user message contains an answer
+	const detectUserAnswer = useCallback((message: string): { hasAnswer: boolean; answerText?: string } => {
+		// Simple heuristics to detect if a message contains an answer
+		const answerPatterns = [
+			/answer\s*is\s*:?\s*(.+)/i,
+			/answer\s*:?\s*(.+)/i,
+			/result\s*is\s*:?\s*(.+)/i,
+			/result\s*:?\s*(.+)/i,
+			/solution\s*is\s*:?\s*(.+)/i,
+			/solution\s*:?\s*(.+)/i,
+			/equals?\s*:?\s*(.+)/i,
+			/=?\s*([^=]+)$/i, // Ends with equals sign or just text
+			/^([^?]+)$/i // No question mark, might be just an answer
+		];
+		
+		for (const pattern of answerPatterns) {
+			const match = message.match(pattern);
+			if (match && match[1]) {
+				const answerText = match[1].trim();
+				// Check if the answer text is substantial (not just punctuation)
+				if (answerText.length > 1 && !/^[^\w]*$/.test(answerText)) {
+					return { hasAnswer: true, answerText };
+				}
+			}
+		}
+		
+		// Check if message doesn't contain question words and is short (likely an answer)
+		const questionWords = /\b(what|how|why|when|where|who|which|can|could|would|will|do|does|is|are|was|were)\b/i;
+		const hasQuestionWords = questionWords.test(message);
+		const isShort = message.length < 50;
+		
+		if (!hasQuestionWords && isShort && !message.includes('?')) {
+			return { hasAnswer: true, answerText: message.trim() };
+		}
+		
+		return { hasAnswer: false };
+	}, []);
+
+	// Function to track asked question (without answer)
+	const trackAskedQuestion = useCallback((questionText: string, sessionId: string) => {
+		const examMetadata = detectExamQuestion(questionText);
+		
+		if (examMetadata) {
+			console.log('📝 Tracking asked question:', examMetadata.id);
+			
+			const updatedProgress = addCompletedQuestion(
+				userProgress,
+				examMetadata.id,
+				examMetadata.question,
+				examMetadata.examBoard,
+				examMetadata.year,
+				examMetadata.paper,
+				examMetadata.questionNumber,
+				examMetadata.category,
+				examMetadata.marks,
+				examMetadata.difficulty,
+				examMetadata.topic,
+				sessionId
+				// No userAnswer or correctAnswer - will be marked as 'asked'
+			);
+			
+			// Update state
+			setUserProgress(updatedProgress);
+			
+			// Save to localStorage
+			try {
+				localStorage.setItem('userProgress', JSON.stringify(updatedProgress));
+			} catch (error) {
+				console.error('Error saving progress:', error);
+			}
+		}
+	}, [userProgress]);
+
+	// Function to track completed question with answer
+	const trackCompletedQuestion = useCallback((questionText: string, userAnswer: string, sessionId: string) => {
+		const examMetadata = detectExamQuestion(questionText);
+		
+		if (examMetadata) {
+			console.log('📈 Tracking completed question with answer:', examMetadata.id);
+			
+			// Get the correct answer from the full exam papers data
+			const correctAnswer = getCorrectAnswer(examMetadata.id);
+			
+			if (correctAnswer) {
+				// Update the question status with the user's answer
+				const updatedProgress = updateQuestionStatus(
+					userProgress,
+					examMetadata.id,
+					userAnswer,
+					correctAnswer
+				);
+				
+				// Update state
+				setUserProgress(updatedProgress);
+				
+				// Save to localStorage
+				try {
+					localStorage.setItem('userProgress', JSON.stringify(updatedProgress));
+				} catch (error) {
+					console.error('Error saving progress:', error);
+				}
+			} else {
+				console.log('⚠️ No correct answer available for question:', examMetadata.id);
+			}
+		}
+	}, [userProgress]);
 
 	// Function to manually clear storage
 	const clearAllStorage = useCallback(() => {
@@ -499,11 +630,28 @@ export default function ChatHome() {
 				return updated;
 			});
 			
+			// Track progress for random questions
+			trackAskedQuestion(data.randomQuestion, currentSessionId);
+			
 			setIsSending(false);
 			return;
 		}
 		
 		const reply = data?.reply || 'Sorry, I could not respond right now.';
+		
+		// Track progress for exam questions (only for text-based questions)
+		if (text && !uploadedImage) {
+			// Check if the user message contains an answer
+			const answerDetection = detectUserAnswer(text);
+			
+			if (answerDetection.hasAnswer && answerDetection.answerText) {
+				// User provided an answer - track as completed
+				trackCompletedQuestion(text, answerDetection.answerText, currentSessionId);
+			} else {
+				// User just asked a question - track as asked
+				trackAskedQuestion(text, currentSessionId);
+			}
+		}
 		
 		// Add assistant reply to the existing session - ensure we preserve the user message
 		setChatSessions(prev => {
@@ -625,6 +773,7 @@ export default function ChatHome() {
 					onNewChat={createNewChat}
 					onClearStorage={clearAllStorage}
 					storageInfo={storageInfo}
+					userProgress={userProgress}
 				>
 					{/* Chat History */}
 					<div className="flex-1 overflow-y-auto">

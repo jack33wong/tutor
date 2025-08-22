@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { detectExamQuestion, formatExamMetadata, getRandomExamQuestions, formatSuggestedQuestion } from '@/data/pastExamQuestions';
+import { addCompletedQuestion, UserProgress, calculateProgressStats, getCompletionStatus } from '@/data/progressTracking';
 
 export async function POST(req: NextRequest) {
   try {
