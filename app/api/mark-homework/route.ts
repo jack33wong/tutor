@@ -55,14 +55,15 @@ async function generateMarkingInstructions(imageData: string): Promise<any> {
 You will be given an image of a student's handwritten work. 
 Your task is to produce structured instructions for how to annotate the image.
 
-- Do not return explanations for humans. 
-- Instead, return JSON that describes:
-  1. Mistakes (with location if possible).
-  2. Corrections to write in red.
-  3. Short teacher comments to add in red pen.
-  4. General placement hints (e.g., "next to step 3", "circle final answer", "top right margin").
+CRITICAL: Return ONLY raw JSON, no markdown formatting, no code blocks, no explanations.
 
-Example Output:
+Return JSON that describes:
+1. Mistakes (with location if possible).
+2. Corrections to write in red.
+3. Short teacher comments to add in red pen.
+4. General placement hints (e.g., "next to step 3", "circle final answer", "top right margin").
+
+Example Output (return exactly this format, no markdown):
 {
   "annotations": [
     {"action": "circle", "target": "final answer 20", "comment": "Should be 25"},
@@ -71,7 +72,7 @@ Example Output:
   ]
 }
 
-Return ONLY the JSON object, no other text.`;
+IMPORTANT: Do NOT use markdown code blocks. Return ONLY the raw JSON object.`;
 
     const userPrompt = `Here is a student's homework. Provide annotation instructions in JSON.`;
 
@@ -130,6 +131,20 @@ Return ONLY the JSON object, no other text.`;
       return instructions;
     } catch (parseError) {
       console.error('Failed to parse marking instructions:', parseError);
+      
+      // Try to extract JSON from markdown code blocks if the AI still returns them
+      try {
+        const jsonMatch = content.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+        if (jsonMatch) {
+          console.log('Extracting JSON from markdown code block');
+          const extractedJson = jsonMatch[1];
+          const instructions = JSON.parse(extractedJson);
+          return instructions;
+        }
+      } catch (extractError) {
+        console.error('Failed to extract JSON from markdown:', extractError);
+      }
+      
       return null;
     }
 
