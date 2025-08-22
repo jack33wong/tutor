@@ -5,6 +5,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
+import rehypeRaw from 'rehype-raw';
 import 'katex/dist/katex.min.css';
 
 type MarkdownMessageProps = {
@@ -17,7 +18,7 @@ export default function MarkdownMessage({ content, className = '' }: MarkdownMes
     <div className={className}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
-        rehypePlugins={[rehypeKatex]}
+        rehypePlugins={[rehypeRaw, rehypeKatex]}
         components={{
           // Custom components for better styling
           h1: ({ children }) => <h1 className="text-2xl font-bold mb-4">{children}</h1>,
@@ -32,6 +33,16 @@ export default function MarkdownMessage({ content, className = '' }: MarkdownMes
           pre: ({ children }) => <pre className="bg-gray-100 p-3 rounded overflow-x-auto text-sm">{children}</pre>,
           hr: () => <hr className="border-gray-300 my-6" />,
           strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+          em: ({ children }) => <em className="italic text-gray-500">{children}</em>,
+          small: ({ children, ...props }) => (
+            <small 
+              className="text-xs text-gray-500 block mb-2" 
+              style={{ fontSize: '0.75em', lineHeight: '1.3' }}
+              {...props}
+            >
+              {children}
+            </small>
+          ),
         }}
       >
         {content}

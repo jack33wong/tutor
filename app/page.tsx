@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Send, ImageIcon, Pencil, Plus, MessageCircle, LayoutDashboard, FileText } from 'lucide-react';
 import DrawingPad from '@/components/DrawingPad';
 import ChatMessage from '@/components/ChatMessage';
@@ -21,7 +21,41 @@ type ChatSession = {
 	timestamp: Date;
 };
 
-	// Custom hook for localStorage persistence - HYDRATION SAFE
+	// Utility functions for localStorage management
+	function getLocalStorageSize(): number {
+		let total = 0;
+		for (let key in localStorage) {
+			if (localStorage.hasOwnProperty(key)) {
+				total += localStorage[key].length + key.length;
+			}
+		}
+		return total;
+	}
+
+	function cleanupOldChatSessions(sessions: ChatSession[], maxSessions = 50): ChatSession[] {
+		if (sessions.length <= maxSessions) return sessions;
+		
+		// Sort by timestamp (newest first) and keep only the most recent sessions
+		const sortedSessions = [...sessions].sort((a, b) => 
+			new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+		);
+		
+		console.log(`Cleaning up chat sessions: keeping ${maxSessions} of ${sessions.length} sessions`);
+		return sortedSessions.slice(0, maxSessions);
+	}
+
+	function compactChatSessions(sessions: ChatSession[]): ChatSession[] {
+		return sessions.map(session => ({
+			...session,
+			messages: session.messages.map(msg => ({
+				...msg,
+				// Remove large image data from old messages to save space, keeping only recent ones
+				imageData: session.messages.indexOf(msg) < session.messages.length - 5 ? undefined : msg.imageData
+			}))
+		}));
+	}
+
+	// Custom hook for localStorage persistence with quota management - HYDRATION SAFE
 	function useLocalStorage<T>(key: string, initialValue: T) {
 		const [storedValue, setStoredValue] = useState<T>(initialValue);
 		const [isHydrated, setIsHydrated] = useState(false);
@@ -37,10 +71,12 @@ type ChatSession = {
 					}
 				} catch (error) {
 					console.error(`Error reading localStorage key "${key}":`, error);
+					// If we can't read the data, reset to initial value
+					setStoredValue(initialValue);
 				}
 				setIsHydrated(true);
 			}
-		}, [key]);
+		}, [key, initialValue]);
 
 		const setValue = useCallback((value: T | ((val: T) => T)) => {
 			try {
@@ -48,7 +84,80 @@ type ChatSession = {
 				setStoredValue(valueToStore);
 				
 				if (typeof window !== 'undefined' && isHydrated) {
-					window.localStorage.setItem(key, JSON.stringify(valueToStore));
+					const dataToStore = JSON.stringify(valueToStore);
+					
+					try {
+						window.localStorage.setItem(key, dataToStore);
+					} catch (quotaError) {
+						console.warn(`LocalStorage quota exceeded for key "${key}". Attempting cleanup...`);
+						
+						// If it's chat sessions, try to clean up
+						if (key === 'chatSessions' && Array.isArray(valueToStore)) {
+							try {
+								// First, try compacting sessions (remove old image data)
+								let compactedSessions = compactChatSessions(valueToStore as ChatSession[]);
+								let compactedData = JSON.stringify(compactedSessions);
+								
+								try {
+									window.localStorage.setItem(key, compactedData);
+									console.log('Successfully stored compacted chat sessions');
+									return;
+								} catch (stillTooLarge) {
+									// Still too large, try keeping fewer sessions
+									let cleanedSessions = cleanupOldChatSessions(compactedSessions as ChatSession[], 25);
+									let cleanedData = JSON.stringify(cleanedSessions);
+									
+									try {
+										window.localStorage.setItem(key, cleanedData);
+										console.log('Successfully stored cleaned chat sessions (reduced to 25 sessions)');
+										// Update the state to reflect the cleaned data
+										setStoredValue(cleanedSessions as T);
+										return;
+									} catch (stillFailed) {
+										// Last resort: keep only 10 most recent sessions
+										let minimalSessions = cleanupOldChatSessions(cleanedSessions as ChatSession[], 10);
+										let minimalData = JSON.stringify(minimalSessions);
+										window.localStorage.setItem(key, minimalData);
+										console.log('Successfully stored minimal chat sessions (reduced to 10 sessions)');
+										// Update the state to reflect the minimal data
+										setStoredValue(minimalSessions as T);
+										return;
+									}
+								}
+							} catch (cleanupError) {
+								console.error('Failed to cleanup chat sessions:', cleanupError);
+							}
+						}
+						
+						// General cleanup: try to free up space by removing other keys
+						console.log('Attempting general localStorage cleanup...');
+						const storageSize = getLocalStorageSize();
+						console.log(`Current localStorage size: ${Math.round(storageSize / 1024)}KB`);
+						
+						// Remove non-essential keys if they exist
+						const nonEssentialKeys = ['debug_', 'temp_', 'cache_'];
+						let cleaned = false;
+						for (let storageKey of Object.keys(localStorage)) {
+							if (nonEssentialKeys.some(prefix => storageKey.startsWith(prefix))) {
+								localStorage.removeItem(storageKey);
+								cleaned = true;
+							}
+						}
+						
+						if (cleaned) {
+							try {
+								window.localStorage.setItem(key, dataToStore);
+								console.log('Successfully stored after general cleanup');
+								return;
+							} catch (finalError) {
+								console.error('Still failed after cleanup:', finalError);
+							}
+						}
+						
+						// If all else fails, show user-friendly error
+						console.error(`Critical: Cannot store data for key "${key}" - localStorage is full`);
+						alert('Storage is full! Some chat history may be lost. The app will continue to work, but consider clearing your browser data or starting fresh conversations.');
+					}
 				}
 			} catch (error) {
 				console.error(`Error setting localStorage key "${key}":`, error);
@@ -62,7 +171,29 @@ export default function ChatHome() {
 	
 	
 	const router = useRouter();
-	
+
+	// State for storage info to prevent infinite re-renders
+	const [storageInfo, setStorageInfo] = useState<{
+		totalSize: number;
+		chatSize: number;
+		totalSizeMB: number;
+	} | null>(null);
+
+	// Function to update storage info
+	const updateStorageInfo = useCallback(() => {
+		if (typeof window === 'undefined') return;
+		
+		const total = getLocalStorageSize();
+		const chatData = localStorage.getItem('chatSessions');
+		const chatSize = chatData ? chatData.length : 0;
+		
+		setStorageInfo({
+			totalSize: Math.round(total / 1024), // KB
+			chatSize: Math.round(chatSize / 1024), // KB
+			totalSizeMB: Math.round(total / (1024 * 1024) * 100) / 100, // MB
+		});
+	}, []);
+
 	// Create a consistent session ID - use useRef to ensure it's stable across re-renders
 	const defaultSessionIdRef = useRef<string>('');
 	if (!defaultSessionIdRef.current) {
@@ -70,8 +201,31 @@ export default function ChatHome() {
 	}
 	const defaultSessionId = defaultSessionIdRef.current;
 	
+	// Create stable initial value to prevent infinite re-renders
+	const initialChatSessions = useMemo(() => [], []);
+	
 	// Initialize with empty array - let the useEffect handle creating default session if needed
-	const [chatSessions, setChatSessions, isHydrated] = useLocalStorage<ChatSession[]>('chatSessions', []);
+	const [chatSessions, setChatSessions, isHydrated] = useLocalStorage<ChatSession[]>('chatSessions', initialChatSessions);
+
+	// Update storage info when chat sessions change (debounced)
+	useEffect(() => {
+		if (isHydrated) {
+			const timeoutId = setTimeout(() => {
+				if (typeof window !== 'undefined') {
+					const total = getLocalStorageSize();
+					const chatData = localStorage.getItem('chatSessions');
+					const chatSize = chatData ? chatData.length : 0;
+					
+					setStorageInfo({
+						totalSize: Math.round(total / 1024), // KB
+						chatSize: Math.round(chatSize / 1024), // KB
+						totalSizeMB: Math.round(total / (1024 * 1024) * 100) / 100, // MB
+					});
+				}
+			}, 1000); // Debounce for 1 second
+			return () => clearTimeout(timeoutId);
+		}
+	}, [chatSessions.length, isHydrated]);
 	
 	const [currentSessionId, setCurrentSessionId] = useState<string>(() => {
 		console.log('=== CHAT PAGE: IMMEDIATE currentSessionId set ===', defaultSessionId);
@@ -86,6 +240,26 @@ export default function ChatHome() {
 	const [isSending, setIsSending] = useState(false);
 	const [isCreatingSession, setIsCreatingSession] = useState(false);
 	const fileRef = useRef<HTMLInputElement | null>(null);
+
+	// Function to manually clear storage
+	const clearAllStorage = useCallback(() => {
+		if (window.confirm('This will clear all chat history. Are you sure?')) {
+			try {
+				localStorage.removeItem('chatSessions');
+				setChatSessions([]);
+				// Update storage info immediately after clearing
+				setStorageInfo({
+					totalSize: 0,
+					chatSize: 0,
+					totalSizeMB: 0,
+				});
+				// Optionally reload to reset everything
+				// window.location.reload();
+			} catch (error) {
+				console.error('Error clearing storage:', error);
+			}
+		}
+	}, [setChatSessions]);
 
 	// Clear uploaded image
 	const clearImage = () => {
@@ -192,10 +366,10 @@ export default function ChatHome() {
 		console.log('Upload Name:', uploadName);
 		console.log('Current Session ID:', currentSessionId);
 		
-		// Allow sending if there's either text or an image
+		// Allow sending even with blank text (for random question generation)
 		if (!text && !uploadedImage) {
-			console.log('No text and no image - returning early');
-			return;
+			console.log('Sending blank message for random questions');
+			// Still proceed to send empty message for random question generation
 		}
 		
 		// Ensure we have a session before sending
@@ -273,12 +447,66 @@ export default function ChatHome() {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify(requestBody),
-			});
-			const data = await resp.json();
-			const reply = data?.reply || 'Sorry, I could not respond right now.';
+					});
+		const data = await resp.json();
+		
+		// Check if this was a random question generation
+		if (data.isRandomGenerated && data.randomQuestion) {
+			console.log('🎯 Handling random question generation');
 			
-			// Add assistant reply to the existing session - ensure we preserve the user message
+			// First, update the input box with the random question
+			setInput(data.randomQuestion);
+			
+			// Clear the user message we just added (since it was blank)
 			setChatSessions(prev => {
+				const updated = prev.map(session => {
+					if (session.id === currentSessionId) {
+						// Remove the last message (blank user message)
+						const messages = session.messages.slice(0, -1);
+						return {
+							...session,
+							messages: messages,
+							timestamp: new Date()
+						};
+					}
+					return session;
+				});
+				return updated;
+			});
+			
+			// Add the random question as user message
+			const randomUserMsg: ChatItem = { 
+				role: 'user', 
+				content: data.randomQuestion
+			};
+			
+			setChatSessions(prev => {
+				const updated = prev.map(session => {
+					if (session.id === currentSessionId) {
+						const newTitle = session.messages.length === 0 
+							? data.randomQuestion.slice(0, 30) + (data.randomQuestion.length > 30 ? '...' : '')
+							: session.title;
+						
+						return {
+							...session,
+							title: newTitle,
+							messages: [...session.messages, randomUserMsg, { role: 'assistant' as const, content: data.reply }],
+							timestamp: new Date()
+						};
+					}
+					return session;
+				});
+				return updated;
+			});
+			
+			setIsSending(false);
+			return;
+		}
+		
+		const reply = data?.reply || 'Sorry, I could not respond right now.';
+		
+		// Add assistant reply to the existing session - ensure we preserve the user message
+		setChatSessions(prev => {
 				const updated = prev.map(session => {
 					if (session.id === currentSessionId) {
 						// Verify that the user message is still there and add assistant reply
@@ -393,7 +621,11 @@ export default function ChatHome() {
 		<div className="min-h-screen bg-gray-50">
 			<div className="flex h-screen">
 				{/* Left Sidebar */}
-				<LeftSidebar onNewChat={createNewChat}>
+				<LeftSidebar 
+					onNewChat={createNewChat}
+					onClearStorage={clearAllStorage}
+					storageInfo={storageInfo}
+				>
 					{/* Chat History */}
 					<div className="flex-1 overflow-y-auto">
 						{/* Recent Chats Header */}
@@ -554,13 +786,13 @@ export default function ChatHome() {
 								{/* Send button on the right */}
 								<button
 									onClick={send}
-									disabled={isSending || (!input.trim() && !uploadedImage) || !currentSessionId || isCreatingSession}
+									disabled={isSending || !currentSessionId || isCreatingSession}
 									className={`absolute right-3 top-1/2 transform -translate-y-1/2 w-12 h-12 rounded-full transition-all duration-200 flex items-center justify-center shadow-sm hover:shadow-md ${
 										uploadedImage && !input.trim() 
 											? 'bg-green-600 hover:bg-green-700 text-white' 
 											: 'bg-primary-600 hover:bg-primary-700 text-white'
 									} ${
-										isSending || (!input.trim() && !uploadedImage) || !currentSessionId || isCreatingSession
+										isSending || !currentSessionId || isCreatingSession
 											? 'bg-gray-400 cursor-not-allowed'
 											: ''
 									}`}
@@ -568,7 +800,7 @@ export default function ChatHome() {
 										!currentSessionId ? 'No active session' 
 										: isSending ? 'Sending...' 
 										: isCreatingSession ? 'Creating session...' 
-										: !input.trim() && !uploadedImage ? 'Type a message or attach an image' 
+										: !input.trim() && !uploadedImage ? 'Send for random practice questions' 
 										: uploadedImage && !input.trim() ? 'Send image' 
 										: 'Send message'
 									}
