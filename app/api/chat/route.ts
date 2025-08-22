@@ -31,7 +31,12 @@ export async function POST(req: NextRequest) {
     }
 
     // Use ChatGPT API
-    const openaiApiKey = '0rg3xtTr355b5skN3vn38eo0UY3WynaPokITf3rQDc9iaM4lyUGMEggD1WwLXwe9o2abKwT8T3BlbkFJ7iYCgwHIqqj1uIyQNkfJmItIUtnsj6W35RALlNpQT56I01CqTHbfnix-DEZ8fQo-0DRrq9DP4A';
+    const openaiApiKey = process.env.OPENAI_API_KEY;
+    
+    if (!openaiApiKey) {
+      console.error('No OpenAI API key provided');
+      return NextResponse.json({ error: 'OpenAI API key not configured' }, { status: 500 });
+    }
     
     let systemPrompt: string;
     let maxRetries = 3;

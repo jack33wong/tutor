@@ -44,8 +44,7 @@ export async function POST(req: NextRequest) {
 
 async function generateMarkingInstructions(imageData: string): Promise<any> {
   try {
-    // Use environment variable or fallback to the provided key
-    const openaiApiKey = process.env.OPENAI_API_KEY || '0rg3xtTr355b5skN3vn38eo0UY3WynaPokITf3rQDc9iaM4lyUGMEggD1WwLXwe9o2abKwT8T3BlbkFJ7iYCgwHIqqj1uIyQNkfJmItIUtnsj6W35RALlNpQT56I01CqTHbfnix-DEZ8fQo-0DRrq9DP4A';
+    const openaiApiKey = process.env.OPENAI_API_KEY;
     
     if (!openaiApiKey) {
       console.error('No OpenAI API key provided');
@@ -142,8 +141,7 @@ Return ONLY the JSON object, no other text.`;
 
 async function applyMarkingsToImage(originalImage: string, instructions: any): Promise<string | null> {
   try {
-    // Use environment variable or fallback to the provided key
-    const openaiApiKey = process.env.OPENAI_API_KEY || '0rg3xtTr355b5skN3vn38eo0UY3WynaPokITf3rQDc9iaM4lyUGMEggD1WwLXwe9o2abKwT8T3BlbkFJ7iYCgwHIqqj1uIyQNkfJmItIUtnsj6W35RALlNpQT56I01CqTHbfnix-DEZ8fQo-0DRrq9DP4A';
+    const openaiApiKey = process.env.OPENAI_API_KEY;
     
     if (!openaiApiKey) {
       console.error('No OpenAI API key provided');
