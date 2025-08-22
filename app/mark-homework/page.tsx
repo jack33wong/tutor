@@ -254,15 +254,15 @@ export default function MarkHomeworkPage() {
                                                          <div className="space-y-2 text-sm text-gray-500">
                                    <div className="flex items-center justify-center space-x-2">
                                      <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
-                                     <span>Stage 1: OCR text extraction</span>
+                                     <span>Stage 1: AI analysis of homework image</span>
                                    </div>
                                    <div className="flex items-center justify-center space-x-2">
                                      <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
-                                     <span>Stage 2: AI analysis & marking instructions</span>
+                                     <span>Stage 2: Generating marking instructions</span>
                                    </div>
                                    <div className="flex items-center justify-center space-x-2">
                                      <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
-                                     <span>Stage 3: Applying annotations to image</span>
+                                     <span>Stage 3: Applying annotations with Sharp</span>
                                    </div>
                                  </div>
                       </div>
@@ -272,23 +272,7 @@ export default function MarkHomeworkPage() {
 
                                          {/* Right Column - Results */}
                          <div className="space-y-6">
-                           {/* OCR Results */}
-                           {markingResult?.ocrResults && (
-                             <div className="card">
-                               <h3 className="text-lg font-semibold text-gray-900 mb-4">OCR Text Extraction</h3>
-                               <div className="bg-gray-50 p-4 rounded-lg max-h-64 overflow-y-auto">
-                                 <div className="space-y-2">
-                                   {markingResult.ocrResults.map((ocr, index) => (
-                                     <div key={index} className="text-sm text-gray-700 p-2 bg-white rounded border">
-                                       <span className="font-medium">"{ocr.text}"</span>
-                                       <span className="text-gray-500 ml-2">at [{ocr.bbox.join(', ')}]</span>
-                                       <span className="text-gray-400 ml-2">({ocr.confidence.toFixed(1)}% confidence)</span>
-                                     </div>
-                                   ))}
-                                 </div>
-                               </div>
-                             </div>
-                           )}
+
                            
                            {/* Marking Instructions */}
                            {markingResult?.instructions && (
@@ -344,9 +328,9 @@ export default function MarkHomeworkPage() {
                           1
                         </div>
                         <div>
-                          <h4 className="font-medium text-gray-900">OCR Text Extraction</h4>
+                          <h4 className="font-medium text-gray-900">AI Image Analysis</h4>
                           <p className="text-sm text-gray-600">
-                            Tesseract OCR extracts text and precise coordinates from your homework image for accurate analysis.
+                            GPT-4o-mini analyzes your homework image directly and identifies mathematical errors.
                           </p>
                         </div>
                       </div>
@@ -356,9 +340,9 @@ export default function MarkHomeworkPage() {
                           2
                         </div>
                         <div>
-                          <h4 className="font-medium text-gray-900">AI Analysis</h4>
+                          <h4 className="font-medium text-gray-900">Marking Instructions</h4>
                           <p className="text-sm text-gray-600">
-                            GPT-4 analyzes the math and generates precise annotation instructions using OCR coordinates.
+                            The AI generates structured instructions for placing red pen corrections on the image.
                           </p>
                         </div>
                       </div>
@@ -368,9 +352,9 @@ export default function MarkHomeworkPage() {
                           3
                         </div>
                         <div>
-                          <h4 className="font-medium text-gray-900">Direct Annotation</h4>
+                          <h4 className="font-medium text-gray-900">Image Processing</h4>
                           <p className="text-sm text-gray-600">
-                            Annotations are drawn directly on the original image using Canvas API for precise placement.
+                            Sharp image processing library applies red pen annotations using SVG overlays.
                           </p>
                         </div>
                       </div>

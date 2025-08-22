@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Tesseract from 'tesseract.js';
+import sharp from 'sharp';
 
 interface OCRResult {
   text: string;
@@ -25,19 +25,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing image data or name' }, { status: 400 });
     }
 
-    // Stage 1: OCR Extraction
-    console.log('Starting OCR extraction...');
-    const ocrResults = await performOCR(imageData);
+    // Stage 1: Simple OCR Simulation (for now, we'll use GPT-4o-mini to analyze the image directly)
+    console.log('Starting AI analysis of homework image...');
     
-    if (!ocrResults || ocrResults.length === 0) {
-      return NextResponse.json({ error: 'Failed to extract text from image' }, { status: 500 });
-    }
-
-    console.log(`OCR completed: ${ocrResults.length} text elements found`);
-
-    // Stage 2: GPT-4 Analysis with OCR data
-    console.log('Starting AI analysis...');
-    const markingInstructions = await generateMarkingInstructions(ocrResults);
+    // Stage 2: GPT-4o-mini Analysis with image data
+    const markingInstructions = await generateMarkingInstructions(imageData);
     
     if (!markingInstructions) {
       return NextResponse.json({ error: 'Failed to generate marking instructions' }, { status: 500 });
@@ -45,7 +37,7 @@ export async function POST(req: NextRequest) {
 
     console.log(`AI analysis completed: ${markingInstructions.annotations.length} annotations generated`);
 
-    // Stage 3: Direct Image Annotation
+    // Stage 3: Image Annotation using Sharp
     console.log('Starting image annotation...');
     const markedImage = await applyMarkingsToImage(imageData, markingInstructions);
     
@@ -58,8 +50,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ 
       markedImage,
       instructions: markingInstructions,
-      ocrResults: ocrResults,
-      message: 'Homework marked successfully using OCR + AI analysis'
+      ocrResults: [], // We'll add OCR later when we fix the worker issues
+      message: 'Homework marked successfully using AI analysis + Sharp image processing'
     });
 
   } catch (error) {
@@ -68,70 +60,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-async function performOCR(imageData: string): Promise<OCRResult[]> {
-  try {
-    console.log('Initializing Tesseract OCR...');
-    
-    const result = await Tesseract.recognize(
-      imageData,
-      'eng',
-      {
-        logger: m => console.log('OCR Progress:', m.status, m.progress),
-        errorHandler: e => console.error('OCR Error:', e)
-      }
-    );
-
-    console.log('OCR recognition completed');
-    
-    // Extract text with bounding boxes and confidence
-    const ocrResults: OCRResult[] = [];
-    
-    // Tesseract result structure varies, try different approaches
-    const data = result.data as any; // Type assertion to handle Tesseract result structure
-    
-    if (data.words && Array.isArray(data.words)) {
-      data.words.forEach((word: any) => {
-        if (word.text?.trim() && word.confidence > 30) {
-          ocrResults.push({
-            text: word.text.trim(),
-            bbox: [
-              word.bbox?.x0 || 0,
-              word.bbox?.y0 || 0,
-              word.bbox?.x1 || 0,
-              word.bbox?.y1 || 0
-            ],
-            confidence: word.confidence
-          });
-        }
-      });
-    } else if (data.lines && Array.isArray(data.lines)) {
-      // Fallback to lines if words not available
-      data.lines.forEach((line: any) => {
-        if (line.text?.trim() && line.confidence > 30) {
-          ocrResults.push({
-            text: line.text.trim(),
-            bbox: [
-              line.bbox?.x0 || 0,
-              line.bbox?.y0 || 0,
-              line.bbox?.x1 || 0,
-              line.bbox?.y1 || 0
-            ],
-            confidence: line.confidence
-          });
-        }
-      });
-    }
-
-    console.log(`OCR extracted ${ocrResults.length} text elements`);
-    return ocrResults;
-
-  } catch (error) {
-    console.error('OCR Error:', error);
-    return [];
-  }
-}
-
-async function generateMarkingInstructions(ocrResults: OCRResult[]): Promise<MarkingInstructions | null> {
+async function generateMarkingInstructions(imageData: string): Promise<MarkingInstructions | null> {
   try {
     const openaiApiKey = process.env.OPENAI_API_KEY;
     
@@ -140,20 +69,15 @@ async function generateMarkingInstructions(ocrResults: OCRResult[]): Promise<Mar
       return null;
     }
 
-    // Create OCR summary for GPT
-    const ocrSummary = ocrResults.map(result => 
-      `"${result.text}" at position [${result.bbox.join(', ')}]`
-    ).join('\n');
-
     const systemPrompt = `You are a teacher marking student homework. 
-You will receive OCR text with bounding box coordinates from a student's math homework.
+You will receive an image of a student's math homework.
 
 CRITICAL: Return ONLY raw JSON, no markdown formatting, no code blocks, no explanations.
 
 Analyze the math and return structured annotation instructions for marking corrections directly on the image.
 
-- Use the provided OCR coordinates (bbox) to place annotations precisely
 - Detect mathematical errors and provide helpful corrections
+- Estimate positions for annotations (we'll place them appropriately)
 - Output JSON only with this exact format
 
 Example Output (return exactly this format, no markdown):
@@ -168,11 +92,7 @@ Example Output (return exactly this format, no markdown):
 Available actions: circle, write, tick, cross, underline
 IMPORTANT: Do NOT use markdown code blocks. Return ONLY the raw JSON object.`;
 
-    const userPrompt = `Here is the OCR text from a student's homework with bounding box coordinates:
-
-${ocrSummary}
-
-Please analyze the math and provide annotation instructions. Use the exact bbox coordinates provided.`;
+    const userPrompt = `Here is a student's homework image. Please analyze the math and provide annotation instructions for marking corrections.`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -181,10 +101,21 @@ Please analyze the math and provide annotation instructions. Use the exact bbox 
         'Authorization': `Bearer ${openaiApiKey}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: 'gpt-4o-mini',
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: userPrompt },
+              {
+                type: 'image_url',
+                image_url: {
+                  url: imageData
+                }
+              }
+            ] as any
+          }
         ],
         temperature: 0.1,
         max_tokens: 1000,
@@ -242,102 +173,88 @@ Please analyze the math and provide annotation instructions. Use the exact bbox 
 
 async function applyMarkingsToImage(originalImage: string, instructions: MarkingInstructions): Promise<string | null> {
   try {
-    console.log('Starting direct image annotation...');
+    console.log('Starting Sharp-based image annotation...');
     
-    // Create a canvas to draw on the original image
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
+    // Convert base64 to buffer
+    const base64Data = originalImage.replace(/^data:image\/[a-z]+;base64,/, '');
+    const imageBuffer = Buffer.from(base64Data, 'base64');
     
-    if (!ctx) {
-      console.error('Failed to get canvas context');
-      return null;
+    // Create a new image with annotations using Sharp
+    let markedImage = sharp(imageBuffer);
+    
+    // For now, we'll create a simple overlay with text
+    // In a production system, you'd want more sophisticated annotation drawing
+    
+    // Create SVG overlay for annotations
+    const svgOverlay = createSVGOverlay(instructions);
+    
+    if (svgOverlay) {
+      markedImage = markedImage.composite([
+        {
+          input: Buffer.from(svgOverlay),
+          top: 0,
+          left: 0
+        }
+      ]);
     }
-
-    // Load the original image
-    const img = new Image();
     
-    return new Promise((resolve) => {
-      img.onload = () => {
-        // Set canvas size to match image
-        canvas.width = img.width;
-        canvas.height = img.height;
-        
-        // Draw the original image
-        ctx.drawImage(img, 0, 0);
-        
-        // Apply annotations
-        instructions.annotations.forEach((annotation, index) => {
-          const [x0, y0, x1, y1] = annotation.bbox;
-          const centerX = (x0 + x1) / 2;
-          const centerY = (y0 + y1) / 2;
-          const width = x1 - x0;
-          const height = y1 - y0;
-          
-          // Set red color for all annotations
-          ctx.strokeStyle = '#FF0000';
-          ctx.fillStyle = '#FF0000';
-          ctx.lineWidth = 3;
-          ctx.font = 'bold 16px Arial';
-          
-          switch (annotation.action) {
-            case 'circle':
-              // Draw ellipse around the bounding box
-              ctx.beginPath();
-              ctx.ellipse(centerX, centerY, width/2 + 5, height/2 + 5, 0, 0, 2 * Math.PI);
-              ctx.stroke();
-              break;
-              
-            case 'write':
-              // Write comment text above the bounding box
-              ctx.fillText(annotation.comment, x0, y0 - 10);
-              break;
-              
-            case 'tick':
-              // Draw a checkmark
-              ctx.beginPath();
-              ctx.moveTo(x0 - 10, y0 + height/2);
-              ctx.lineTo(centerX, y1 + 10);
-              ctx.lineTo(x1 + 10, y0 - 5);
-              ctx.stroke();
-              break;
-              
-            case 'cross':
-              // Draw an X
-              ctx.beginPath();
-              ctx.moveTo(x0 - 5, y0 - 5);
-              ctx.lineTo(x1 + 5, y1 + 5);
-              ctx.moveTo(x1 + 5, y0 - 5);
-              ctx.lineTo(x0 - 5, y1 + 5);
-              ctx.stroke();
-              break;
-              
-            case 'underline':
-              // Draw underline
-              ctx.beginPath();
-              ctx.moveTo(x0, y1 + 5);
-              ctx.lineTo(x1, y1 + 5);
-              ctx.stroke();
-              break;
-          }
-        });
-        
-        // Convert canvas to data URL
-        const markedImageDataUrl = canvas.toDataURL('image/png');
-        console.log('Image annotation completed');
-        resolve(markedImageDataUrl);
-      };
-      
-      img.onerror = () => {
-        console.error('Failed to load image for annotation');
-        resolve(null);
-      };
-      
-      // Set source to trigger loading
-      img.src = originalImage;
-    });
+    // Convert back to base64
+    const outputBuffer = await markedImage.png().toBuffer();
+    const base64Output = `data:image/png;base64,${outputBuffer.toString('base64')}`;
+    
+    console.log('Image annotation completed');
+    return base64Output;
 
   } catch (error) {
     console.error('Error applying markings to image:', error);
+    return null;
+  }
+}
+
+function createSVGOverlay(instructions: MarkingInstructions): string | null {
+  try {
+    if (!instructions.annotations || instructions.annotations.length === 0) {
+      return null;
+    }
+
+    // Create SVG with annotations
+    let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" style="position: absolute; top: 0; left: 0;">`;
+    
+    instructions.annotations.forEach((annotation, index) => {
+      const [x0, y0, x1, y1] = annotation.bbox;
+      const centerX = (x0 + x1) / 2;
+      const centerY = (y0 + y1) / 2;
+      const width = x1 - x0;
+      const height = y1 - y0;
+      
+      switch (annotation.action) {
+        case 'circle':
+          svg += `<ellipse cx="${centerX}" cy="${centerY}" rx="${width/2 + 5}" ry="${height/2 + 5}" fill="none" stroke="red" stroke-width="3"/>`;
+          break;
+          
+        case 'write':
+          svg += `<text x="${x0}" y="${y0 - 10}" fill="red" font-family="Arial" font-size="16" font-weight="bold">${annotation.comment}</text>`;
+          break;
+          
+        case 'tick':
+          svg += `<path d="M ${x0 - 10} ${y0 + height/2} L ${centerX} ${y1 + 10} L ${x1 + 10} ${y0 - 5}" stroke="red" stroke-width="3" fill="none"/>`;
+          break;
+          
+        case 'cross':
+          svg += `<path d="M ${x0 - 5} ${y0 - 5} L ${x1 + 5} ${y1 + 5} M ${x1 + 5} ${y0 - 5} L ${x0 - 5} ${y1 + 5}" stroke="red" stroke-width="3"/>`;
+          break;
+          
+        case 'underline':
+          svg += `<line x1="${x0}" y1="${y1 + 5}" x2="${x1}" y2="${y1 + 5}" stroke="red" stroke-width="3"/>`;
+          break;
+      }
+    });
+    
+    svg += '</svg>';
+    return svg;
+
+  } catch (error) {
+    console.error('Error creating SVG overlay:', error);
     return null;
   }
 }
