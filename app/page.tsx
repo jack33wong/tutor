@@ -1,14 +1,14 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Send, ImageIcon, Pencil, Plus, MessageCircle, LayoutDashboard, FileText } from 'lucide-react';
 import DrawingPad from '@/components/DrawingPad';
-import MarkdownMessage from '@/components/MarkdownMessage';
-import GeometryDiagram from '@/components/GeometryDiagram';
 import ChatMessage from '@/components/ChatMessage';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import LeftSidebar from '@/components/LeftSidebar';
+import { detectExamQuestion, getCorrectAnswer } from '@/data/pastExamQuestions';
+import { addCompletedQuestion, updateQuestionStatus, UserProgress, calculateProgressStats } from '@/data/progressTracking';
 
 type ChatItem = { 
 	role: 'user' | 'assistant'; 
@@ -21,10 +21,43 @@ type ChatSession = {
 	title: string;
 	messages: ChatItem[];
 	timestamp: Date;
-	geometryData?: any;
 };
 
-	// Custom hook for localStorage persistence - HYDRATION SAFE
+	// Utility functions for localStorage management
+	function getLocalStorageSize(): number {
+		let total = 0;
+		for (let key in localStorage) {
+			if (localStorage.hasOwnProperty(key)) {
+				total += localStorage[key].length + key.length;
+			}
+		}
+		return total;
+	}
+
+	function cleanupOldChatSessions(sessions: ChatSession[], maxSessions = 50): ChatSession[] {
+		if (sessions.length <= maxSessions) return sessions;
+		
+		// Sort by timestamp (newest first) and keep only the most recent sessions
+		const sortedSessions = [...sessions].sort((a, b) => 
+			new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+		);
+		
+		console.log(`Cleaning up chat sessions: keeping ${maxSessions} of ${sessions.length} sessions`);
+		return sortedSessions.slice(0, maxSessions);
+	}
+
+	function compactChatSessions(sessions: ChatSession[]): ChatSession[] {
+		return sessions.map(session => ({
+			...session,
+			messages: session.messages.map(msg => ({
+				...msg,
+				// Remove large image data from old messages to save space, keeping only recent ones
+				imageData: session.messages.indexOf(msg) < session.messages.length - 5 ? undefined : msg.imageData
+			}))
+		}));
+	}
+
+	// Custom hook for localStorage persistence with quota management - HYDRATION SAFE
 	function useLocalStorage<T>(key: string, initialValue: T) {
 		const [storedValue, setStoredValue] = useState<T>(initialValue);
 		const [isHydrated, setIsHydrated] = useState(false);
@@ -40,11 +73,12 @@ type ChatSession = {
 					}
 				} catch (error) {
 					console.error(`Error reading localStorage key "${key}":`, error);
-					// Don't set error state here as it's not critical
+					// If we can't read the data, reset to initial value
+					setStoredValue(initialValue);
 				}
 				setIsHydrated(true);
 			}
-		}, [key]);
+		}, [key, initialValue]);
 
 		const setValue = useCallback((value: T | ((val: T) => T)) => {
 			try {
@@ -52,11 +86,83 @@ type ChatSession = {
 				setStoredValue(valueToStore);
 				
 				if (typeof window !== 'undefined' && isHydrated) {
-					window.localStorage.setItem(key, JSON.stringify(valueToStore));
+					const dataToStore = JSON.stringify(valueToStore);
+					
+					try {
+						window.localStorage.setItem(key, dataToStore);
+					} catch (quotaError) {
+						console.warn(`LocalStorage quota exceeded for key "${key}". Attempting cleanup...`);
+						
+						// If it's chat sessions, try to clean up
+						if (key === 'chatSessions' && Array.isArray(valueToStore)) {
+							try {
+								// First, try compacting sessions (remove old image data)
+								let compactedSessions = compactChatSessions(valueToStore as ChatSession[]);
+								let compactedData = JSON.stringify(compactedSessions);
+								
+								try {
+									window.localStorage.setItem(key, compactedData);
+									console.log('Successfully stored compacted chat sessions');
+									return;
+								} catch (stillTooLarge) {
+									// Still too large, try keeping fewer sessions
+									let cleanedSessions = cleanupOldChatSessions(compactedSessions as ChatSession[], 25);
+									let cleanedData = JSON.stringify(cleanedSessions);
+									
+									try {
+										window.localStorage.setItem(key, cleanedData);
+										console.log('Successfully stored cleaned chat sessions (reduced to 25 sessions)');
+										// Update the state to reflect the cleaned data
+										setStoredValue(cleanedSessions as T);
+										return;
+									} catch (stillFailed) {
+										// Last resort: keep only 10 most recent sessions
+										let minimalSessions = cleanupOldChatSessions(cleanedSessions as ChatSession[], 10);
+										let minimalData = JSON.stringify(minimalSessions);
+										window.localStorage.setItem(key, minimalData);
+										console.log('Successfully stored minimal chat sessions (reduced to 10 sessions)');
+										// Update the state to reflect the minimal data
+										setStoredValue(minimalSessions as T);
+										return;
+									}
+								}
+							} catch (cleanupError) {
+								console.error('Failed to cleanup chat sessions:', cleanupError);
+							}
+						}
+						
+						// General cleanup: try to free up space by removing other keys
+						console.log('Attempting general localStorage cleanup...');
+						const storageSize = getLocalStorageSize();
+						console.log(`Current localStorage size: ${Math.round(storageSize / 1024)}KB`);
+						
+						// Remove non-essential keys if they exist
+						const nonEssentialKeys = ['debug_', 'temp_', 'cache_'];
+						let cleaned = false;
+						for (let storageKey of Object.keys(localStorage)) {
+							if (nonEssentialKeys.some(prefix => storageKey.startsWith(prefix))) {
+								localStorage.removeItem(storageKey);
+								cleaned = true;
+							}
+						}
+						
+						if (cleaned) {
+							try {
+								window.localStorage.setItem(key, dataToStore);
+								console.log('Successfully stored after general cleanup');
+								return;
+							} catch (finalError) {
+								console.error('Still failed after cleanup:', finalError);
+							}
+						}
+						
+						// If all else fails, show user-friendly error
+						console.error(`Critical: Cannot store data for key "${key}" - localStorage is full`);
+						alert('Storage is full! Some chat history may be lost. The app will continue to work, but consider clearing your browser data or starting fresh conversations.');
+					}
 				}
 			} catch (error) {
 				console.error(`Error setting localStorage key "${key}":`, error);
-				// Don't set error state here as it's not critical
 			}
 		}, [key, storedValue, isHydrated]);
 
@@ -64,9 +170,32 @@ type ChatSession = {
 	}
 
 export default function ChatHome() {
-	const [error, setError] = useState<string | null>(null);
+	
 	
 	const router = useRouter();
+
+	// State for storage info to prevent infinite re-renders
+	const [storageInfo, setStorageInfo] = useState<{
+		totalSize: number;
+		chatSize: number;
+		totalSizeMB: number;
+	} | null>(null);
+
+	// Function to update storage info
+	const updateStorageInfo = useCallback(() => {
+		if (typeof window === 'undefined') return;
+		
+		const total = getLocalStorageSize();
+		const chatData = localStorage.getItem('chatSessions');
+		const chatSize = chatData ? chatData.length : 0;
+		
+		setStorageInfo({
+			totalSize: Math.round(total / 1024), // KB
+			chatSize: Math.round(chatSize / 1024), // KB
+			totalSizeMB: Math.round(total / (1024 * 1024) * 100) / 100, // MB
+		});
+	}, []);
+
 	// Create a consistent session ID - use useRef to ensure it's stable across re-renders
 	const defaultSessionIdRef = useRef<string>('');
 	if (!defaultSessionIdRef.current) {
@@ -74,8 +203,31 @@ export default function ChatHome() {
 	}
 	const defaultSessionId = defaultSessionIdRef.current;
 	
+	// Create stable initial value to prevent infinite re-renders
+	const initialChatSessions = useMemo(() => [], []);
+	
 	// Initialize with empty array - let the useEffect handle creating default session if needed
-	const [chatSessions, setChatSessions, isHydrated] = useLocalStorage<ChatSession[]>('chatSessions', []);
+	const [chatSessions, setChatSessions, isHydrated] = useLocalStorage<ChatSession[]>('chatSessions', initialChatSessions);
+
+	// Update storage info when chat sessions change (debounced)
+	useEffect(() => {
+		if (isHydrated) {
+			const timeoutId = setTimeout(() => {
+				if (typeof window !== 'undefined') {
+					const total = getLocalStorageSize();
+					const chatData = localStorage.getItem('chatSessions');
+					const chatSize = chatData ? chatData.length : 0;
+					
+					setStorageInfo({
+						totalSize: Math.round(total / 1024), // KB
+						chatSize: Math.round(chatSize / 1024), // KB
+						totalSizeMB: Math.round(total / (1024 * 1024) * 100) / 100, // MB
+					});
+				}
+			}, 1000); // Debounce for 1 second
+			return () => clearTimeout(timeoutId);
+		}
+	}, [chatSessions.length, isHydrated]);
 	
 	const [currentSessionId, setCurrentSessionId] = useState<string>(() => {
 		console.log('=== CHAT PAGE: IMMEDIATE currentSessionId set ===', defaultSessionId);
@@ -90,6 +242,155 @@ export default function ChatHome() {
 	const [isSending, setIsSending] = useState(false);
 	const [isCreatingSession, setIsCreatingSession] = useState(false);
 	const fileRef = useRef<HTMLInputElement | null>(null);
+
+	// Progress tracking state
+	const [userProgress, setUserProgress] = useState<UserProgress>({
+		completedQuestions: [],
+		stats: calculateProgressStats([]),
+		lastUpdated: new Date()
+	});
+
+	// Load progress from localStorage on mount
+	useEffect(() => {
+		if (typeof window !== 'undefined') {
+			try {
+				const savedProgress = localStorage.getItem('userProgress');
+				if (savedProgress) {
+					const parsed = JSON.parse(savedProgress);
+					setUserProgress(parsed);
+				}
+			} catch (error) {
+				console.error('Error loading user progress:', error);
+			}
+		}
+	}, []);
+
+	// Function to detect if a user message contains an answer
+	const detectUserAnswer = useCallback((message: string): { hasAnswer: boolean; answerText?: string } => {
+		// Simple heuristics to detect if a message contains an answer
+		const answerPatterns = [
+			/answer\s*is\s*:?\s*(.+)/i,
+			/answer\s*:?\s*(.+)/i,
+			/result\s*is\s*:?\s*(.+)/i,
+			/result\s*:?\s*(.+)/i,
+			/solution\s*is\s*:?\s*(.+)/i,
+			/solution\s*:?\s*(.+)/i,
+			/equals?\s*:?\s*(.+)/i,
+			/=?\s*([^=]+)$/i, // Ends with equals sign or just text
+			/^([^?]+)$/i // No question mark, might be just an answer
+		];
+		
+		for (const pattern of answerPatterns) {
+			const match = message.match(pattern);
+			if (match && match[1]) {
+				const answerText = match[1].trim();
+				// Check if the answer text is substantial (not just punctuation)
+				if (answerText.length > 1 && !/^[^\w]*$/.test(answerText)) {
+					return { hasAnswer: true, answerText };
+				}
+			}
+		}
+		
+		// Check if message doesn't contain question words and is short (likely an answer)
+		const questionWords = /\b(what|how|why|when|where|who|which|can|could|would|will|do|does|is|are|was|were)\b/i;
+		const hasQuestionWords = questionWords.test(message);
+		const isShort = message.length < 50;
+		
+		if (!hasQuestionWords && isShort && !message.includes('?')) {
+			return { hasAnswer: true, answerText: message.trim() };
+		}
+		
+		return { hasAnswer: false };
+	}, []);
+
+	// Function to track asked question (without answer)
+	const trackAskedQuestion = useCallback((questionText: string, sessionId: string) => {
+		const examMetadata = detectExamQuestion(questionText);
+		
+		if (examMetadata) {
+			console.log('📝 Tracking asked question:', examMetadata.id);
+			
+			const updatedProgress = addCompletedQuestion(
+				userProgress,
+				examMetadata.id,
+				examMetadata.question,
+				examMetadata.examBoard,
+				examMetadata.year,
+				examMetadata.paper,
+				examMetadata.questionNumber,
+				examMetadata.category,
+				examMetadata.marks,
+				examMetadata.difficulty,
+				examMetadata.topic,
+				sessionId
+				// No userAnswer or correctAnswer - will be marked as 'asked'
+			);
+			
+			// Update state
+			setUserProgress(updatedProgress);
+			
+			// Save to localStorage
+			try {
+				localStorage.setItem('userProgress', JSON.stringify(updatedProgress));
+			} catch (error) {
+				console.error('Error saving progress:', error);
+			}
+		}
+	}, [userProgress]);
+
+	// Function to track completed question with answer
+	const trackCompletedQuestion = useCallback((questionText: string, userAnswer: string, sessionId: string) => {
+		const examMetadata = detectExamQuestion(questionText);
+		
+		if (examMetadata) {
+			console.log('📈 Tracking completed question with answer:', examMetadata.id);
+			
+			// Get the correct answer from the full exam papers data
+			const correctAnswer = getCorrectAnswer(examMetadata.id);
+			
+			if (correctAnswer) {
+				// Update the question status with the user's answer
+				const updatedProgress = updateQuestionStatus(
+					userProgress,
+					examMetadata.id,
+					userAnswer,
+					correctAnswer
+				);
+				
+				// Update state
+				setUserProgress(updatedProgress);
+				
+				// Save to localStorage
+				try {
+					localStorage.setItem('userProgress', JSON.stringify(updatedProgress));
+				} catch (error) {
+					console.error('Error saving progress:', error);
+				}
+			} else {
+				console.log('⚠️ No correct answer available for question:', examMetadata.id);
+			}
+		}
+	}, [userProgress]);
+
+	// Function to manually clear storage
+	const clearAllStorage = useCallback(() => {
+		if (window.confirm('This will clear all chat history. Are you sure?')) {
+			try {
+				localStorage.removeItem('chatSessions');
+				setChatSessions([]);
+				// Update storage info immediately after clearing
+				setStorageInfo({
+					totalSize: 0,
+					chatSize: 0,
+					totalSizeMB: 0,
+				});
+				// Optionally reload to reset everything
+				// window.location.reload();
+			} catch (error) {
+				console.error('Error clearing storage:', error);
+			}
+		}
+	}, [setChatSessions]);
 
 	// Clear uploaded image
 	const clearImage = () => {
@@ -134,10 +435,6 @@ export default function ChatHome() {
 	// Get current session
 	const currentSession = chatSessions.find(session => session.id === currentSessionId);
 	const messages = currentSession?.messages || [];
-	const geometryData = currentSession?.geometryData || null;
-
-	// Check if current session is a geometry test session
-	const isGeometrySession = currentSessionId === 'geometry-test';
 
 	// Create new chat session
 	const createNewChat = () => {
@@ -148,8 +445,7 @@ export default function ChatHome() {
 			id: Date.now().toString(),
 			title: 'New Chat',
 			messages: [{ role: 'assistant', content: 'Hi! I can help with GCSE Maths using Mentara. Ask a question or upload an image and tell me about it.' }],
-			timestamp: new Date(),
-			geometryData: null
+			timestamp: new Date()
 		};
 		setChatSessions(prev => [newSession, ...prev]);
 		setCurrentSessionId(newSession.id);
@@ -171,7 +467,6 @@ export default function ChatHome() {
 	// Delete a chat session
 	const deleteSession = (sessionId: string) => {
 		if (chatSessions.length === 1) return; // Don't delete the last session
-		if (sessionId === 'geometry-test') return; // Don't delete the geometry test session
 		setChatSessions(prev => prev.filter(session => session.id !== sessionId));
 		if (currentSessionId === sessionId) {
 			const remainingSessions = chatSessions.filter(session => session.id !== sessionId);
@@ -196,14 +491,22 @@ export default function ChatHome() {
 	const send = async () => {
 		const text = input.trim();
 		
-		// Allow sending if there's either text or an image
+		console.log('=== SEND FUNCTION DEBUG ===');
+		console.log('Text:', text);
+		console.log('Uploaded Image:', uploadedImage);
+		console.log('Upload Name:', uploadName);
+		console.log('Current Session ID:', currentSessionId);
+		
+		// Allow sending even with blank text (for random question generation)
 		if (!text && !uploadedImage) {
-			return;
+			console.log('Sending blank message for random questions');
+			// Still proceed to send empty message for random question generation
 		}
 		
 		// Ensure we have a session before sending
 		if (!currentSessionId || chatSessions.length === 0) {
 			if (isCreatingSession) return; // Don't create multiple sessions
+			console.log('=== CHAT PAGE: No session available, creating new session before sending ===');
 			createNewChat();
 			// Wait for the session to be created, then send the message
 			setTimeout(() => {
@@ -261,36 +564,97 @@ export default function ChatHome() {
 		// Clear image after sending
 		clearImage();
 		try {
-			// Use the new API format for geometry requests, fallback to old format for compatibility
-			const requestBody = isGeometrySession ? {
-				messages: [...(currentSession?.messages || []), userMsg],
-				isGeometryRequest: true
-			} : {
+			const requestBody = { 
 				message: text || (uploadedImage ? 'Please analyze this image' : ''), 
 				imageData: uploadedImage || undefined,
 				imageName: uploadName || undefined 
 			};
 			
+			console.log('=== API REQUEST DEBUG ===');
+			console.log('Request body:', requestBody);
+			console.log('Image data length:', uploadedImage ? uploadedImage.length : 0);
+			
 			const resp = await fetch('/api/chat', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify(requestBody),
-			});
-			const data = await resp.json();
-			const reply = data?.reply || 'Sorry, I could not respond right now.';
+					});
+		const data = await resp.json();
+		
+		// Check if this was a random question generation
+		if (data.isRandomGenerated && data.randomQuestion) {
+			console.log('🎯 Handling random question generation');
 			
-			// Parse geometry data if this is a geometry session
-			let parsedGeometryData = null;
-			if (isGeometrySession) {
-				try {
-					parsedGeometryData = JSON.parse(reply);
-				} catch (error) {
-					console.error('Failed to parse geometry JSON:', error);
-				}
-			}
+			// First, update the input box with the random question
+			setInput(data.randomQuestion);
 			
-			// Add assistant reply to the existing session - ensure we preserve the user message
+			// Clear the user message we just added (since it was blank)
 			setChatSessions(prev => {
+				const updated = prev.map(session => {
+					if (session.id === currentSessionId) {
+						// Remove the last message (blank user message)
+						const messages = session.messages.slice(0, -1);
+						return {
+							...session,
+							messages: messages,
+							timestamp: new Date()
+						};
+					}
+					return session;
+				});
+				return updated;
+			});
+			
+			// Add the random question as user message
+			const randomUserMsg: ChatItem = { 
+				role: 'user', 
+				content: data.randomQuestion
+			};
+			
+			setChatSessions(prev => {
+				const updated = prev.map(session => {
+					if (session.id === currentSessionId) {
+						const newTitle = session.messages.length === 0 
+							? data.randomQuestion.slice(0, 30) + (data.randomQuestion.length > 30 ? '...' : '')
+							: session.title;
+						
+						return {
+							...session,
+							title: newTitle,
+							messages: [...session.messages, randomUserMsg, { role: 'assistant' as const, content: data.reply }],
+							timestamp: new Date()
+						};
+					}
+					return session;
+				});
+				return updated;
+			});
+			
+			// Track progress for random questions
+			trackAskedQuestion(data.randomQuestion, currentSessionId);
+			
+			setIsSending(false);
+			return;
+		}
+		
+		const reply = data?.reply || 'Sorry, I could not respond right now.';
+		
+		// Track progress for exam questions (only for text-based questions)
+		if (text && !uploadedImage) {
+			// Check if the user message contains an answer
+			const answerDetection = detectUserAnswer(text);
+			
+			if (answerDetection.hasAnswer && answerDetection.answerText) {
+				// User provided an answer - track as completed
+				trackCompletedQuestion(text, answerDetection.answerText, currentSessionId);
+			} else {
+				// User just asked a question - track as asked
+				trackAskedQuestion(text, currentSessionId);
+			}
+		}
+		
+		// Add assistant reply to the existing session - ensure we preserve the user message
+		setChatSessions(prev => {
 				const updated = prev.map(session => {
 					if (session.id === currentSessionId) {
 						// Verify that the user message is still there and add assistant reply
@@ -304,8 +668,7 @@ export default function ChatHome() {
 							return {
 								...session,
 								messages: [...currentMessages, { role: 'assistant' as const, content: reply }],
-								timestamp: new Date(),
-								geometryData: parsedGeometryData
+								timestamp: new Date()
 							};
 						} else {
 							// If user message was lost, add both user message and assistant reply
@@ -313,8 +676,7 @@ export default function ChatHome() {
 								...session,
 								title: titleToPreserve,
 								messages: [...currentMessages, userMsg, { role: 'assistant' as const, content: reply }],
-								timestamp: new Date(),
-								geometryData: parsedGeometryData
+								timestamp: new Date()
 							};
 						}
 					}
@@ -324,8 +686,12 @@ export default function ChatHome() {
 			});
 		} catch (e) {
 			console.error('Error in send function:', e);
-			// Set error state for user feedback
-			setError(e instanceof Error ? e.message : 'An error occurred while sending the message');
+			console.error('Error details:', {
+				text,
+				uploadedImage: !!uploadedImage,
+				uploadName,
+				currentSessionId
+			});
 			// Clear image on error as well
 			clearImage();
 			// Error case: Add error message to the existing session - ensure we preserve the user message
@@ -364,55 +730,29 @@ export default function ChatHome() {
 		}
 	};
 
+
+
 	// Initialize default session if none exist - wait for hydration (RUN ONLY ONCE)
 	useEffect(() => {
-		try {
-			if (!isHydrated) return; // Wait for hydration to complete
-			if (isInitialized) return; // Only run once
-			
-			if (chatSessions.length === 0) {
-				const defaultSession: ChatSession = {
-					id: defaultSessionId, // Use the stable ID we created
-					title: 'New Chat',
-					messages: [{ role: 'assistant', content: 'Hi! I can help with GCSE Maths using Mentara. Ask a question or upload an image and tell me about it.' }],
-					timestamp: new Date()
-				};
-				setChatSessions([defaultSession]);
-				setCurrentSessionId(defaultSession.id);
-			} else {
-				setCurrentSessionId(chatSessions[0].id);
-			}
-			
-			setIsInitialized(true);
-		} catch (e) {
-			console.error('Error initializing chat sessions:', e);
-			setError(e instanceof Error ? e.message : 'Failed to initialize chat sessions');
+		if (!isHydrated) return; // Wait for hydration to complete
+		if (isInitialized) return; // Only run once
+		
+		if (chatSessions.length === 0) {
+			const defaultSession: ChatSession = {
+				id: defaultSessionId, // Use the stable ID we created
+				title: 'New Chat',
+				messages: [{ role: 'assistant', content: 'Hi! I can help with GCSE Maths using Mentara. Ask a question or upload an image and tell me about it.' }],
+				timestamp: new Date()
+			};
+			setChatSessions([defaultSession]);
+			setCurrentSessionId(defaultSession.id);
+		} else {
+			setCurrentSessionId(chatSessions[0].id);
 		}
+		
+		setIsInitialized(true);
 	}, [isHydrated]); // Only depend on hydration, not on chatSessions or isInitialized
 	
-	// Show error state if there's an error
-	if (error) {
-		return (
-			<div className="min-h-screen bg-gray-50 flex items-center justify-center">
-				<div className="text-center">
-					<div className="text-red-500 mb-4">
-						<svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-						</svg>
-					</div>
-					<h2 className="text-xl font-semibold text-red-600 mb-2">Something went wrong</h2>
-					<p className="text-gray-600 mb-4">{error}</p>
-					<button 
-						onClick={() => window.location.reload()} 
-						className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-					>
-						Reload Page
-					</button>
-				</div>
-			</div>
-		);
-	}
-
 	// Show loading state until hydration is complete
 	if (!isHydrated) {
 		return (
@@ -429,7 +769,12 @@ export default function ChatHome() {
 		<div className="min-h-screen bg-gray-50">
 			<div className="flex h-screen">
 				{/* Left Sidebar */}
-				<LeftSidebar onNewChat={createNewChat}>
+				<LeftSidebar 
+					onNewChat={createNewChat}
+					onClearStorage={clearAllStorage}
+					storageInfo={storageInfo}
+					userProgress={userProgress}
+				>
 					{/* Chat History */}
 					<div className="flex-1 overflow-y-auto">
 						{/* Recent Chats Header */}
@@ -496,7 +841,7 @@ export default function ChatHome() {
 											}`}
 										>
 											<div
-												className={`max-w-xl px-4 py-2 rounded-lg shadow ${
+												className={`min-w-[680px] max-w-xl px-4 py-2 rounded-lg shadow ${
 													msg.role === 'user'
 														? 'bg-primary-600 text-white'
 														: 'bg-gray-200 text-gray-800'
@@ -515,7 +860,7 @@ export default function ChatHome() {
 									{/* Waiting animation when sending message */}
 									{isSending && (
 										<div className="flex justify-start">
-											<div className="max-w-xl px-4 py-2 rounded-lg shadow bg-gray-200 text-gray-800">
+											<div className="min-w-[680px] max-w-xl px-4 py-2 rounded-lg shadow bg-gray-200 text-gray-800">
 												<div className="flex items-center space-x-2">
 													<div className="flex space-x-1">
 														<div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
@@ -529,32 +874,8 @@ export default function ChatHome() {
 									)}
 								</>
 							)}
-							
-							{/* Geometry Diagram */}
-							{isGeometrySession && geometryData && (
-								<div className="mt-6">
-									<h3 className="text-lg font-semibold mb-4">Geometry Diagram</h3>
-									<GeometryDiagram geometryData={geometryData} />
-								</div>
-							)}
 						</div>
 					</div>
-
-					{/* Geometry Test Section */}
-					{isGeometrySession && (
-						<div className="mb-6 p-4 bg-blue-50 rounded-lg">
-							<div className="flex flex-wrap gap-3">
-								<button
-									onClick={() => {
-										setInput('I want to prove that the angle inside a semi-circle is always right angle. The present diagram contain a circle with centre C and a triangle QRS with QR side as diameter already drawn. What extra line should be drawn to help me prove the statement. No need for full prove just where to draw the line');
-									}}
-									className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-								>
-									Load Geometry Question
-								</button>
-							</div>
-						</div>
-					)}
 
 					{/* Input Bar */}
 					<div className="bg-white p-6">
@@ -614,13 +935,13 @@ export default function ChatHome() {
 								{/* Send button on the right */}
 								<button
 									onClick={send}
-									disabled={isSending || (!input.trim() && !uploadedImage) || !currentSessionId || isCreatingSession}
+									disabled={isSending || !currentSessionId || isCreatingSession}
 									className={`absolute right-3 top-1/2 transform -translate-y-1/2 w-12 h-12 rounded-full transition-all duration-200 flex items-center justify-center shadow-sm hover:shadow-md ${
 										uploadedImage && !input.trim() 
 											? 'bg-green-600 hover:bg-green-700 text-white' 
 											: 'bg-primary-600 hover:bg-primary-700 text-white'
 									} ${
-										isSending || (!input.trim() && !uploadedImage) || !currentSessionId || isCreatingSession
+										isSending || !currentSessionId || isCreatingSession
 											? 'bg-gray-400 cursor-not-allowed'
 											: ''
 									}`}
@@ -628,7 +949,7 @@ export default function ChatHome() {
 										!currentSessionId ? 'No active session' 
 										: isSending ? 'Sending...' 
 										: isCreatingSession ? 'Creating session...' 
-										: !input.trim() && !uploadedImage ? 'Type a message or attach an image' 
+										: !input.trim() && !uploadedImage ? 'Send for random practice questions' 
 										: uploadedImage && !input.trim() ? 'Send image' 
 										: 'Send message'
 									}
