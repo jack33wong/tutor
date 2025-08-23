@@ -64,21 +64,37 @@ type ChatSession = {
 
 		// Hydrate from localStorage after component mounts (client-side only)
 		useEffect(() => {
+			console.log('🔄 useLocalStorage hydration effect for key:', key);
+			
 			if (typeof window !== 'undefined') {
 				try {
 					const item = window.localStorage.getItem(key);
 					if (item) {
 						const parsed = JSON.parse(item);
+						console.log('📥 Loaded from localStorage:', { key, parsed });
 						setStoredValue(parsed);
+					} else {
+						console.log('📭 No localStorage data for key:', key);
 					}
 				} catch (error) {
 					console.error(`Error reading localStorage key "${key}":`, error);
 					// If we can't read the data, reset to initial value
 					setStoredValue(initialValue);
 				}
+				console.log('✅ Setting isHydrated to true for key:', key);
 				setIsHydrated(true);
+			} else {
+				console.log('🌐 Window not available, skipping hydration for key:', key);
 			}
-		}, [key, initialValue]);
+			
+			// Fallback: force hydration after 2 seconds to prevent infinite loading
+			const timeoutId = setTimeout(() => {
+				console.log('⏰ Fallback: forcing hydration completion for key:', key);
+				setIsHydrated(true);
+			}, 2000);
+			
+			return () => clearTimeout(timeoutId);
+		}, [key, initialValue]); // Removed isHydrated from dependencies to prevent infinite loop
 
 		const setValue = useCallback((value: T | ((val: T) => T)) => {
 			try {
@@ -227,7 +243,7 @@ export default function ChatHome() {
 			}, 1000); // Debounce for 1 second
 			return () => clearTimeout(timeoutId);
 		}
-	}, [chatSessions.length, isHydrated]);
+	}, [isHydrated]); // Only depend on isHydrated, not on chatSessions.length
 	
 	const [currentSessionId, setCurrentSessionId] = useState<string>(() => {
 		console.log('=== CHAT PAGE: IMMEDIATE currentSessionId set ===', defaultSessionId);
@@ -443,10 +459,13 @@ export default function ChatHome() {
 		setIsCreatingSession(true);
 		const newSession: ChatSession = {
 			id: Date.now().toString(),
-			title: 'New Chat',
+			title: 'Loading...', // Will be updated with random question or user input
 			messages: [{ role: 'assistant', content: 'Hi! I can help with GCSE Maths using Mentara. Ask a question or upload an image and tell me about it.' }],
 			timestamp: new Date()
 		};
+		
+		console.log('🆕 Creating new chat session:', newSession);
+		
 		setChatSessions(prev => [newSession, ...prev]);
 		setCurrentSessionId(newSession.id);
 		setIsInitialized(true);
@@ -496,10 +515,11 @@ export default function ChatHome() {
 		console.log('Uploaded Image:', uploadedImage);
 		console.log('Upload Name:', uploadName);
 		console.log('Current Session ID:', currentSessionId);
+		console.log('Chat Sessions:', chatSessions);
 		
 		// Allow sending even with blank text (for random question generation)
 		if (!text && !uploadedImage) {
-			console.log('Sending blank message for random questions');
+			console.log('🎲 Sending blank message for random questions');
 			// Still proceed to send empty message for random question generation
 		}
 		
@@ -511,6 +531,7 @@ export default function ChatHome() {
 			// Wait for the session to be created, then send the message
 			setTimeout(() => {
 				// Now send the message with the new session
+				console.log('⏰ Sending message after session creation delay');
 				sendMessage(text);
 			}, 200);
 			return;
@@ -524,6 +545,8 @@ export default function ChatHome() {
 	const sendMessage = async (text: string) => {
 		if (!currentSessionId) return;
 		
+		console.log('📤 sendMessage called with:', { text, currentSessionId });
+		
 		setIsSending(true);
 		const userMsg: ChatItem = { 
 			role: 'user', 
@@ -532,13 +555,18 @@ export default function ChatHome() {
 			imageName: uploadName || undefined
 		};
 		
+		console.log('📝 User message created:', userMsg);
+		
 		// Store the current session data to ensure we don't lose it
 		const currentSession = chatSessions.find(s => s.id === currentSessionId);
 		if (!currentSession) {
+			console.log('❌ No current session found');
 			setIsSending(false);
 			return;
 		}
-
+		
+		console.log('📋 Current session before update:', currentSession);
+		
 		// Store the title that should be preserved
 		const titleToPreserve = currentSession.messages.length === 1 
 			? (text ? text.slice(0, 30) + (text.length > 30 ? '...' : '') : `Image: ${uploadName}`)
@@ -548,12 +576,23 @@ export default function ChatHome() {
 		setChatSessions(prev => {
 			const updated = prev.map(session => {
 				if (session.id === currentSessionId) {
-					return {
+					// For blank messages, keep the current title (will be updated later with random question)
+					// For real messages, update the title immediately
+					const newTitle = text && text.trim() !== '' 
+						? text.slice(0, 30) + (text.length > 30 ? '...' : '')
+						: session.title; // Keep existing title for blank messages
+					
+					console.log('📝 Immediate title update:', { oldTitle: session.title, newTitle, hasText: !!text, isBlank: !text || text.trim() === '' });
+					
+					const updatedSession = {
 						...session,
-						title: titleToPreserve,
+						title: newTitle,
 						messages: [...session.messages, userMsg],
 						timestamp: new Date()
 					};
+					
+					console.log('📝 Updated session:', updatedSession);
+					return updatedSession;
 				}
 				return session;
 			});
@@ -578,32 +617,34 @@ export default function ChatHome() {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify(requestBody),
-					});
-		const data = await resp.json();
-		
+			});
+			
+			console.log('=== API RESPONSE DEBUG ===');
+			console.log('Response status:', resp.status);
+			console.log('Response ok:', resp.ok);
+			console.log('Response headers:', resp.headers);
+			
+			if (!resp.ok) {
+				console.error('API response not ok:', resp.status, resp.statusText);
+				throw new Error(`API error: ${resp.status} ${resp.statusText}`);
+			}
+			
+			const data = await resp.json();
+			console.log('Response data:', data);
+			
+			if (data.error) {
+				console.error('API returned error:', data.error);
+				throw new Error(data.error);
+			}
+			
 		// Check if this was a random question generation
 		if (data.isRandomGenerated && data.randomQuestion) {
 			console.log('🎯 Handling random question generation');
+			console.log('📋 Random question data:', data);
+			console.log('🔍 Random question text:', data.randomQuestion);
 			
 			// First, update the input box with the random question
 			setInput(data.randomQuestion);
-			
-			// Clear the user message we just added (since it was blank)
-			setChatSessions(prev => {
-				const updated = prev.map(session => {
-					if (session.id === currentSessionId) {
-						// Remove the last message (blank user message)
-						const messages = session.messages.slice(0, -1);
-						return {
-							...session,
-							messages: messages,
-							timestamp: new Date()
-						};
-					}
-					return session;
-				});
-				return updated;
-			});
 			
 			// Add the random question as user message
 			const randomUserMsg: ChatItem = { 
@@ -611,22 +652,31 @@ export default function ChatHome() {
 				content: data.randomQuestion
 			};
 			
+			// Update the session with random question, title, and assistant reply in one operation
 			setChatSessions(prev => {
+				console.log('🔄 Previous chat sessions:', prev);
 				const updated = prev.map(session => {
 					if (session.id === currentSessionId) {
-						const newTitle = session.messages.length === 0 
-							? data.randomQuestion.slice(0, 30) + (data.randomQuestion.length > 30 ? '...' : '')
-							: session.title;
+						// Remove the last message (blank user message) and add random question + reply
+						const messages = session.messages.slice(0, -1);
+						const truncatedTitle = data.randomQuestion.slice(0, 30) + (data.randomQuestion.length > 30 ? '...' : '');
 						
-						return {
+						console.log('🎯 Updating session title to random question:', truncatedTitle);
+						console.log('📝 Session before update:', session);
+						
+						const updatedSession = {
 							...session,
-							title: newTitle,
-							messages: [...session.messages, randomUserMsg, { role: 'assistant' as const, content: data.reply }],
+							title: truncatedTitle, // Update title with random question
+							messages: [...messages, randomUserMsg, { role: 'assistant' as const, content: data.reply }],
 							timestamp: new Date()
 						};
+						
+						console.log('📝 Session after update:', updatedSession);
+						return updatedSession;
 					}
 					return session;
 				});
+				console.log('🔄 Updated chat sessions:', updated);
 				return updated;
 			});
 			
@@ -734,8 +784,18 @@ export default function ChatHome() {
 
 	// Initialize default session if none exist - wait for hydration (RUN ONLY ONCE)
 	useEffect(() => {
-		if (!isHydrated) return; // Wait for hydration to complete
-		if (isInitialized) return; // Only run once
+		console.log('🔄 Hydration effect running:', { isHydrated, isInitialized, chatSessionsLength: chatSessions.length });
+		
+		if (!isHydrated) {
+			console.log('⏳ Waiting for hydration to complete...');
+			return; // Wait for hydration to complete
+		}
+		if (isInitialized) {
+			console.log('✅ Already initialized, skipping...');
+			return; // Only run once
+		}
+		
+		console.log('🚀 Initializing default session...');
 		
 		if (chatSessions.length === 0) {
 			const defaultSession: ChatSession = {
@@ -744,22 +804,27 @@ export default function ChatHome() {
 				messages: [{ role: 'assistant', content: 'Hi! I can help with GCSE Maths using Mentara. Ask a question or upload an image and tell me about it.' }],
 				timestamp: new Date()
 			};
+			console.log('🆕 Creating default session:', defaultSession);
 			setChatSessions([defaultSession]);
 			setCurrentSessionId(defaultSession.id);
 		} else {
+			console.log('📋 Using existing session:', chatSessions[0].id);
 			setCurrentSessionId(chatSessions[0].id);
 		}
 		
 		setIsInitialized(true);
-	}, [isHydrated]); // Only depend on hydration, not on chatSessions or isInitialized
+		console.log('✅ Initialization complete');
+	}, [isHydrated, isInitialized]); // Removed chatSessions.length and defaultSessionId to prevent infinite loops
 	
 	// Show loading state until hydration is complete
 	if (!isHydrated) {
+		console.log('🔄 Rendering loading state - isHydrated:', isHydrated);
 		return (
 			<div className="min-h-screen bg-gray-50 flex items-center justify-center">
 				<div className="text-center">
 					<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
 					<p className="text-gray-600">Loading chat...</p>
+					<p className="text-xs text-gray-400 mt-2">Debug: isHydrated = {String(isHydrated)}</p>
 				</div>
 			</div>
 		);

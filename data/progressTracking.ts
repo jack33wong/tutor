@@ -276,3 +276,20 @@ export function wasCompletedRecently(progress: UserProgress, questionId: string)
   return hoursDiff < 24;
 }
 
+// Function to remove a completed question
+export function removeCompletedQuestion(
+  currentProgress: UserProgress,
+  questionId: string
+): UserProgress {
+  const updatedQuestions = currentProgress.completedQuestions.filter(
+    q => q.questionId !== questionId
+  );
+  
+  return {
+    ...currentProgress,
+    completedQuestions: updatedQuestions,
+    stats: calculateProgressStats(updatedQuestions),
+    lastUpdated: new Date()
+  };
+}
+

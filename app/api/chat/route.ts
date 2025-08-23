@@ -134,7 +134,11 @@ I'm here to help with GCSE Maths and can guide you through solving any mathemati
 
     return NextResponse.json({ reply: formattedReply });
   } catch (e) {
-    return NextResponse.json({ error: 'Failed to process chat' }, { status: 500 });
+    console.error('Chat API error:', e);
+    // Return a helpful error message instead of failing completely
+    return NextResponse.json({ 
+      reply: 'I\'m experiencing some technical difficulties right now, but I\'m here to help with GCSE Maths! Please try asking your question again, or if the problem persists, you can:\n\n1. Check your internet connection\n2. Try refreshing the page\n3. Ask a simpler question to start with\n\nI\'m designed to help with algebra, geometry, fractions, statistics, and trigonometry - so feel free to ask anything!'
+    });
   }
 }
 

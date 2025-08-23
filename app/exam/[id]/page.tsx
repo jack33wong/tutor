@@ -71,7 +71,7 @@ export default function ExamPage() {
 			<div className="min-h-screen bg-gray-50">
 				<div className="flex h-screen">
 					<LeftSidebar>
-						<ChatHistory />
+						<ChatHistory chatSessions={[]} />
 					</LeftSidebar>
 					<main className="flex-1 flex items-center justify-center">
 						<div className="text-center">
@@ -274,7 +274,7 @@ export default function ExamPage() {
 		<div className="min-h-screen bg-gray-50">
 			<div className="flex h-screen">
 				<LeftSidebar>
-					<ChatHistory />
+					<ChatHistory chatSessions={[]} />
 				</LeftSidebar>
 				<main className="flex-1 flex flex-col">
 					<div className="flex-1 overflow-y-auto p-4">
@@ -513,7 +513,7 @@ function ExamResults({ exam, answers, startTime }: { exam: any, answers: Record<
 		<div className="min-h-screen bg-gray-50">
 			<div className="flex h-screen">
 				<LeftSidebar>
-					<ChatHistory />
+					<ChatHistory chatSessions={[]} />
 				</LeftSidebar>
 				<main className="flex-1 flex flex-col">
 					<div className="flex-1 overflow-y-auto p-4">
