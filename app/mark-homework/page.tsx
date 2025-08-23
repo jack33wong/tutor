@@ -22,6 +22,7 @@ export default function MarkHomeworkPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [markingResult, setMarkingResult] = useState<MarkingResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [detailedError, setDetailedError] = useState<any>(null);
   const [chatSessions, setChatSessions] = useState<Array<{
     id: string;
     title: string;
@@ -98,7 +99,36 @@ export default function MarkHomeworkPage() {
         setMarkingResult(result);
       } else {
         const errorData = await response.json();
-        setError(errorData.error || 'Failed to mark homework');
+        
+        // Enhanced error logging to browser console
+        console.error('API Error Response:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorData: errorData
+        });
+        
+        // Display detailed error information
+        let errorMessage = errorData.error || 'Failed to mark homework';
+        
+        if (errorData.errorDetails) {
+          console.error('Detailed Error Information:', errorData.errorDetails);
+          setDetailedError(errorData.errorDetails);
+          
+          // Add additional error details to the message
+          if (errorData.errorDetails.additionalDetails) {
+            const details = errorData.errorDetails.additionalDetails;
+            if (details.errorData?.error?.message) {
+              errorMessage += `: ${details.errorData.error.message}`;
+            }
+            if (details.status) {
+              errorMessage += ` (Status: ${details.status})`;
+            }
+          }
+        } else {
+          setDetailedError(null);
+        }
+        
+        setError(errorMessage);
       }
     } catch (error) {
       console.error('Error marking homework:', error);
@@ -124,6 +154,7 @@ export default function MarkHomeworkPage() {
     setImagePreview(null);
     setMarkingResult(null);
     setError(null);
+    setDetailedError(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -214,6 +245,35 @@ export default function MarkHomeworkPage() {
                         <div className="flex items-center space-x-2">
                           <XCircle className="w-5 h-5 text-red-500" />
                           <span className="text-red-700">{error}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Detailed Error Debug Panel */}
+                    {detailedError && (
+                      <div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                        <h4 className="text-sm font-semibold text-gray-700 mb-2">Debug Information</h4>
+                        <div className="text-xs text-gray-600 space-y-1">
+                          <div><strong>Error Type:</strong> {detailedError.name}</div>
+                          <div><strong>Message:</strong> {detailedError.message}</div>
+                          {detailedError.additionalDetails && (
+                            <>
+                              <div><strong>Status:</strong> {detailedError.additionalDetails.status}</div>
+                              <div><strong>Status Text:</strong> {detailedError.additionalDetails.statusText}</div>
+                              {detailedError.additionalDetails.errorData?.error?.message && (
+                                <div><strong>OpenAI Error:</strong> {detailedError.additionalDetails.errorData.error.message}</div>
+                              )}
+                              {detailedError.additionalDetails.errorData?.error?.code && (
+                                <div><strong>Error Code:</strong> {detailedError.additionalDetails.errorData.error.code}</div>
+                              )}
+                            </>
+                          )}
+                          <details className="mt-2">
+                            <summary className="cursor-pointer text-blue-600 hover:text-blue-800">View Full Stack Trace</summary>
+                            <pre className="mt-2 p-2 bg-gray-100 rounded text-xs overflow-x-auto whitespace-pre-wrap">
+                              {detailedError.stack}
+                            </pre>
+                          </details>
                         </div>
                       </div>
                     )}
@@ -330,7 +390,7 @@ export default function MarkHomeworkPage() {
                         <div>
                           <h4 className="font-medium text-gray-900">AI Image Analysis</h4>
                           <p className="text-sm text-gray-600">
-                            GPT-4o-mini analyzes your homework image directly and identifies mathematical errors.
+                            GPT-5 analyzes your highly compressed homework image (400x300, 50% quality) and identifies mathematical errors.
                           </p>
                         </div>
                       </div>
