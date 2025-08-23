@@ -1,12 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import sharp from 'sharp';
 
-interface OCRResult {
-  text: string;
-  bbox: [number, number, number, number];
-  confidence: number;
-}
-
 interface Annotation {
   action: 'circle' | 'write' | 'tick' | 'cross' | 'underline';
   bbox: [number, number, number, number];
@@ -19,7 +13,8 @@ interface MarkingInstructions {
 
 export async function POST(req: NextRequest) {
   try {
-    const { imageData, imageName }: { imageData: string; imageName: string } = await req.json();
+    const body = await req.json();
+    const { imageData, imageName } = body;
     
     if (!imageData || !imageName) {
       return NextResponse.json({ error: 'Missing image data or name' }, { status: 400 });
@@ -32,7 +27,21 @@ export async function POST(req: NextRequest) {
     const markingInstructions = await generateMarkingInstructions(imageData);
     
     if (!markingInstructions) {
-      return NextResponse.json({ error: 'Failed to generate marking instructions' }, { status: 500 });
+      return NextResponse.json({ 
+        markedImage: null,
+        instructions: {
+          annotations: [
+            {
+              action: 'write',
+              bbox: [50, 50, 400, 100],
+              comment: 'AI service temporarily unavailable. Please try again later.'
+            }
+          ]
+        },
+        message: 'AI analysis service unavailable. Please try again later.',
+        error: 'AI Service Unavailable',
+        details: 'OpenAI API did not return content. This could be due to API key issues, model availability, or service problems.'
+      });
     }
 
     // Stage 3: Image Annotation using Sharp
@@ -49,25 +58,9 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Marking API error:', error);
-    
-    // Enhanced error logging
-    let errorDetails = {};
-    if (error instanceof Error) {
-      errorDetails = {
-        message: error.message,
-        stack: error.stack,
-        name: error.name,
-        // Include any additional details attached to the error
-        additionalDetails: (error as any).details || null
-      };
-    }
-    
-    // Return detailed error information to help with debugging
     return NextResponse.json({ 
       error: 'Failed to process homework marking',
       details: error instanceof Error ? error.message : 'Unknown error',
-      errorDetails: errorDetails,
       timestamp: new Date().toISOString()
     }, { status: 500 });
   }
@@ -82,52 +75,58 @@ async function generateMarkingInstructions(imageData: string): Promise<MarkingIn
     const openaiApiKey = process.env.OPENAI_API_KEY;
     
     if (!openaiApiKey) {
-      console.error('No OpenAI API key provided');
       return null;
     }
 
     // Compress and resize the image to reduce token usage
     const compressedImage = await compressImage(imageData);
     if (!compressedImage) {
-      console.error('Failed to compress image');
       return null;
     }
 
-    // Upload compressed image to temporary hosting for OpenAI API
-    const imageUrl = await uploadImageToTempHost(compressedImage);
-    if (!imageUrl) {
-      console.error('Failed to upload image to temporary host');
-      return null;
-    }
+    // For development, use base64 data directly instead of uploading to temp host
+    // In production, you'd want to use a proper image hosting service
+    const imageUrl = compressedImage; // Use base64 data directly
 
-    const systemPrompt = `You are a teacher marking student homework. 
-You will receive an image of a student's math homework.
+    const systemPrompt = `You are an AI assistant analyzing images. 
+You will receive an image and your task is to:
+
+1. Analyze the image content
+2. Provide marking annotations if it's math homework, or general feedback if not
 
 CRITICAL: Return ONLY raw JSON, no markdown formatting, no code blocks, no explanations.
 
-Analyze the math and return structured annotation instructions for marking corrections directly on the image.
+Output JSON only with this exact format:
 
-- Detect mathematical errors and provide helpful corrections
-- Estimate positions for annotations (we'll place them appropriately)
-- Output JSON only with this exact format
-
-Example Output (return exactly this format, no markdown):
+Example Output for Math Homework (return exactly this format, no markdown):
 {
   "annotations": [
-    {"action": "circle", "bbox": [100,50,180,80], "comment": "Check calculation"},
-    {"action": "write", "bbox": [100,50,180,80], "comment": "Should be 19.6"},
-    {"action": "tick", "bbox": [100,200,200,230], "comment": "Good work!"}
+    {"action": "tick", "bbox": [50, 80, 200, 150], "comment": "Correct solution"},
+    {"action": "write", "bbox": [50, 160, 200, 180], "comment": "Good work!"}
+  ]
+}
+
+Example Output for Non-Math Content (return exactly this format, no markdown):
+{
+  "annotations": [
+    {"action": "write", "bbox": [50, 50, 400, 100], "comment": "This is a computer screenshot. Please upload a photo of math homework instead."}
   ]
 }
 
 Available actions: circle, write, tick, cross, underline
 IMPORTANT: Do NOT use markdown code blocks. Return ONLY the raw JSON object.`;
 
-    const userPrompt = `Here is a student's homework image. Please analyze the math and provide annotation instructions for marking corrections.`;
+    const userPrompt = `Here is an uploaded image. Please:
 
-    const requestBody = {
-      model: "gpt-5", // could also be "gpt-5-mini" or "gpt-5-nano" depending on availability
-      messages: [
+1. Analyze the image content
+2. If it's math homework, provide marking annotations
+3. If it's not math homework, provide appropriate feedback
+
+Focus on providing clear, actionable annotations with bounding boxes and comments.`;
+
+            const requestBody = {
+          model: "gpt-5", // Using gpt-5 for enhanced capabilities
+          messages: [
         {
           role: "system",
           content: systemPrompt,
@@ -139,13 +138,13 @@ IMPORTANT: Do NOT use markdown code blocks. Return ONLY the raw JSON object.`;
             {
               type: "image_url",
               image_url: {
-                url: imageUrl, // Use the uploaded image URL instead of base64
+                url: imageUrl, // Using base64 data directly
               },
             },
           ],
         },
       ],
-      max_completion_tokens: 1000,
+      max_completion_tokens: 8000, // Increased further for GPT-5 to handle complex image analysis
     };
     
 
@@ -161,37 +160,21 @@ IMPORTANT: Do NOT use markdown code blocks. Return ONLY the raw JSON object.`;
 
     if (!response.ok) {
       const errorData = await response.json();
-      const errorDetails = {
-        status: response.status,
-        statusText: response.statusText,
-        errorData: errorData,
-        headers: Object.fromEntries(response.headers.entries())
-      };
-      
-      console.error('OpenAI API error response:', errorDetails);
       
       if (errorData.error?.code === 'invalid_api_key') {
-        const error = new Error('Invalid OpenAI API key. Please check your API key configuration.');
-        (error as any).details = errorDetails;
-        throw error;
+        throw new Error('Invalid OpenAI API key. Please check your API key configuration.');
       } else if (errorData.error?.message) {
-        const error = new Error(`OpenAI API error: ${errorData.error.message}`);
-        (error as any).details = errorDetails;
-        throw error;
+        throw new Error(`OpenAI API error: ${errorData.error.message}`);
       } else {
-        const error = new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
-        (error as any).details = errorDetails;
-        throw error;
+        throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
       }
     }
 
     const data = await response.json();
 
-    
     const content = data.choices?.[0]?.message?.content;
     
     if (!content) {
-      console.error('No content in OpenAI response');
       return null;
     }
 
@@ -200,83 +183,52 @@ IMPORTANT: Do NOT use markdown code blocks. Return ONLY the raw JSON object.`;
       const instructions = JSON.parse(content);
       return instructions;
     } catch (parseError) {
-      console.error('Failed to parse marking instructions:', parseError);
-      
       // Try to extract JSON from markdown code blocks if the AI still returns them
       try {
         const jsonMatch = content.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
         if (jsonMatch) {
-          console.log('Extracting JSON from markdown code block');
           const extractedJson = jsonMatch[1];
           const instructions = JSON.parse(extractedJson);
           return instructions;
         }
       } catch (extractError) {
-        console.error('Failed to extract JSON from markdown:', extractError);
+        // JSON extraction failed, continue to next method
       }
       
       return null;
     }
 
   } catch (error) {
-    console.error('Error generating marking instructions:', error);
-    
-    // Enhanced error logging for debugging
-    let errorDetails = {};
-    if (error instanceof Error) {
-      errorDetails = {
-        message: error.message,
-        stack: error.stack,
-        name: error.name,
-        // Include any additional details attached to the error
-        additionalDetails: (error as any).details || null
-      };
-      console.error('Marking instructions error details:', errorDetails);
-    }
-    
-    // Instead of returning null, throw the error with details so it can be caught by the main handler
-    const enhancedError = new Error(`Failed to generate marking instructions: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    (enhancedError as any).details = errorDetails;
-    throw enhancedError;
+    throw new Error(`Failed to generate marking instructions: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 
 async function applyMarkingsToImage(originalImage: string, instructions: MarkingInstructions): Promise<string | null> {
   try {
-    console.log('Starting Sharp-based image annotation...');
-    console.log('Instructions received:', JSON.stringify(instructions, null, 2));
-    
     // Convert base64 to buffer
     const base64Data = originalImage.replace(/^data:image\/[a-z]+;base64,/, '');
     const imageBuffer = Buffer.from(base64Data, 'base64');
-    console.log('Image buffer created, size:', imageBuffer.length);
     
     // Test Sharp functionality
     try {
       const testSharp = sharp(imageBuffer);
-      console.log('Sharp instance created successfully');
     } catch (sharpError) {
-      console.error('Sharp initialization error:', sharpError);
       throw sharpError;
     }
     
     // Create a new image with annotations using Sharp
     let markedImage = sharp(imageBuffer);
-    console.log('Marked image Sharp instance created');
     
     // For now, we'll create a simple overlay with text
     // In a production system, you'd want more sophisticated annotation drawing
     
     // Get image dimensions
     const imageMetadata = await markedImage.metadata();
-    console.log('Image metadata:', imageMetadata);
     
     // Create SVG overlay for annotations with correct dimensions
     const svgOverlay = createSVGOverlay(instructions, imageMetadata.width || 400, imageMetadata.height || 300);
-    console.log('SVG overlay created:', svgOverlay ? 'yes' : 'no');
     
     if (svgOverlay) {
-      console.log('SVG overlay length:', svgOverlay.length);
           try {
       markedImage = markedImage.composite([
         {
@@ -286,7 +238,6 @@ async function applyMarkingsToImage(originalImage: string, instructions: Marking
         }
       ]);
     } catch (compositeError) {
-      console.error('SVG composite error:', compositeError);
       throw compositeError;
     }
   }
@@ -299,23 +250,7 @@ async function applyMarkingsToImage(originalImage: string, instructions: Marking
   return base64Output;
 
   } catch (error) {
-    console.error('Error applying markings to image:', error);
-    
-    // Enhanced error logging
-    let errorDetails = {};
-    if (error instanceof Error) {
-      errorDetails = {
-        message: error.message,
-        stack: error.stack,
-        name: error.name
-      };
-      console.error('Image processing error details:', errorDetails);
-    }
-    
-    // Instead of returning null, throw the error with details so it can be caught by the main handler
-    const enhancedError = new Error(`Failed to apply markings to image: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    (enhancedError as any).details = errorDetails;
-    throw enhancedError;
+    throw new Error(`Failed to apply markings to image: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 
@@ -362,40 +297,82 @@ function createSVGOverlay(instructions: MarkingInstructions, imageWidth: number 
     return svg;
 
   } catch (error) {
-    console.error('Error creating SVG overlay:', error);
-    
-    // Enhanced error logging
-    if (error instanceof Error) {
-      console.error('SVG creation error details:', {
-        message: error.message,
-        stack: error.stack,
-        name: error.name
-      });
-    }
-    
     return null;
   }
 }
 
 async function compressImage(imageData: string): Promise<string | null> {
   try {
-    // Remove data URL prefix
-    const base64Data = imageData.replace(/^data:image\/[a-z]+;base64,/, '');
-    const imageBuffer = Buffer.from(base64Data, 'base64');
+    // Validate input format
+    if (!imageData || typeof imageData !== 'string') {
+      return null;
+    }
+
+    // Check if it's a valid data URL
+    if (!imageData.startsWith('data:image/')) {
+      return null;
+    }
+
+    // Extract format and base64 data
+    const match = imageData.match(/^data:image\/([a-z]+);base64,(.+)$/i);
+    if (!match) {
+      return null;
+    }
+
+    const [, format, base64Data] = match;
     
-    // Compress and resize image to reduce token usage
-    const compressedBuffer = await sharp(imageBuffer)
-      .resize(400, 300, { fit: 'inside', withoutEnlargement: true }) // Resize to max 400x300
-      .jpeg({ quality: 50 }) // Compress with 50% quality
-      .toBuffer();
-    
-    // Convert back to base64
-    const compressedBase64 = `data:image/jpeg;base64,${compressedBuffer.toString('base64')}`;
-    
-    return compressedBase64;
+    // Check if base64 data is valid (not test data)
+    if (!base64Data || base64Data === 'test') {
+      return null;
+    }
+
+    // Allow very small images (canvas-generated images can be small)
+    if (base64Data.length < 50) {
+      return null;
+    }
+
+    // Validate base64 format
+    const base64Regex = /^[A-Za-z0-9+/]*={0,2}$/;
+    if (!base64Regex.test(base64Data)) {
+      return null;
+    }
+
+    let imageBuffer: Buffer | undefined;
+    try {
+      imageBuffer = Buffer.from(base64Data, 'base64');
+      
+      // Validate buffer size
+      if (imageBuffer.length === 0) {
+        return null;
+      }
+
+      // For very small images (like 1x1 pixel), don't compress - just return original
+      if (imageBuffer.length < 100) {
+        return imageData;
+      }
+
+      // Try to compress with Sharp
+      const compressedBuffer = await sharp(imageBuffer)
+        .resize(800, 600, { fit: 'inside', withoutEnlargement: true }) // Larger size for better quality
+        .jpeg({ quality: 80 }) // Higher quality
+        .toBuffer();
+      
+      // Convert back to base64
+      const compressedBase64 = `data:image/jpeg;base64,${compressedBuffer.toString('base64')}`;
+      
+      return compressedBase64;
+      
+    } catch (sharpError) {
+      // If Sharp fails but it's a valid format, try to return original
+      const validFormats = ['jpeg', 'jpg', 'png', 'webp', 'gif', 'bmp'];
+      if (validFormats.includes(format.toLowerCase())) {
+        return imageData;
+      }
+      
+      return null;
+    }
     
   } catch (error) {
-    console.error('Error compressing image:', error);
     return null;
   }
 }
@@ -418,7 +395,6 @@ async function uploadImageToTempHost(base64Image: string): Promise<string | null
     return testUrl;
     
   } catch (error) {
-    console.error('Error uploading image to temp host:', error);
     return null;
   }
 }

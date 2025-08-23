@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, FileText, MessageCircle, Plus, Trash2, HardDrive, TrendingUp } from 'lucide-react';
+import { LayoutDashboard, FileText, MessageCircle, Plus, Trash2, HardDrive, TrendingUp, CheckSquare } from 'lucide-react';
 import ProgressDisplay from './ProgressDisplay';
 import { UserProgress } from '@/data/progressTracking';
 
@@ -62,6 +62,18 @@ export default function LeftSidebar({ children, onNewChat, onClearStorage, stora
 				>
 					<TrendingUp className="w-4 h-4" />
 					<span>Progress</span>
+				</Link>
+
+				<Link
+					href="/mark-homework"
+					className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors duration-200 mt-2 ${
+						pathname === '/mark-homework'
+							? 'bg-gray-100 hover:bg-gray-200 text-gray-800'
+							: 'hover:bg-gray-100 text-gray-600 hover:text-gray-800'
+					}`}
+				>
+					<CheckSquare className="w-4 h-4" />
+					<span>Homework</span>
 				</Link>
 			</nav>
 

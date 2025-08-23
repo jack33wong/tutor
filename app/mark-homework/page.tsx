@@ -34,15 +34,39 @@ export default function MarkHomeworkPage() {
   const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file && file.type.startsWith('image/')) {
+      // Validate file size
+      if (file.size < 1000) {
+        setError('Image file is too small. Please select a larger image file.');
+        return;
+      }
+      
+      if (file.size > 10000000) { // 10MB limit
+        setError('Image file is too large. Please select an image smaller than 10MB.');
+        return;
+      }
+      
       setSelectedImage(file);
       setError(null);
       setMarkingResult(null);
       
-      // Create preview
+      // Create preview with better error handling
       const reader = new FileReader();
       reader.onload = (e) => {
-        setImagePreview(e.target?.result as string);
+        const result = e.target?.result as string;
+        
+        if (result && result.length > 100) {
+          setImagePreview(result);
+        } else {
+          setError('Failed to read image file. Please try again.');
+          setSelectedImage(null);
+        }
       };
+      
+      reader.onerror = () => {
+        setError('Error reading image file. Please try again.');
+        setSelectedImage(null);
+      };
+      
       reader.readAsDataURL(file);
     } else {
       setError('Please select a valid image file.');
@@ -55,15 +79,39 @@ export default function MarkHomeworkPage() {
     if (files.length > 0) {
       const file = files[0];
       if (file.type.startsWith('image/')) {
+        // Validate file size
+        if (file.size < 1000) {
+          setError('Image file is too small. Please select a larger image file.');
+          return;
+        }
+        
+        if (file.size > 10000000) { // 10MB limit
+          setError('Image file is too large. Please select an image smaller than 10MB.');
+          return;
+        }
+        
         setSelectedImage(file);
         setError(null);
         setMarkingResult(null);
         
-        // Create preview
+        // Create preview with better error handling
         const reader = new FileReader();
         reader.onload = (e) => {
-          setImagePreview(e.target?.result as string);
+          const result = e.target?.result as string;
+          
+          if (result && result.length > 100) {
+            setImagePreview(result);
+          } else {
+            setError('Failed to read image file. Please try again.');
+            setSelectedImage(null);
+          }
         };
+        
+        reader.onerror = () => {
+          setError('Error reading image file. Please try again.');
+          setSelectedImage(null);
+        };
+        
         reader.readAsDataURL(file);
       } else {
         setError('Please select a valid image file.');
@@ -77,6 +125,17 @@ export default function MarkHomeworkPage() {
 
   const markHomework = async () => {
     if (!selectedImage || !imagePreview) return;
+    
+    // Additional validation before sending
+    if (imagePreview.length < 1000) {
+      setError('Image data is corrupted. Please try uploading the image again.');
+      return;
+    }
+    
+    if (!imagePreview.startsWith('data:image/')) {
+      setError('Invalid image format. Please try uploading the image again.');
+      return;
+    }
 
     setIsProcessing(true);
     setError(null);
@@ -100,18 +159,10 @@ export default function MarkHomeworkPage() {
       } else {
         const errorData = await response.json();
         
-        // Enhanced error logging to browser console
-        console.error('API Error Response:', {
-          status: response.status,
-          statusText: response.statusText,
-          errorData: errorData
-        });
-        
         // Display detailed error information
         let errorMessage = errorData.error || 'Failed to mark homework';
         
         if (errorData.errorDetails) {
-          console.error('Detailed Error Information:', errorData.errorDetails);
           setDetailedError(errorData.errorDetails);
           
           // Add additional error details to the message
@@ -131,7 +182,6 @@ export default function MarkHomeworkPage() {
         setError(errorMessage);
       }
     } catch (error) {
-      console.error('Error marking homework:', error);
       setError('Network error. Please try again.');
     } finally {
       setIsProcessing(false);
