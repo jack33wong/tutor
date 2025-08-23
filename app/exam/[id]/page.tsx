@@ -32,10 +32,31 @@ export default function ExamPage() {
 	const [examStartTime, setExamStartTime] = useState<Date | null>(null);
 	const [timeLeft, setTimeLeft] = useState(0);
 	const [isSubmitted, setIsSubmitted] = useState(false);
+	const [chatSessions, setChatSessions] = useState<Array<{
+		id: string;
+		title: string;
+		messages: Array<{ role: 'user' | 'assistant'; content: string }>;
+		timestamp: Date | string;
+	}>>([]);
 
 	// Get exam ID from URL
 	const examId = typeof window !== 'undefined' ? window.location.pathname.split('/').pop() : '';
 	const exam = examPapers.find(e => e.id === examId);
+
+	// Load chat sessions from localStorage
+	useEffect(() => {
+		if (typeof window !== 'undefined') {
+			try {
+				const stored = localStorage.getItem('chatSessions');
+				if (stored) {
+					const parsed = JSON.parse(stored);
+					setChatSessions(parsed);
+				}
+			} catch (error) {
+				console.error('Error loading chat sessions:', error);
+			}
+		}
+	}, []);
 
 	useEffect(() => {
 		if (exam && !examStartTime) {
@@ -192,7 +213,7 @@ export default function ExamPage() {
 	const totalQuestions = exam.questions.length;
 
 	if (showResults) {
-		return <ExamResults exam={exam} answers={answers} startTime={examStartTime} />;
+		return <ExamResults exam={exam} answers={answers} startTime={examStartTime} chatSessions={chatSessions} />;
 	}
 
 	const renderAnswerInput = (question: ExamQuestion) => {
@@ -274,7 +295,7 @@ export default function ExamPage() {
 		<div className="min-h-screen bg-gray-50">
 			<div className="flex h-screen">
 				<LeftSidebar>
-					<ChatHistory chatSessions={[]} />
+					<ChatHistory chatSessions={chatSessions} />
 				</LeftSidebar>
 				<main className="flex-1 flex flex-col">
 					<div className="flex-1 overflow-y-auto p-4">
@@ -474,7 +495,7 @@ export default function ExamPage() {
 	);
 }
 
-function ExamResults({ exam, answers, startTime }: { exam: any, answers: Record<string, string>, startTime: Date | null }) {
+function ExamResults({ exam, answers, startTime, chatSessions }: { exam: any, answers: Record<string, string>, startTime: Date | null, chatSessions: Array<{ id: string; title: string; messages: Array<{ role: 'user' | 'assistant'; content: string }>; timestamp: Date | string }> }) {
 	const router = useRouter();
 	
 	const calculateScore = () => {
@@ -513,7 +534,7 @@ function ExamResults({ exam, answers, startTime }: { exam: any, answers: Record<
 		<div className="min-h-screen bg-gray-50">
 			<div className="flex h-screen">
 				<LeftSidebar>
-					<ChatHistory chatSessions={[]} />
+					<ChatHistory chatSessions={chatSessions} />
 				</LeftSidebar>
 				<main className="flex-1 flex flex-col">
 					<div className="flex-1 overflow-y-auto p-4">

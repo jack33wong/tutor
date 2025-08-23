@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 
 type DrawingPadProps = {
   className?: string;
@@ -8,13 +8,63 @@ type DrawingPadProps = {
   strokeStyle?: string;
 };
 
-export default function DrawingPad({ className = '', lineWidth = 2, strokeStyle = '#111827' }: DrawingPadProps) {
+export interface DrawingPadRef {
+  captureImage: () => string | null;
+  clearCanvas: () => void;
+}
+
+const DrawingPad = forwardRef<DrawingPadRef, DrawingPadProps>(({ className = '', lineWidth = 2, strokeStyle = '#111827' }, ref) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
   const isDrawingRef = useRef(false);
   const lastPointRef = useRef<{ x: number; y: number } | null>(null);
   const [isReady, setIsReady] = useState(false);
+
+  useImperativeHandle(ref, () => ({
+    captureImage: () => {
+      const canvas = canvasRef.current;
+      if (!canvas) return null;
+      
+      try {
+        // Create a temporary canvas to handle device pixel ratio
+        const tempCanvas = document.createElement('canvas');
+        const tempCtx = tempCanvas.getContext('2d');
+        if (!tempCtx) return null;
+        
+        // Set the temporary canvas size to the display size
+        const rect = canvas.getBoundingClientRect();
+        tempCanvas.width = rect.width;
+        tempCanvas.height = rect.height;
+        
+        // Draw the original canvas content to the temporary canvas
+        tempCtx.drawImage(canvas, 0, 0, rect.width, rect.height);
+        
+        // Convert to data URL
+        return tempCanvas.toDataURL('image/png');
+      } catch (error) {
+        console.error('Error capturing canvas image:', error);
+        return null;
+      }
+    },
+    clearCanvas: () => {
+      const canvas = canvasRef.current;
+      const ctx = ctxRef.current;
+      if (!canvas || !ctx) return;
+      const rect = canvas.getBoundingClientRect();
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.restore();
+      // Refill white background in CSS pixels
+      const dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
+      ctx.save();
+      ctx.scale(dpr, dpr);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, rect.width, rect.height);
+      ctx.restore();
+    }
+  }));
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -132,6 +182,10 @@ export default function DrawingPad({ className = '', lineWidth = 2, strokeStyle 
       </div>
     </div>
   );
-}
+});
+
+DrawingPad.displayName = 'DrawingPad';
+
+export default DrawingPad;
 
 
