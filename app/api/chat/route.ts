@@ -43,12 +43,12 @@ export async function POST(req: NextRequest) {
       
       if (imageData && imageName) {
         // For images, use selected model or default to Gemini
-        const selectedModel = model === 'chatgpt' ? 'chatgpt' : 'gemini';
+        console.log('🔍 Image processing - Selected model:', model);
         
-        if (selectedModel === 'chatgpt') {
+        if (model === 'chatgpt-5' || model === 'chatgpt-4o') {
           try {
-            reply = await callChatGPT(userMessage);
-            apiUsed = 'OpenAI GPT-3.5 Turbo';
+            reply = await callChatGPT(userMessage, model);
+            apiUsed = model === 'chatgpt-5' ? 'OpenAI GPT-5' : 'OpenAI GPT-4 Omni';
           } catch (chatgptError) {
             console.log('ChatGPT image analysis failed, trying Gemini...');
             try {
@@ -77,8 +77,8 @@ I'm here to help with GCSE Maths and can guide you through solving any mathemati
           } catch (geminiError) {
             console.log('Gemini image analysis failed, trying ChatGPT...');
             try {
-              reply = await callChatGPT(userMessage);
-              apiUsed = 'OpenAI GPT-3.5 Turbo';
+              reply = await callChatGPT(userMessage, 'chatgpt-4o'); // Pass model for fallback
+              apiUsed = 'OpenAI GPT-4 Omni'; // Default to GPT-4 Omni as fallback
             } catch (chatgptError) {
               console.error('Both Gemini and ChatGPT failed:', { geminiError, chatgptError });
               // Final fallback for images
@@ -97,12 +97,12 @@ I'm here to help with GCSE Maths and can guide you through solving any mathemati
         }
       } else {
         // For text-only messages, use selected model or default to Gemini
-        const selectedModel = model === 'chatgpt' ? 'chatgpt' : 'gemini';
+        console.log('🔍 Text processing - Selected model:', model);
         
-        if (selectedModel === 'chatgpt') {
+        if (model === 'chatgpt-5' || model === 'chatgpt-4o') {
           try {
-            reply = await callChatGPT(userMessage);
-            apiUsed = 'OpenAI GPT-3.5 Turbo';
+            reply = await callChatGPT(userMessage, model);
+            apiUsed = model === 'chatgpt-5' ? 'OpenAI GPT-5' : 'OpenAI GPT-4 Omni';
           } catch (chatgptError) {
             console.log('ChatGPT failed, trying Gemini...');
             try {
@@ -121,8 +121,8 @@ I'm here to help with GCSE Maths and can guide you through solving any mathemati
           } catch (geminiError) {
             console.log('Gemini failed, trying ChatGPT...');
             try {
-              reply = await callChatGPT(userMessage);
-              apiUsed = 'OpenAI GPT-3.5 Turbo';
+              reply = await callChatGPT(userMessage, 'chatgpt-4o'); // Pass model for fallback
+              apiUsed = 'OpenAI GPT-4 Omni'; // Default to GPT-4 Omni as fallback
             } catch (chatgptError) {
               console.error('Both Gemini and ChatGPT failed:', { geminiError, chatgptError });
               throw new Error('All AI services unavailable');
@@ -225,9 +225,17 @@ function formatChatReply(userMessage: string, aiReply: string): string {
 }
 
 // ChatGPT API function
-async function callChatGPT(message: string): Promise<string> {
+async function callChatGPT(message: string, model: string = 'gpt-4o'): Promise<string> {
   try {
-    console.log('Calling ChatGPT API...');
+    console.log('Calling ChatGPT API with model:', model);
+    
+    // Map model selection to actual OpenAI model names
+    let openaiModel = 'gpt-4o';
+    if (model === 'chatgpt-5') {
+      openaiModel = 'gpt-5';
+    } else if (model === 'chatgpt-4o') {
+      openaiModel = 'gpt-4o';
+    }
     
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -236,7 +244,7 @@ async function callChatGPT(message: string): Promise<string> {
         'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
       },
       body: JSON.stringify({
-        model: 'gpt-3.5-turbo',
+        model: openaiModel,
         messages: [
           {
             role: 'system',
