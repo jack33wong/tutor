@@ -59,10 +59,22 @@ export async function POST(req: NextRequest) {
 
     const modelName = model === 'gemini-2.5-pro' ? 'Google Gemini 2.5 Pro' : 
                      model === 'chatgpt-5' ? 'OpenAI ChatGPT 5' : 'OpenAI GPT-4 Omni';
+    
+    // Determine which specific API was used
+    let apiUsed = '';
+    if (model === 'gemini-2.5-pro') {
+      apiUsed = 'Google Gemini 2.0 Flash Exp';
+    } else if (model === 'chatgpt-5') {
+      apiUsed = 'OpenAI GPT-5';
+    } else {
+      apiUsed = 'OpenAI GPT-4 Omni';
+    }
+    
     return NextResponse.json({ 
       markedImage,
       instructions: markingInstructions,
-      message: `Homework marked successfully using ${modelName} + Sharp image processing`
+      message: `Homework marked successfully using ${modelName} + Sharp image processing`,
+      apiUsed
     });
 
   } catch (error) {

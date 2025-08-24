@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Image Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        canvas {
+            border: 2px solid #333;
+            margin: 20px 0;
+        }
+        .output {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            word-break: break-all;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Image Generator for Math Question</h1>
+    
+    <div class="test-section">
+        <h2>1. Generate Test Image</h2>
+        <p>Click the button below to generate a test image with "2 + 2 = 5":</p>
+        <button onclick="generateImage()">Generate Test Image</button>
+        <button onclick="generateSimpleImage()">Generate Simple Image</button>
+        <br><br>
+        <canvas id="testCanvas" width="400" height="200"></canvas>
+    </div>
+
+    <div class="test-section">
+        <h2>2. Base64 Data</h2>
+        <p>This is the base64 data that will be sent to the API:</p>
+        <div id="base64Output" class="output">Click "Generate Test Image" first</div>
+        <button onclick="copyBase64()">Copy Base64</button>
+    </div>
+
+    <div class="test-section">
+        <h2>3. Test API Call</h2>
+        <p>Test the image with the marking API:</p>
+        <button onclick="testAPI()">Test API Call</button>
+        <div id="apiResult" class="output">Click "Test API Call" to see results</div>
+    </div>
+
+    <div class="test-section">
+        <h2>4. Manual Test</h2>
+        <p>You can also manually test with curl:</p>
+        <div id="curlCommand" class="output">Generate image first to see curl command</div>
+        <button onclick="copyCurl()">Copy Curl Command</button>
+    </div>
+
+    <div class="test-section">
+        <h2>5. Alternative Testing Methods</h2>
+        <p>If the browser test fails, try these alternatives:</p>
+        
+        <h3>Method A: Terminal Testing</h3>
+        <ol>
+            <li>Generate the image above</li>
+            <li>Copy the curl command</li>
+            <li>Paste it in your terminal</li>
+            <li>Make sure your app is running (npm run dev)</li>
+        </ol>
+        
+        <h3>Method B: Direct Upload</h3>
+        <ol>
+            <li>Right-click on the generated image</li>
+            <li>Save it as a PNG file</li>
+            <li>Go to your homework marking page</li>
+            <li>Upload the saved image file</li>
+        </ol>
+        
+        <h3>Method C: Screenshot Test</h3>
+        <ol>
+            <li>Take a screenshot of the generated image</li>
+            <li>Upload the screenshot to your homework marking page</li>
+            <li>Check the console logs for results</li>
+        </ol>
+    </div>
+
+    <div class="test-section">
+        <h2>6. Debug Information</h2>
+        <p>Check these details to troubleshoot:</p>
+        
+        <h3>Canvas Debug:</h3>
+        <div id="canvasDebug" class="output">Generate image first to see debug info</div>
+        
+        <h3>Image Quality Test:</h3>
+        <button onclick="testImageQuality()">Test Image Quality</button>
+        <div id="qualityResult" class="output">Click button to test</div>
+    </div>
+
+    <script>
+        let currentBase64 = '';
+
+        function generateImage() {
+            const canvas = document.getElementById('testCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Clear canvas with pure white background
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, 0, 400, 200);
+            
+            // Draw thick black border
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(5, 5, 390, 190);
+            
+            // Draw the math problem in large, clear text
+            ctx.fillStyle = '#000000';
+            ctx.font = 'bold 48px Arial, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            // Center the text perfectly
+            ctx.fillText('2 + 2 = 5', 200, 100);
+            
+            // Add a simple label below
+            ctx.font = 'bold 20px Arial, sans-serif';
+            ctx.fillText('Math Test', 200, 160);
+            
+            // Convert to base64 with higher quality
+            currentBase64 = canvas.toDataURL('image/png', 1.0);
+            
+            // Display base64 (truncated for readability)
+            const truncated = currentBase64.substring(0, 100) + '...';
+            document.getElementById('base64Output').textContent = truncated;
+            
+            // Generate curl command
+            const curlCmd = `curl -s -X POST http://localhost:3000/api/mark-homework -H "Content-Type: application/json" -d '{"imageData": "${currentBase64}", "imageName": "test-math.png"}' | python3 -m json.tool`;
+            document.getElementById('curlCommand').textContent = curlCmd;
+            
+            // Also show a simpler test command
+            const simpleCurl = `curl -s -X POST http://localhost:3000/api/mark-homework -H "Content-Type: application/json" -d '{"imageData": "${currentBase64}", "imageName": "test-math.png"}'`;
+            console.log('Simple curl command:', simpleCurl);
+            
+            console.log('Image generated successfully!');
+            console.log('Base64 length:', currentBase64.length);
+            console.log('Base64 preview:', currentBase64.substring(0, 100));
+            
+            // Log canvas details for debugging
+            console.log('Canvas dimensions:', canvas.width, 'x', canvas.height);
+            console.log('Canvas data URL length:', currentBase64.length);
+            
+            // Update debug display
+            document.getElementById('canvasDebug').textContent = 
+                `Canvas: ${canvas.width}x${canvas.height} | Base64 Length: ${currentBase64.length} | Format: PNG`;
+        }
+        
+        function generateSimpleImage() {
+            const canvas = document.getElementById('testCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Make canvas larger for more substantial image
+            canvas.width = 600;
+            canvas.height = 400;
+            
+            // Clear canvas with pure white background
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, 0, 600, 400);
+            
+            // Draw the math problem in very large, bold text
+            ctx.fillStyle = '#000000';
+            ctx.font = 'bold 96px Arial, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            // Center the text perfectly
+            ctx.fillText('2 + 2 = 5', 300, 200);
+            
+            // Add a border and grid lines to make the image more substantial
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(20, 20, 560, 360);
+            
+            // Add grid lines
+            ctx.strokeStyle = '#CCCCCC';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= 600; i += 50) {
+                ctx.beginPath();
+                ctx.moveTo(i, 0);
+                ctx.lineTo(i, 400);
+                ctx.stroke();
+            }
+            for (let i = 0; i <= 400; i += 50) {
+                ctx.beginPath();
+                ctx.moveTo(0, i);
+                ctx.lineTo(600, i);
+                ctx.stroke();
+            }
+            
+            // Add labels and additional text
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 2;
+            ctx.font = 'bold 32px Arial, sans-serif';
+            ctx.fillText('Math Test Question - Algebra', 300, 50);
+            ctx.fillText('Student Answer: 5 (Incorrect)', 300, 350);
+            ctx.fillText('Correct Answer: 4', 300, 380);
+            
+            // Add some mathematical symbols
+            ctx.font = 'bold 48px Arial, sans-serif';
+            ctx.fillText('+', 250, 200);
+            ctx.fillText('=', 350, 200);
+            
+            // Convert to base64 with maximum quality
+            currentBase64 = canvas.toDataURL('image/png', 1.0);
+            
+            // Display base64 (truncated for readability)
+            const truncated = currentBase64.substring(0, 100) + '...';
+            document.getElementById('base64Output').textContent = truncated;
+            
+            // Generate curl command
+            const curlCmd = `curl -s -X POST http://localhost:3000/api/mark-homework -H "Content-Type: application/json" -d '{"imageData": "${currentBase64}", "imageName": "test-math.png"}' | python3 -m json.tool`;
+            document.getElementById('curlCommand').textContent = curlCmd;
+            
+            console.log('Enhanced simple image generated successfully!');
+            console.log('Canvas size:', canvas.width + 'x' + canvas.height);
+            console.log('Base64 length:', currentBase64.length);
+            console.log('Base64 preview:', currentBase64.substring(0, 100));
+            
+            // Update debug display
+            document.getElementById('canvasDebug').textContent = 
+                `Enhanced Canvas: ${canvas.width}x${canvas.height} | Base64 Length: ${currentBase64.length} | Format: PNG`;
+        }
+        
+        function testImageQuality() {
+            if (!currentBase64) {
+                alert('Generate image first!');
+                return;
+            }
+            
+            const resultDiv = document.getElementById('qualityResult');
+            resultDiv.textContent = 'Analyzing image quality...';
+            
+            try {
+                // Create a new image to test the base64
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+                    
+                    // Get image data for analysis
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const data = imageData.data;
+                    
+                    // Count non-white pixels (should be text)
+                    let nonWhitePixels = 0;
+                    let totalPixels = data.length / 4;
+                    
+                    for (let i = 0; i < data.length; i += 4) {
+                        const r = data[i];
+                        const g = data[i + 1];
+                        const b = data[i + 2];
+                        
+                        // Check if pixel is not white
+                        if (r < 250 || g < 250 || b < 250) {
+                            nonWhitePixels++;
+                        }
+                    }
+                    
+                    const textPercentage = (nonWhitePixels / totalPixels) * 100;
+                    
+                    // Check if image meets minimum requirements
+                    const isValidSize = currentBase64.length > 1000;
+                    const isValidDimensions = img.width >= 100 && img.height >= 100;
+                    const hasText = textPercentage > 1 && textPercentage < 50;
+                    
+                    resultDiv.textContent = `Image Quality Analysis:
+- Dimensions: ${img.width}x${img.height} ${isValidDimensions ? '✅' : '❌'}
+- Total Pixels: ${totalPixels.toLocaleString()}
+- Non-white Pixels: ${nonWhitePixels.toLocaleString()}
+- Text Coverage: ${textPercentage.toFixed(2)}% ${hasText ? '✅' : '❌'}
+- Base64 Length: ${currentBase64.length} ${isValidSize ? '✅' : '❌'}
+- Image Valid: ${isValidSize && isValidDimensions && hasText ? '✅ READY FOR API' : '❌ NEEDS FIXING'}
+- Expected: Should see "2 + 2 = 5" clearly`;
+                    
+                    console.log('Image quality test completed:', {
+                        width: img.width,
+                        height: img.height,
+                        nonWhitePixels,
+                        textPercentage,
+                        base64Length: currentBase64.length,
+                        isValid: isValidSize && isValidDimensions && hasText
+                    });
+                };
+                
+                img.onerror = function() {
+                    resultDiv.textContent = 'Error: Could not load image from base64 data';
+                };
+                
+                img.src = currentBase64;
+                
+            } catch (error) {
+                resultDiv.textContent = `Error testing image quality: ${error.message}`;
+            }
+        }
+
+        function copyBase64() {
+            if (currentBase64) {
+                navigator.clipboard.writeText(currentBase64);
+                alert('Base64 data copied to clipboard!');
+            } else {
+                alert('Generate image first!');
+            }
+        }
+
+        function copyCurl() {
+            const curlElement = document.getElementById('curlCommand');
+            if (curlElement.textContent !== 'Generate image first to see curl command') {
+                navigator.clipboard.writeText(curlElement.textContent);
+                alert('Curl command copied to clipboard!');
+            } else {
+                alert('Generate image first!');
+            }
+        }
+
+        async function testAPI() {
+            if (!currentBase64) {
+                alert('Generate image first!');
+                return;
+            }
+
+            const resultDiv = document.getElementById('apiResult');
+            resultDiv.textContent = 'Testing API... Please wait...';
+
+            try {
+                // Try to connect to the local API
+                const response = await fetch('http://localhost:3000/api/mark-homework', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        imageData: currentBase64,
+                        imageName: 'test-math.png',
+                    }),
+                });
+
+                const result = await response.json();
+                
+                // Format the result nicely
+                const formattedResult = JSON.stringify(result, null, 2);
+                resultDiv.textContent = formattedResult;
+                
+                console.log('API Test Result:', result);
+                
+            } catch (error) {
+                console.error('API Test Error:', error);
+                
+                if (error.message.includes('Failed to fetch')) {
+                    resultDiv.textContent = `Error: Failed to fetch from localhost:3000
+
+This usually means:
+1. Your app is not running on port 3000
+2. CORS restrictions are blocking the request
+3. The API endpoint is not accessible
+
+Solutions:
+1. Make sure your app is running (npm run dev)
+2. Check the console for the correct port
+3. Use the curl command below instead
+4. Or upload the image directly to your homework marking page`;
+                } else {
+                    resultDiv.textContent = `Error: ${error.message}`;
+                }
+            }
+        }
+    </script>
+</body>
+</html>

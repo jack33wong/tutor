@@ -10,9 +10,10 @@ interface ChatMessageProps {
   imageData?: string;
   imageName?: string;
   model?: ModelType; // Add model parameter
+  apiUsed?: string; // Specific API that was used for this response
 }
 
-export default function ChatMessage({ content, role, imageData, imageName, model }: ChatMessageProps) {
+export default function ChatMessage({ content, role, imageData, imageName, model, apiUsed }: ChatMessageProps) {
   // Check if the message has an actual image
   const hasImage = imageData && imageName;
   
@@ -29,17 +30,30 @@ export default function ChatMessage({ content, role, imageData, imageName, model
         return 'AI Assistant';
     }
   };
+
+  // Get API display name - prioritize apiUsed if available, otherwise use model
+  const getAPIDisplayName = (): string => {
+    if (apiUsed) {
+      // If apiUsed is provided, use it directly
+      return apiUsed;
+    }
+    // Fall back to model-based display name
+    if (model) {
+      return getModelDisplayName(model);
+    }
+    return 'AI Assistant';
+  };
   
   if (!hasImage) {
     // Regular text message - use existing MarkdownMessage with top spacing for assistant
     return (
       <div className={role === 'assistant' ? 'mt-6' : ''}>
         <MarkdownMessage content={content} />
-        {/* Add model info footer for assistant messages */}
-        {role === 'assistant' && model && (
+        {/* Add API info footer for assistant messages */}
+        {role === 'assistant' && (model || apiUsed) && (
           <div className="mt-3 pt-2 border-t border-gray-200">
             <p className="text-xs text-gray-500 text-right">
-              Powered by {getModelDisplayName(model)}
+              Powered by {getAPIDisplayName()}
             </p>
           </div>
         )}
@@ -53,11 +67,11 @@ export default function ChatMessage({ content, role, imageData, imageName, model
       {content && content !== `[📷 Image: ${imageName}]` && (
         <div>
           <MarkdownMessage content={content} />
-          {/* Add model info footer for assistant messages */}
-          {role === 'assistant' && model && (
+          {/* Add API info footer for assistant messages */}
+          {role === 'assistant' && (model || apiUsed) && (
             <div className="mt-3 pt-2 border-t border-gray-200">
               <p className="text-xs text-gray-500 text-right">
-                Powered by {getModelDisplayName(model)}
+                Powered by {getAPIDisplayName()}
               </p>
             </div>
           )}

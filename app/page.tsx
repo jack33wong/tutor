@@ -18,6 +18,7 @@ type ChatItem = {
 	content: string;
 	imageData?: string; // Store actual image data for thumbnails
 	imageName?: string; // Store image filename
+	apiUsed?: string; // Store which specific API was used for this response
 };
 type ChatSession = {
 	id: string;
@@ -672,7 +673,7 @@ export default function ChatHome() {
 						const updatedSession = {
 							...session,
 							title: truncatedTitle, // Update title with random question
-							messages: [...messages, randomUserMsg, { role: 'assistant' as const, content: data.reply }],
+							messages: [...messages, randomUserMsg, { role: 'assistant' as const, content: data.reply, apiUsed: data.apiUsed }],
 							timestamp: new Date()
 						};
 						
@@ -722,7 +723,7 @@ export default function ChatHome() {
 						if (userMessageExists) {
 							return {
 								...session,
-								messages: [...currentMessages, { role: 'assistant' as const, content: reply }],
+								messages: [...currentMessages, { role: 'assistant' as const, content: reply, apiUsed: data.apiUsed }],
 								timestamp: new Date()
 							};
 						} else {
@@ -730,7 +731,7 @@ export default function ChatHome() {
 							return {
 								...session,
 								title: titleToPreserve,
-								messages: [...currentMessages, userMsg, { role: 'assistant' as const, content: reply }],
+								messages: [...currentMessages, userMsg, { role: 'assistant' as const, content: reply, apiUsed: data.apiUsed }],
 								timestamp: new Date()
 							};
 						}
@@ -763,7 +764,7 @@ export default function ChatHome() {
 						if (userMessageExists) {
 							return {
 								...session,
-								messages: [...currentMessages, { role: 'assistant' as const, content: 'Network error. Please try again.' }],
+								messages: [...currentMessages, { role: 'assistant' as const, content: 'Network error. Please try again.', apiUsed: 'Error Response' }],
 								timestamp: new Date()
 							};
 						} else {
@@ -771,7 +772,7 @@ export default function ChatHome() {
 							return {
 								...session,
 								title: titleToPreserve,
-								messages: [...currentMessages, userMsg, { role: 'assistant' as const, content: 'Network error. Please try again.' }],
+								messages: [...currentMessages, userMsg, { role: 'assistant' as const, content: 'Network error. Please try again.', apiUsed: 'Error Response' }],
 								timestamp: new Date()
 							};
 						}
@@ -939,6 +940,7 @@ export default function ChatHome() {
 													imageData={msg.imageData}
 													imageName={msg.imageName}
 													model={msg.role === 'assistant' ? selectedModel : undefined}
+													apiUsed={msg.apiUsed}
 												/>
 											</div>
 										</div>

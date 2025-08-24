@@ -17,6 +17,7 @@ interface MarkingResult {
     confidence: number;
   }>;
   message: string;
+  apiUsed?: string;
 }
 
 export default function MarkHomeworkPage() {
@@ -436,7 +437,7 @@ export default function MarkHomeworkPage() {
                         {/* Model API version footer */}
                         <div className="mt-3 pt-2 border-t border-gray-200">
                           <p className="text-xs text-gray-500 text-right">
-                            Powered by {selectedModel === 'gemini-2.5-pro' ? 'Google Gemini 2.5 Pro' : selectedModel === 'chatgpt-5' ? 'OpenAI ChatGPT 5' : 'OpenAI GPT-4 Omni'}
+                            Powered by {markingResult?.apiUsed || 'AI Assistant'}
                           </p>
                         </div>
                       </div>
@@ -474,7 +475,7 @@ export default function MarkHomeworkPage() {
                           {/* Model API version footer */}
                           <div className="mt-3 pt-2 border-t border-green-200">
                             <p className="text-xs text-green-600 text-right">
-                              Powered by {selectedModel === 'gemini-2.5-pro' ? 'Google Gemini 2.5 Pro' : selectedModel === 'chatgpt-5' ? 'OpenAI ChatGPT 5' : 'OpenAI GPT-4 Omni'}
+                              Powered by {markingResult?.apiUsed || 'AI Assistant'}
                             </p>
                           </div>
                         </div>

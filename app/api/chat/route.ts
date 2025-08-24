@@ -5,7 +5,7 @@ import { addCompletedQuestion, UserProgress, calculateProgressStats, getCompleti
 export async function POST(req: NextRequest) {
   try {
     const requestBody = await req.json();
-    let { message, imageData, imageName }: { message?: string; imageData?: string; imageName?: string } = requestBody;
+    let { message, imageData, imageName, model }: { message?: string; imageData?: string; imageName?: string; model?: string } = requestBody;
     const originalMessage = message;
     
     // Check for blank input and generate a random question to process
@@ -37,20 +37,27 @@ export async function POST(req: NextRequest) {
     let composed = `${system}\n\nUser: ${userMessage}`;
     
     let reply: string | null = null;
+    let apiUsed = '';
     
     try {
+      
       if (imageData && imageName) {
-        // For images, try Gemini first (which supports image analysis), then fallback to ChatGPT
-        try {
-          reply = await callGeminiWithImage(userMessage, imageData, imageName);
-        } catch (geminiError) {
-          console.log('Gemini image analysis failed, trying ChatGPT...');
+        // For images, use selected model or default to Gemini
+        const selectedModel = model === 'chatgpt' ? 'chatgpt' : 'gemini';
+        
+        if (selectedModel === 'chatgpt') {
           try {
             reply = await callChatGPT(userMessage);
+            apiUsed = 'OpenAI GPT-3.5 Turbo';
           } catch (chatgptError) {
-            console.error('Both Gemini and ChatGPT failed:', { geminiError, chatgptError });
-            // Final fallback for images
-            reply = `I can see you've uploaded an image! 
+            console.log('ChatGPT image analysis failed, trying Gemini...');
+            try {
+              reply = await callGeminiWithImage(userMessage, imageData, imageName);
+              apiUsed = 'Google Gemini 2.0 Flash Exp';
+            } catch (geminiError) {
+              console.error('Both ChatGPT and Gemini failed:', { chatgptError, geminiError });
+              // Final fallback for images
+              reply = `I can see you've uploaded an image! 
 
 Since both AI services are having issues, could you please:
 
@@ -59,19 +66,67 @@ Since both AI services are having issues, could you please:
 3. **Share any equations or numbers** shown
 
 I'm here to help with GCSE Maths and can guide you through solving any mathematical concept!`;
+              apiUsed = 'Fallback Response';
+            }
+          }
+        } else {
+          // Default to Gemini for images
+          try {
+            reply = await callGeminiWithImage(userMessage, imageData, imageName);
+            apiUsed = 'Google Gemini 2.0 Flash Exp';
+          } catch (geminiError) {
+            console.log('Gemini image analysis failed, trying ChatGPT...');
+            try {
+              reply = await callChatGPT(userMessage);
+              apiUsed = 'OpenAI GPT-3.5 Turbo';
+            } catch (chatgptError) {
+              console.error('Both Gemini and ChatGPT failed:', { geminiError, chatgptError });
+              // Final fallback for images
+              reply = `I can see you've uploaded an image! 
+
+Since both AI services are having issues, could you please:
+
+1. **Describe what you see** in the image
+2. **Tell me the specific question** or problem
+3. **Share any equations or numbers** shown
+
+I'm here to help with GCSE Maths and can guide you through solving any mathematical concept!`;
+              apiUsed = 'Fallback Response';
+            }
           }
         }
       } else {
-        // Try Gemini first, then fallback to ChatGPT
-        try {
-          reply = await callGemini(userMessage);
-        } catch (geminiError) {
-          console.log('Gemini failed, trying ChatGPT...');
+        // For text-only messages, use selected model or default to Gemini
+        const selectedModel = model === 'chatgpt' ? 'chatgpt' : 'gemini';
+        
+        if (selectedModel === 'chatgpt') {
           try {
             reply = await callChatGPT(userMessage);
+            apiUsed = 'OpenAI GPT-3.5 Turbo';
           } catch (chatgptError) {
-            console.error('Both Gemini and ChatGPT failed:', { geminiError, chatgptError });
-            throw new Error('All AI services unavailable');
+            console.log('ChatGPT failed, trying Gemini...');
+            try {
+              reply = await callGemini(userMessage);
+              apiUsed = 'Google Gemini 2.0 Flash Exp';
+            } catch (geminiError) {
+              console.error('Both ChatGPT and Gemini failed:', { chatgptError, geminiError });
+              throw new Error('All AI services unavailable');
+            }
+          }
+        } else {
+          // Default to Gemini
+          try {
+            reply = await callGemini(userMessage);
+            apiUsed = 'Google Gemini 2.0 Flash Exp';
+          } catch (geminiError) {
+            console.log('Gemini failed, trying ChatGPT...');
+            try {
+              reply = await callChatGPT(userMessage);
+              apiUsed = 'OpenAI GPT-3.5 Turbo';
+            } catch (chatgptError) {
+              console.error('Both Gemini and ChatGPT failed:', { geminiError, chatgptError });
+              throw new Error('All AI services unavailable');
+            }
           }
         }
       }
@@ -79,6 +134,7 @@ I'm here to help with GCSE Maths and can guide you through solving any mathemati
       console.error('All AI API calls failed:', error);
       // Final fallback response
       reply = 'I\'m here to help with your GCSE Maths questions! Please ask me anything about mathematics, and I\'ll do my best to assist you.';
+      apiUsed = 'Fallback Response';
     }
 
     if (!reply) {
@@ -107,11 +163,11 @@ I'm here to help with GCSE Maths and can guide you through solving any mathemati
           console.log('📋 Found exam metadata for extracted text:', examMetadata);
           // Format with exam metadata using extracted text
           const formattedReply = formatChatReply(extractedQuestionText, cleanedReply);
-          return NextResponse.json({ reply: formattedReply });
+          return NextResponse.json({ reply: formattedReply, apiUsed });
         } else {
           // No exam match, but still format nicely with extracted text
           const formattedReply = formatChatReply(extractedQuestionText, cleanedReply);
-          return NextResponse.json({ reply: formattedReply });
+          return NextResponse.json({ reply: formattedReply, apiUsed });
         }
       }
     }
@@ -125,14 +181,15 @@ I'm here to help with GCSE Maths and can guide you through solving any mathemati
       return NextResponse.json({ 
         randomQuestion: userMessage,
         reply: formattedReply,
-        isRandomGenerated: true 
+        isRandomGenerated: true,
+        apiUsed
       });
     }
     
     // Format the reply with Question and Answer template for normal messages
     const formattedReply = formatChatReply(userMessage, reply);
 
-    return NextResponse.json({ reply: formattedReply });
+    return NextResponse.json({ reply: formattedReply, apiUsed });
   } catch (e) {
     console.error('Chat API error:', e);
     // Return a helpful error message instead of failing completely
