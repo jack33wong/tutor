@@ -2,23 +2,47 @@
 
 import React from 'react';
 import MarkdownMessage from './MarkdownMessage';
+import { ModelType } from '@/config/aiModels';
 
 interface ChatMessageProps {
   content: string;
   role: 'user' | 'assistant';
   imageData?: string;
   imageName?: string;
+  model?: ModelType; // Add model parameter
 }
 
-export default function ChatMessage({ content, role, imageData, imageName }: ChatMessageProps) {
+export default function ChatMessage({ content, role, imageData, imageName, model }: ChatMessageProps) {
   // Check if the message has an actual image
   const hasImage = imageData && imageName;
+  
+  // Get model display name with exact backend version
+  const getModelDisplayName = (modelType: ModelType): string => {
+    switch (modelType) {
+      case 'gemini-2.5-pro':
+        return 'Google Gemini 2.5 Pro';
+      case 'chatgpt-5':
+        return 'OpenAI ChatGPT 5';
+      case 'chatgpt-4o':
+        return 'OpenAI GPT-4 Omni';
+      default:
+        return 'AI Assistant';
+    }
+  };
   
   if (!hasImage) {
     // Regular text message - use existing MarkdownMessage with top spacing for assistant
     return (
       <div className={role === 'assistant' ? 'mt-6' : ''}>
         <MarkdownMessage content={content} />
+        {/* Add model info footer for assistant messages */}
+        {role === 'assistant' && model && (
+          <div className="mt-3 pt-2 border-t border-gray-200">
+            <p className="text-xs text-gray-500 text-right">
+              Powered by {getModelDisplayName(model)}
+            </p>
+          </div>
+        )}
       </div>
     );
   }
@@ -29,6 +53,14 @@ export default function ChatMessage({ content, role, imageData, imageName }: Cha
       {content && content !== `[📷 Image: ${imageName}]` && (
         <div>
           <MarkdownMessage content={content} />
+          {/* Add model info footer for assistant messages */}
+          {role === 'assistant' && model && (
+            <div className="mt-3 pt-2 border-t border-gray-200">
+              <p className="text-xs text-gray-500 text-right">
+                Powered by {getModelDisplayName(model)}
+              </p>
+            </div>
+          )}
         </div>
       )}
       

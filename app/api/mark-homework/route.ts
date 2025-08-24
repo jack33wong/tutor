@@ -14,7 +14,13 @@ interface MarkingInstructions {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { imageData, imageName } = body;
+    const { imageData, imageName, model } = body;
+    
+    console.log('🔍 Mark Homework API - Model Selection:', { 
+      model, 
+      hasModel: !!model, 
+      modelType: typeof model 
+    });
     
     if (!imageData || !imageName) {
       return NextResponse.json({ error: 'Missing image data or name' }, { status: 400 });
@@ -22,9 +28,9 @@ export async function POST(req: NextRequest) {
 
 
 
-    // Stage 1: AI Analysis with GPT-5
-    // Stage 2: GPT-5 Analysis with compressed image data
-    const markingInstructions = await generateMarkingInstructions(imageData);
+    // Stage 1: AI Analysis with selected model
+    // Stage 2: AI Analysis with compressed image data
+    const markingInstructions = await generateMarkingInstructions(imageData, model);
     
     if (!markingInstructions) {
       return NextResponse.json({ 
@@ -51,10 +57,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Failed to apply markings to image' }, { status: 500 });
     }
 
+    const modelName = model === 'gemini-2.5-pro' ? 'Google Gemini 2.5 Pro' : 
+                     model === 'chatgpt-5' ? 'OpenAI ChatGPT 5' : 'OpenAI GPT-4 Omni';
     return NextResponse.json({ 
       markedImage,
       instructions: markingInstructions,
-      message: 'Homework marked successfully using GPT-5 + Sharp image processing'
+      message: `Homework marked successfully using ${modelName} + Sharp image processing`
     });
 
   } catch (error) {
@@ -70,14 +78,8 @@ export async function POST(req: NextRequest) {
 
 
 
-async function generateMarkingInstructions(imageData: string): Promise<MarkingInstructions | null> {
+async function generateMarkingInstructions(imageData: string, model?: string): Promise<MarkingInstructions | null> {
   try {
-    const openaiApiKey = process.env.OPENAI_API_KEY;
-    
-    if (!openaiApiKey) {
-      return null;
-    }
-
     // Compress and resize the image to reduce token usage
     const compressedImage = await compressImage(imageData);
     if (!compressedImage) {
@@ -124,82 +126,184 @@ IMPORTANT: Do NOT use markdown code blocks. Return ONLY the raw JSON object.`;
 
 Focus on providing clear, actionable annotations with bounding boxes and comments.`;
 
-            const requestBody = {
-          model: "gpt-5", // Using gpt-5 for enhanced capabilities
-          messages: [
-        {
-          role: "system",
-          content: systemPrompt,
-        },
-        {
-          role: "user",
-          content: [
-            { type: "text", text: userPrompt },
-            {
-              type: "image_url",
-              image_url: {
-                url: imageUrl, // Using base64 data directly
-              },
-            },
-          ],
-        },
-      ],
-      max_completion_tokens: 8000, // Increased further for GPT-5 to handle complex image analysis
-    };
-    
-
-    
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${openaiApiKey}`,
-      },
-      body: JSON.stringify(requestBody),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      
-      if (errorData.error?.code === 'invalid_api_key') {
-        throw new Error('Invalid OpenAI API key. Please check your API key configuration.');
-      } else if (errorData.error?.message) {
-        throw new Error(`OpenAI API error: ${errorData.error.message}`);
-      } else {
-        throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
-      }
-    }
-
-    const data = await response.json();
-
-    const content = data.choices?.[0]?.message?.content;
-    
-    if (!content) {
-      return null;
-    }
-
-    // Parse the JSON response
-    try {
-      const instructions = JSON.parse(content);
-      return instructions;
-    } catch (parseError) {
-      // Try to extract JSON from markdown code blocks if the AI still returns them
-      try {
-        const jsonMatch = content.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
-        if (jsonMatch) {
-          const extractedJson = jsonMatch[1];
-          const instructions = JSON.parse(extractedJson);
-          return instructions;
-        }
-      } catch (extractError) {
-        // JSON extraction failed, continue to next method
-      }
-      
-      return null;
+    // Route to appropriate API based on selected model
+    if (model === 'gemini-2.5-pro') {
+      return await callGeminiForMarking(imageUrl, systemPrompt, userPrompt);
+    } else if (model === 'chatgpt-5') {
+      return await callOpenAIForMarking(imageUrl, systemPrompt, userPrompt, 'gpt-5');
+    } else {
+      // Default to ChatGPT 4o
+      return await callOpenAIForMarking(imageUrl, systemPrompt, userPrompt, 'gpt-4o');
     }
 
   } catch (error) {
     throw new Error(`Failed to generate marking instructions: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+// OpenAI API function for marking
+async function callOpenAIForMarking(imageUrl: string, systemPrompt: string, userPrompt: string, openaiModel: string = 'gpt-4o'): Promise<MarkingInstructions | null> {
+  const openaiApiKey = process.env.OPENAI_API_KEY;
+  
+  if (!openaiApiKey) {
+    throw new Error('OpenAI API key not configured');
+  }
+
+  console.log('🔍 OpenAI API Request - Model Selection:', { 
+    userSelectedModel: openaiModel === 'gpt-5' ? 'chatgpt-5' : 'chatgpt-4o', 
+    openaiModel: openaiModel,
+    isChatGPT: true
+  });
+  
+  const requestBody = {
+    model: openaiModel, // Use the specified OpenAI model
+    messages: [
+      {
+        role: "system",
+        content: systemPrompt,
+      },
+      {
+        role: "user",
+        content: [
+          { type: "text", text: userPrompt },
+          {
+            type: "image_url",
+            image_url: {
+              url: imageUrl, // Using base64 data directly
+            },
+          },
+        ],
+      },
+    ],
+    max_completion_tokens: 8000,
+  };
+
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${openaiApiKey}`,
+    },
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    
+    if (errorData.error?.code === 'invalid_api_key') {
+      throw new Error('Invalid OpenAI API key. Please check your API key configuration.');
+    } else if (errorData.error?.message) {
+      throw new Error(`OpenAI API error: ${errorData.error.message}`);
+    } else {
+      throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
+    }
+  }
+
+  const data = await response.json();
+  const content = data.choices?.[0]?.message?.content;
+  
+  if (!content) {
+    return null;
+  }
+
+  // Parse the JSON response
+  try {
+    const instructions = JSON.parse(content);
+    return instructions;
+  } catch (parseError) {
+    // Try to extract JSON from markdown code blocks if the AI still returns them
+    try {
+      const jsonMatch = content.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+      if (jsonMatch) {
+        const extractedJson = jsonMatch[1];
+        const instructions = JSON.parse(extractedJson);
+        return instructions;
+      }
+    } catch (extractError) {
+      // JSON extraction failed, continue to next method
+    }
+    
+    return null;
+  }
+}
+
+// Gemini API function for marking
+async function callGeminiForMarking(imageUrl: string, systemPrompt: string, userPrompt: string): Promise<MarkingInstructions | null> {
+  const geminiApiKey = process.env.GEMINI_API_KEY;
+  
+  if (!geminiApiKey) {
+    throw new Error('Gemini API key not configured');
+  }
+
+  console.log('🔍 Gemini API Request - Model Selection:', { 
+    userSelectedModel: 'gemini', 
+    geminiModel: 'gemini-2.0-flash-exp',
+    isGemini: true
+  });
+
+  const requestBody = {
+    contents: [
+      {
+        parts: [
+          {
+            text: `${systemPrompt}\n\n${userPrompt}`
+          },
+          {
+            inline_data: {
+              mime_type: "image/jpeg",
+              data: imageUrl.replace('data:image/jpeg;base64,', '') // Remove data URL prefix
+            }
+          }
+        ]
+      }
+    ],
+    generationConfig: {
+      temperature: 0.1,
+      topK: 32,
+      topP: 1,
+      maxOutputTokens: 8000,
+    }
+  };
+
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${geminiApiKey}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    console.error('Gemini API error:', response.status, response.statusText, errorData);
+    throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  
+  if (!content) {
+    return null;
+  }
+
+  // Parse the JSON response
+  try {
+    const instructions = JSON.parse(content);
+    return instructions;
+  } catch (parseError) {
+    // Try to extract JSON from markdown code blocks if the AI still returns them
+    try {
+      const jsonMatch = content.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+      if (jsonMatch) {
+        const extractedJson = jsonMatch[1];
+        const instructions = JSON.parse(extractedJson);
+        return instructions;
+      }
+    } catch (extractError) {
+      // JSON extraction failed, continue to next method
+    }
+    
+    return null;
   }
 }
 

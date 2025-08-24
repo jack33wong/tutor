@@ -1,9 +1,12 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Upload, FileImage, CheckCircle, XCircle, Loader2, Download } from 'lucide-react';
 import LeftSidebar from '@/components/LeftSidebar';
 import ChatHistory from '@/components/ChatHistory';
+import ModelSelector from '@/components/ModelSelector';
+import { ModelType } from '@/config/aiModels';
+// Removed useDefaultModel hook to fix display issues
 
 interface MarkingResult {
   markedImage: string;
@@ -23,6 +26,21 @@ export default function MarkHomeworkPage() {
   const [markingResult, setMarkingResult] = useState<MarkingResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [detailedError, setDetailedError] = useState<any>(null);
+      const [selectedModel, setSelectedModel] = useState<ModelType>('chatgpt-4o'); // Default to ChatGPT 4o for homework marking
+  
+  // Log when selectedModel changes
+  useEffect(() => {
+    console.log('🔍 Mark Homework Page - selectedModel changed:', selectedModel);
+  }, [selectedModel]);
+  
+  // Load saved model preference on component mount
+  useEffect(() => {
+    const savedModel = localStorage.getItem('selectedModel') as ModelType;
+    if (savedModel && (savedModel === 'gemini-2.5-pro' || savedModel === 'chatgpt-5' || savedModel === 'chatgpt-4o')) {
+      console.log('🔍 Mark Homework Page - Loading saved model:', savedModel);
+      setSelectedModel(savedModel);
+    }
+  }, []);
   const [chatSessions, setChatSessions] = useState<Array<{
     id: string;
     title: string;
@@ -142,15 +160,24 @@ export default function MarkHomeworkPage() {
     setMarkingResult(null);
 
     try {
+      const requestBody = {
+        imageData: imagePreview,
+        imageName: selectedImage.name,
+        model: selectedModel,
+      };
+      
+      console.log('🔍 Frontend - Sending request with model:', {
+        selectedModel,
+        hasModel: !!selectedModel,
+        modelType: typeof selectedModel
+      });
+      
       const response = await fetch('/api/mark-homework', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          imageData: imagePreview,
-          imageName: selectedImage.name,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (response.ok) {
@@ -222,10 +249,24 @@ export default function MarkHomeworkPage() {
             <div className="max-w-6xl mx-auto">
               {/* Header */}
               <div className="mb-8">
-                <h1 className="text-3xl font-bold text-gray-900">AI Homework Marker</h1>
-                <p className="text-gray-600 mt-2">
-                  Upload a photo of student homework and get AI-powered marking with red pen corrections
-                </p>
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h1 className="text-3xl font-bold text-gray-900">AI Homework Marker</h1>
+                    <p className="text-gray-600 mt-2">
+                      Upload a photo of student homework and get AI-powered marking with red pen corrections
+                    </p>
+                  </div>
+                  <div className="flex items-center space-x-4">
+                    <div className="text-sm text-gray-600">
+                      Current Model: <span className="font-medium text-blue-600">{selectedModel === 'chatgpt-5' ? 'ChatGPT 5' : selectedModel === 'chatgpt-4o' ? 'ChatGPT 4o' : 'Gemini 2.5 Pro'}</span>
+                    </div>
+                    <ModelSelector 
+                      onModelChange={setSelectedModel}
+                      initialModel={selectedModel}
+                      className="justify-end"
+                    />
+                  </div>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -392,6 +433,12 @@ export default function MarkHomeworkPage() {
                         <pre className="text-sm text-gray-700 whitespace-pre-wrap">
                           {JSON.stringify(markingResult.instructions, null, 2)}
                         </pre>
+                        {/* Model API version footer */}
+                        <div className="mt-3 pt-2 border-t border-gray-200">
+                          <p className="text-xs text-gray-500 text-right">
+                            Powered by {selectedModel === 'gemini-2.5-pro' ? 'Google Gemini 2.5 Pro' : selectedModel === 'chatgpt-5' ? 'OpenAI ChatGPT 5' : 'OpenAI GPT-4 Omni'}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -424,6 +471,12 @@ export default function MarkHomeworkPage() {
                               {markingResult.message}
                             </span>
                           </div>
+                          {/* Model API version footer */}
+                          <div className="mt-3 pt-2 border-t border-green-200">
+                            <p className="text-xs text-green-600 text-right">
+                              Powered by {selectedModel === 'gemini-2.5-pro' ? 'Google Gemini 2.5 Pro' : selectedModel === 'chatgpt-5' ? 'OpenAI ChatGPT 5' : 'OpenAI GPT-4 Omni'}
+                            </p>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -440,7 +493,7 @@ export default function MarkHomeworkPage() {
                         <div>
                           <h4 className="font-medium text-gray-900">AI Image Analysis</h4>
                           <p className="text-sm text-gray-600">
-                            GPT-5 analyzes your highly compressed homework image (400x300, 50% quality) and identifies mathematical errors.
+                            {selectedModel === 'gemini-2.5-pro' ? 'Gemini 2.5 Pro' : selectedModel === 'chatgpt-5' ? 'ChatGPT 5' : 'GPT-4 Omni'} analyzes your highly compressed homework image (400x300, 50% quality) and identifies mathematical errors.
                           </p>
                         </div>
                       </div>
@@ -472,6 +525,25 @@ export default function MarkHomeworkPage() {
                   </div>
                 </div>
               </div>
+              
+              {/* Footer */}
+              <footer className="mt-8 border-t border-gray-200 bg-gray-50">
+                <div className="max-w-6xl mx-auto px-6 py-4">
+                  <div className="flex flex-col sm:flex-row justify-between items-center text-sm text-gray-600">
+                    <div className="flex items-center space-x-4 mb-2 sm:mb-0">
+                      <span>© 2024 Mentara Tutor</span>
+                      <span>•</span>
+                      <span>AI-Powered Learning</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span>Current Model:</span>
+                      <span className="font-medium text-blue-600">
+                        {selectedModel === 'gemini-2.5-pro' ? 'Google Gemini 2.5 Pro' : selectedModel === 'chatgpt-5' ? 'OpenAI ChatGPT 5' : 'OpenAI GPT-4 Omni'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </footer>
             </div>
           </div>
         </main>

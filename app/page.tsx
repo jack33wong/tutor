@@ -7,6 +7,9 @@ import ChatMessage from '@/components/ChatMessage';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import LeftSidebar from '@/components/LeftSidebar';
+import ModelSelector from '@/components/ModelSelector';
+import { ModelType } from '@/config/aiModels';
+// Removed useDefaultModel hook to fix display issues
 import { detectExamQuestion, getCorrectAnswer } from '@/data/pastExamQuestions';
 import { addCompletedQuestion, updateQuestionStatus, UserProgress, calculateProgressStats } from '@/data/progressTracking';
 
@@ -257,6 +260,7 @@ export default function ChatHome() {
 	const [showNotepad, setShowNotepad] = useState(false);
 	const [isSending, setIsSending] = useState(false);
 	const [isCreatingSession, setIsCreatingSession] = useState(false);
+	  	    const [selectedModel, setSelectedModel] = useState<ModelType>('gemini-2.5-pro'); // Default to Gemini 2.5 Pro for main chat
 	const fileRef = useRef<HTMLInputElement | null>(null);
 
 	// Progress tracking state
@@ -606,7 +610,8 @@ export default function ChatHome() {
 			const requestBody = { 
 				message: text || (uploadedImage ? 'Please analyze this image' : ''), 
 				imageData: uploadedImage || undefined,
-				imageName: uploadName || undefined 
+				imageName: uploadName || undefined,
+				model: selectedModel
 			};
 			
 			console.log('=== API REQUEST DEBUG ===');
@@ -885,6 +890,22 @@ export default function ChatHome() {
 
 				{/* Chat Area */}
 				<main className="flex-1 flex flex-col">
+					{/* Header with Model Selector */}
+					<div className="bg-white border-b border-gray-200 px-6 py-3">
+						<div className="max-w-4xl mx-auto">
+							<div className="flex items-center space-x-4">
+								<ModelSelector 
+									onModelChange={setSelectedModel}
+									initialModel={selectedModel}
+									className="justify-start"
+								/>
+								<div className="text-sm text-gray-600">
+									                        Current Model: <span className="font-medium text-blue-600">{selectedModel === 'chatgpt-5' ? 'ChatGPT 5' : selectedModel === 'chatgpt-4o' ? 'ChatGPT 4o' : 'Gemini 2.5 Pro'}</span>
+								</div>
+							</div>
+						</div>
+					</div>
+					
 					{/* Chat Messages */}
 					<div className="flex-1 overflow-y-auto p-4">
 						<div className="max-w-4xl mx-auto space-y-6">
@@ -917,6 +938,7 @@ export default function ChatHome() {
 													role={msg.role}
 													imageData={msg.imageData}
 													imageName={msg.imageName}
+													model={msg.role === 'assistant' ? selectedModel : undefined}
 												/>
 											</div>
 										</div>
@@ -1073,6 +1095,25 @@ export default function ChatHome() {
 							</div>
 						</div>
 					)}
+					
+					{/* Footer */}
+					<footer className="mt-8 border-t border-gray-200 bg-gray-50">
+						<div className="max-w-4xl mx-auto px-6 py-4">
+							<div className="flex flex-col sm:flex-row justify-between items-center text-sm text-gray-600">
+								<div className="flex items-center space-x-4 mb-2 sm:mb-0">
+									<span>© 2024 Mentara Tutor</span>
+									<span>•</span>
+									<span>AI-Powered Learning</span>
+								</div>
+								                    <div className="flex items-center space-x-2">
+                      <span>Current Model:</span>
+                      <span className="font-medium text-blue-600">
+                        {selectedModel === 'gemini-2.5-pro' ? 'Google Gemini 2.5 Pro' : selectedModel === 'chatgpt-5' ? 'OpenAI ChatGPT 5' : 'OpenAI GPT-4 Omni'}
+                      </span>
+                    </div>
+							</div>
+						</div>
+					</footer>
 				</main>
 			</div>
 		</div>
