@@ -232,41 +232,63 @@ async function callChatGPT(message: string, model: string = 'gpt-4o'): Promise<s
     // Map model selection to actual OpenAI model names
     let openaiModel = 'gpt-4o';
     if (model === 'chatgpt-5') {
+      // Try gpt-5 first, fallback to gpt-4o if not available
       openaiModel = 'gpt-5';
     } else if (model === 'chatgpt-4o') {
       openaiModel = 'gpt-4o';
     }
     
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: openaiModel,
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a friendly GCSE Maths tutor called Mentara. Be concise, clear, and helpful. When providing mathematical formulas, use LaTeX format with proper delimiters. For example, use \\[ ... \\] for display math or \\( ... \\) for inline math. Focus on GCSE Maths topics like algebra, geometry, fractions, statistics, and trigonometry. Provide direct answers without repeating the question - the question will be displayed separately.\n\nIMPORTANT: Always include visual aids in your explanations:\n- Create ASCII diagrams for geometric problems\n- Use step-by-step annotations with arrows (→) and explanations\n- Draw simple coordinate grids, number lines, or shapes using text characters\n- Add visual representations like: |--|--|--| for number lines, or basic shapes using *, +, -, | characters\n- Include detailed step-by-step breakdowns with clear annotations\n- Use visual spacing and formatting to make solutions easy to follow'
-          },
-          {
-            role: 'user',
-            content: message
-          }
-        ],
-        max_tokens: 800,
-        temperature: 0.7
-      })
-    });
+    console.log('🔍 Using OpenAI model:', openaiModel);
+    
+    // Try the selected model first
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: openaiModel,
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a friendly GCSE Maths tutor called Mentara. Be concise, clear, and helpful. When providing mathematical formulas, use LaTeX format with proper delimiters. For example, use \\[ ... \\] for display math or \\( ... \\) for inline math. Focus on GCSE Maths topics like algebra, geometry, fractions, statistics, and trigonometry. Provide direct answers without repeating the question - the question will be displayed separately.\n\nIMPORTANT: Always include visual aids in your explanations:\n- Create ASCII diagrams for geometric problems\n- Use step-by-step annotations with arrows (→) and explanations\n- Draw simple coordinate grids, number lines, or shapes using text characters\n- Add visual representations like: |--|--|--| for number lines, or basic shapes using *, +, -, | characters\n- Include detailed step-by-step breakdowns with clear annotations\n- Use visual spacing and formatting to make solutions easy to follow'
+            },
+            {
+              role: 'user',
+              content: message
+            }
+          ],
+          max_tokens: 800,
+          temperature: 0.7
+        })
+      });
 
-    if (response.ok) {
-      const data = await response.json();
-      console.log('ChatGPT response received');
-      return data.choices[0]?.message?.content || 'I understand your question. Let me help you with that.';
-    } else {
-      console.error('ChatGPT API error:', response.status, response.statusText);
-      throw new Error(`ChatGPT API error: ${response.status}`);
+      if (response.ok) {
+        const data = await response.json();
+        console.log('ChatGPT response received');
+        return data.choices[0]?.message?.content || 'I understand your question. Let me help you with that.';
+      } else {
+        const errorData = await response.text();
+        console.error('ChatGPT API error:', response.status, response.statusText);
+        console.error('Error details:', errorData);
+        
+        // If gpt-5 fails, try gpt-4o as fallback
+        if (model === 'chatgpt-5' && openaiModel === 'gpt-5') {
+          console.log('🔄 gpt-5 failed, trying gpt-4o as fallback...');
+          return await callChatGPT(message, 'chatgpt-4o');
+        }
+        
+        throw new Error(`ChatGPT API error: ${response.status} - ${errorData}`);
+      }
+    } catch (error) {
+      // If gpt-5 fails, try gpt-4o as fallback
+      if (model === 'chatgpt-5' && openaiModel === 'gpt-5') {
+        console.log('🔄 gpt-5 failed, trying gpt-4o as fallback...');
+        return await callChatGPT(message, 'chatgpt-4o');
+      }
+      throw error;
     }
   } catch (error) {
     console.error('ChatGPT API call failed:', error);
