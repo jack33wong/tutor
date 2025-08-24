@@ -1098,24 +1098,7 @@ export default function ChatHome() {
 						</div>
 					)}
 					
-					{/* Footer */}
-					<footer className="mt-8 border-t border-gray-200 bg-gray-50">
-						<div className="max-w-4xl mx-auto px-6 py-4">
-							<div className="flex flex-col sm:flex-row justify-between items-center text-sm text-gray-600">
-								<div className="flex items-center space-x-4 mb-2 sm:mb-0">
-									<span>© 2024 Mentara Tutor</span>
-									<span>•</span>
-									<span>AI-Powered Learning</span>
-								</div>
-								                    <div className="flex items-center space-x-2">
-                      <span>Current Model:</span>
-                      <span className="font-medium text-blue-600">
-                        {selectedModel === 'gemini-2.5-pro' ? 'Google Gemini 2.5 Pro' : selectedModel === 'chatgpt-5' ? 'OpenAI ChatGPT 5' : 'OpenAI GPT-4 Omni'}
-                      </span>
-                    </div>
-							</div>
-						</div>
-					</footer>
+
 				</main>
 			</div>
 		</div>

@@ -246,28 +246,30 @@ export default function MarkHomeworkPage() {
         </LeftSidebar>
 
         <main className="flex-1 flex flex-col">
-          <div className="flex-1 overflow-y-auto p-4">
-            <div className="max-w-6xl mx-auto">
-              {/* Header */}
-              <div className="mb-8">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h1 className="text-3xl font-bold text-gray-900">AI Homework Marker</h1>
-                    <p className="text-gray-600 mt-2">
-                      Upload a photo of student homework and get AI-powered marking with red pen corrections
-                    </p>
-                  </div>
-                  <div className="flex items-center space-x-4">
-                    <div className="text-sm text-gray-600">
-                      Current Model: <span className="font-medium text-blue-600">{selectedModel === 'chatgpt-5' ? 'ChatGPT 5' : selectedModel === 'chatgpt-4o' ? 'ChatGPT 4o' : 'Gemini 2.5 Pro'}</span>
-                    </div>
-                    <ModelSelector 
-                      onModelChange={setSelectedModel}
-                      initialModel={selectedModel}
-                      className="justify-end"
-                    />
-                  </div>
+          {/* Header with Model Selector - matching main chat page design */}
+          <div className="bg-white border-b border-gray-200 px-6 py-3">
+            <div className="max-w-4xl mx-auto">
+              <div className="flex items-center space-x-4">
+                <ModelSelector 
+                  onModelChange={setSelectedModel}
+                  initialModel={selectedModel}
+                  className="justify-start"
+                />
+                <div className="text-sm text-gray-600">
+                  Current Model: <span className="font-medium text-blue-600">{selectedModel === 'chatgpt-5' ? 'ChatGPT 5' : selectedModel === 'chatgpt-4o' ? 'ChatGPT 4o' : 'Gemini 2.5 Pro'}</span>
                 </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Content Area */}
+          <div className="flex-1 overflow-y-auto p-4">
+            <div className="max-w-4xl mx-auto">
+              {/* Description below header */}
+              <div className="mb-8 text-center">
+                <p className="text-gray-600 text-lg">
+                  Upload a photo of student homework and get AI-powered marking with red pen corrections
+                </p>
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
