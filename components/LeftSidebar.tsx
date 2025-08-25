@@ -3,10 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, FileText, MessageCircle, Plus, Trash2, HardDrive, TrendingUp, CheckSquare } from 'lucide-react';
+import { LayoutDashboard, FileText, MessageCircle, Plus, Trash2, HardDrive, TrendingUp, CheckSquare, Settings, Database, FileSpreadsheet, Search, Bug } from 'lucide-react';
 import ProgressDisplay from './ProgressDisplay';
-import { UserProgress } from '@/data/progressTracking';
-
 
 
 interface LeftSidebarProps {
@@ -18,12 +16,11 @@ interface LeftSidebarProps {
 		chatSize: number;
 		totalSizeMB: number;
 	} | null;
-	userProgress?: UserProgress;
 }
 
-export default function LeftSidebar({ children, onNewChat, onClearStorage, storageInfo, userProgress }: LeftSidebarProps) {
+export default function LeftSidebar({ children, onNewChat, onClearStorage, storageInfo }: LeftSidebarProps) {
 	const pathname = usePathname();
-	const [showStorageDetails, setShowStorageDetails] = useState(false);
+	const [showAdminMenu, setShowAdminMenu] = useState(false);
 
 	const handleChatClick = (e: React.MouseEvent) => {
 		if (onNewChat && pathname === '/') {
@@ -31,6 +28,45 @@ export default function LeftSidebar({ children, onNewChat, onClearStorage, stora
 			onNewChat();
 		}
 	};
+
+	const adminMenuItems = [
+		{
+			href: '/admin',
+			label: 'Admin Dashboard',
+			icon: Settings,
+			description: 'Main admin panel'
+		},
+		{
+			href: '/admin/manage-exam-papers',
+			label: 'Manage Questions',
+			icon: FileText,
+			description: 'Add/edit exam questions'
+		},
+		{
+			href: '/admin/bulk-import-questions',
+			label: 'Bulk Import',
+			icon: FileSpreadsheet,
+			description: 'Import from CSV/JSON'
+		},
+		{
+			href: '/admin/import-exam-papers',
+			label: 'Sync Database',
+			icon: Database,
+			description: 'Sync with Firestore'
+		},
+		{
+			href: '/debug-firestore',
+			label: 'Debug Data',
+			icon: Bug,
+			description: 'Inspect Firestore'
+		},
+		{
+			href: '/test-detection',
+			label: 'Test Detection',
+			icon: Search,
+			description: 'Test question matching'
+		}
+	];
 
 	return (
 		<aside className="w-64 bg-white border-r border-gray-200 p-4 hidden md:flex md:flex-col">
@@ -78,11 +114,9 @@ export default function LeftSidebar({ children, onNewChat, onClearStorage, stora
 			</nav>
 
 			{/* Progress Display */}
-			{userProgress && (
-				<div className="mb-4">
-					<ProgressDisplay userProgress={userProgress} />
-				</div>
-			)}
+			<div className="mb-4">
+				<ProgressDisplay />
+			</div>
 
 			{/* Chat History - Show on all pages */}
 			{children && (
@@ -91,49 +125,56 @@ export default function LeftSidebar({ children, onNewChat, onClearStorage, stora
 				</div>
 			)}
 
-			{/* Storage Management Section */}
+			{/* Admin Menu Section */}
 			<div className="mt-auto pt-4 border-t border-gray-200">
-				{/* Storage Info */}
+				{/* Admin Menu Toggle */}
 				<div className="mb-3">
 					<button
-						onClick={() => setShowStorageDetails(!showStorageDetails)}
+						onClick={() => setShowAdminMenu(!showAdminMenu)}
 						className="flex items-center justify-between w-full px-3 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded-lg transition-colors"
 					>
 						<div className="flex items-center space-x-2">
-							<HardDrive className="w-4 h-4" />
-							<span>Storage</span>
+							<Settings className="w-4 h-4" />
+							<span>Admin Tools</span>
 						</div>
 						<span className="text-xs">
-							{storageInfo ? `${storageInfo.totalSizeMB}MB` : '...'}
+							{showAdminMenu ? '▼' : '▶'}
 						</span>
 					</button>
 					
-					{showStorageDetails && storageInfo && (
-						<div className="px-3 py-2 mt-1 text-xs text-gray-500 bg-gray-50 rounded-lg">
-							<div className="flex justify-between">
-								<span>Total:</span>
-								<span>{storageInfo.totalSize}KB</span>
-							</div>
-							<div className="flex justify-between">
-								<span>Chat Data:</span>
-								<span>{storageInfo.chatSize}KB</span>
-							</div>
-							{storageInfo.totalSizeMB > 3 && (
-								<div className="text-orange-600 mt-1">
-									⚠️ Storage getting full
-								</div>
-							)}
+					{/* Admin Menu Items */}
+					{showAdminMenu && (
+						<div className="space-y-1 mt-2">
+							{adminMenuItems.map((item) => {
+								const IconComponent = item.icon;
+								const isActive = pathname === item.href;
+								return (
+									<Link
+										key={item.href}
+										href={item.href}
+										className={`flex items-center space-x-2 px-3 py-2 text-xs rounded-lg transition-colors ${
+											isActive
+												? 'bg-blue-50 text-blue-700 border border-blue-200'
+												: 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+										}`}
+										title={item.description}
+									>
+										<IconComponent className="w-3 h-3" />
+										<span className="truncate">{item.label}</span>
+									</Link>
+								);
+							})}
 						</div>
 					)}
 				</div>
 
-				{/* Clear Storage Button */}
+				{/* Clear Storage Button - Keep this for now but make it smaller */}
 				{onClearStorage && (
 					<button
 						onClick={onClearStorage}
-						className="flex items-center space-x-2 w-full px-3 py-2 text-sm text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
+						className="flex items-center space-x-2 w-full px-3 py-2 text-xs text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
 					>
-						<Trash2 className="w-4 h-4" />
+						<Trash2 className="w-3 h-3" />
 						<span>Clear All Chats</span>
 					</button>
 				)}

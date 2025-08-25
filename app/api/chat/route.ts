@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { detectExamQuestion, formatExamMetadata, getRandomExamQuestions, formatSuggestedQuestion } from '@/data/pastExamQuestions';
-import { addCompletedQuestion, UserProgress, calculateProgressStats, getCompletionStatus } from '@/data/progressTracking';
+
+import { examPaperServiceServer } from '@/services/examPaperServiceServer';
 
 export async function POST(req: NextRequest) {
   try {
@@ -8,20 +8,28 @@ export async function POST(req: NextRequest) {
     let { message, imageData, imageName, model }: { message?: string; imageData?: string; imageName?: string; model?: string } = requestBody;
     const originalMessage = message;
     
+    // Declare selectedQuestion at function scope so it can be accessed later
+    let selectedQuestion: any = null;
+    
     // Check for blank input and generate a random question to process
     if ((!message || message.trim() === '') && (!imageData || !imageName)) {
       console.log('🎲 Generating random past paper question for AI processing...');
-      const randomQuestions = getRandomExamQuestions(1);
-      const selectedQuestion = randomQuestions[0];
-      
-      if (!selectedQuestion) {
-        return NextResponse.json({ error: 'No random question available' }, { status: 500 });
+      try {
+        const randomQuestions = await examPaperServiceServer.getRandomExamQuestions(1);
+        const selectedQuestion = randomQuestions[0];
+        
+        if (!selectedQuestion) {
+          return NextResponse.json({ error: 'No random question available' }, { status: 500 });
+        }
+        
+        // Process the random question as if it was user input
+        message = selectedQuestion.question;
+        console.log('🎯 Processing random question:', message);
+        // Continue with normal processing flow below
+      } catch (error) {
+        console.error('Error getting random question from Firestore:', error);
+        return NextResponse.json({ error: 'Failed to generate random question' }, { status: 500 });
       }
-      
-      // Process the random question as if it was user input
-      message = selectedQuestion.question;
-      console.log('🎯 Processing random question:', message);
-      // Continue with normal processing flow below
     }
     
     // Allow requests with either a message or an image
@@ -47,7 +55,7 @@ export async function POST(req: NextRequest) {
         
         if (model === 'chatgpt-5' || model === 'chatgpt-4o') {
           try {
-            reply = await callChatGPT(userMessage, model);
+            reply = await callChatGPT(userMessage, model, imageData, imageName);
             apiUsed = model === 'chatgpt-5' ? 'OpenAI GPT-5' : 'OpenAI GPT-4 Omni';
           } catch (chatgptError) {
             console.log('ChatGPT image analysis failed, trying Gemini...');
@@ -77,7 +85,7 @@ I'm here to help with GCSE Maths and can guide you through solving any mathemati
           } catch (geminiError) {
             console.log('Gemini image analysis failed, trying ChatGPT...');
             try {
-              reply = await callChatGPT(userMessage, 'chatgpt-4o'); // Pass model for fallback
+              reply = await callChatGPT(userMessage, 'chatgpt-4o', imageData, imageName); // Pass model and image data for fallback
               apiUsed = 'OpenAI GPT-4 Omni'; // Default to GPT-4 Omni as fallback
             } catch (chatgptError) {
               console.error('Both Gemini and ChatGPT failed:', { geminiError, chatgptError });
@@ -121,7 +129,7 @@ I'm here to help with GCSE Maths and can guide you through solving any mathemati
           } catch (geminiError) {
             console.log('Gemini failed, trying ChatGPT...');
             try {
-              reply = await callChatGPT(userMessage, 'chatgpt-4o'); // Pass model for fallback
+              reply = await callChatGPT(userMessage, 'chatgpt-4o'); // Pass model for fallback (text-only)
               apiUsed = 'OpenAI GPT-4 Omni'; // Default to GPT-4 Omni as fallback
             } catch (chatgptError) {
               console.error('Both Gemini and ChatGPT failed:', { geminiError, chatgptError });
@@ -156,19 +164,38 @@ I'm here to help with GCSE Maths and can guide you through solving any mathemati
         // Remove the QUESTION_TEXT part from the reply
         const cleanedReply = reply.replace(/QUESTION_TEXT:\s*[\s\S]+?(?:\n\n|$)/, '').trim();
         
-        // Check if extracted text matches any past paper questions
-        const examMetadata = detectExamQuestion(extractedQuestionText);
+        // Check if extracted text matches any past paper questions using server-side service
+        const examMetadata = await examPaperServiceServer.detectExamQuestion(extractedQuestionText);
         
         if (examMetadata) {
           console.log('📋 Found exam metadata for extracted text:', examMetadata);
           // Format with exam metadata using extracted text
-          const formattedReply = formatChatReply(extractedQuestionText, cleanedReply);
-          return NextResponse.json({ reply: formattedReply, apiUsed });
+          const formattedReply = await formatChatReply(extractedQuestionText, cleanedReply);
+          return NextResponse.json({ 
+            reply: formattedReply, 
+            apiUsed,
+            extractedQuestion: extractedQuestionText,
+            isImageQuestion: true,
+            examMetadata: examMetadata
+          });
         } else {
           // No exam match, but still format nicely with extracted text
-          const formattedReply = formatChatReply(extractedQuestionText, cleanedReply);
-          return NextResponse.json({ reply: formattedReply, apiUsed });
+          const formattedReply = await formatChatReply(extractedQuestionText, cleanedReply);
+          return NextResponse.json({ 
+            reply: formattedReply, 
+            apiUsed,
+            extractedQuestion: extractedQuestionText,
+            isImageQuestion: true
+          });
         }
+      } else {
+        // No question text extracted, but still an image question
+        return NextResponse.json({ 
+          reply: await formatChatReply(`[📷 Image: ${imageName}]`, reply), 
+          apiUsed,
+          isImageQuestion: true,
+          imageName: imageName
+        });
       }
     }
 
@@ -176,10 +203,10 @@ I'm here to help with GCSE Maths and can guide you through solving any mathemati
     const wasBlankInput = !originalMessage || originalMessage.trim() === '';
     
     if (wasBlankInput) {
-      // For random questions, still format with metadata detection
-      const formattedReply = formatChatReply(userMessage, reply);
+      // For random questions, return the full metadata object, not just the question text
+      const formattedReply = await formatChatReply(userMessage, reply);
       return NextResponse.json({ 
-        randomQuestion: userMessage,
+        randomQuestion: selectedQuestion, // Return the full ExamQuestionMetadata object
         reply: formattedReply,
         isRandomGenerated: true,
         apiUsed
@@ -187,7 +214,7 @@ I'm here to help with GCSE Maths and can guide you through solving any mathemati
     }
     
     // Format the reply with Question and Answer template for normal messages
-    const formattedReply = formatChatReply(userMessage, reply);
+    const formattedReply = await formatChatReply(userMessage, reply);
 
     return NextResponse.json({ reply: formattedReply, apiUsed });
   } catch (e) {
@@ -200,22 +227,22 @@ I'm here to help with GCSE Maths and can guide you through solving any mathemati
 }
 
 // Format chat reply with Question and Answer template
-function formatChatReply(userMessage: string, aiReply: string): string {
+async function formatChatReply(userMessage: string, aiReply: string): Promise<string> {
   // Clean up the user message for display
   const question = userMessage.trim();
   
   // Clean up the AI reply
   const answer = aiReply.trim();
   
-  // Check if the question matches a past exam question
-  const examMetadata = detectExamQuestion(question);
+  // Check if the question matches a past exam question using server-side service
+  const examMetadata = await examPaperServiceServer.detectExamQuestion(question);
   
   // Build the formatted reply
   let formattedReply = '';
   
   // Add exam metadata if detected
   if (examMetadata) {
-    formattedReply += `${formatExamMetadata(examMetadata)}\n\n---\n\n`;
+    formattedReply += `${examPaperServiceServer.formatExamMetadata(examMetadata)}\n\n---\n\n`;
   }
   
   // Add Question and Answer sections
@@ -225,7 +252,7 @@ function formatChatReply(userMessage: string, aiReply: string): string {
 }
 
 // ChatGPT API function
-async function callChatGPT(message: string, model: string = 'gpt-4o'): Promise<string> {
+async function callChatGPT(message: string, model: string = 'gpt-4o', imageData?: string, imageName?: string): Promise<string> {
   try {
     console.log('Calling ChatGPT API with model:', model);
     
@@ -240,6 +267,41 @@ async function callChatGPT(message: string, model: string = 'gpt-4o'): Promise<s
     
     console.log('🔍 Using OpenAI model:', openaiModel);
     
+    // Prepare messages array
+    const messages: any[] = [
+      {
+        role: 'system',
+        content: 'You are a friendly GCSE Maths tutor called Mentara. Be concise, clear, and helpful. When providing mathematical formulas, use LaTeX format with proper delimiters. For example, use \\[ ... \\] for display math or \\( ... \\) for inline math. Focus on GCSE Maths topics like algebra, geometry, fractions, statistics, and trigonometry. Provide direct answers without repeating the question - the question will be displayed separately.\n\nIMPORTANT: Always include visual aids in your explanations:\n- Create ASCII diagrams for geometric problems\n- Use step-by-step annotations with arrows (→) and explanations\n- Draw simple coordinate grids, number lines, or shapes using text characters\n- Add visual representations like: |--|--|--| for number lines, or basic shapes using *, +, -, | characters\n- Include detailed step-by-step breakdowns with clear annotations\n- Use visual spacing and formatting to make solutions easy to follow'
+      }
+    ];
+
+    // Handle image + text or text-only messages
+    if (imageData && imageName) {
+      // Multimodal message with image
+      messages.push({
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: message || 'Please analyze this image and help me with the GCSE Maths question.'
+          },
+          {
+            type: 'image_url',
+            image_url: {
+              url: `data:image/jpeg;base64,${imageData}`,
+              detail: 'high'
+            }
+          }
+        ]
+      });
+    } else {
+      // Text-only message
+      messages.push({
+        role: 'user',
+        content: message
+      });
+    }
+    
     // Try the selected model first
     try {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -250,16 +312,7 @@ async function callChatGPT(message: string, model: string = 'gpt-4o'): Promise<s
         },
         body: JSON.stringify({
           model: openaiModel,
-          messages: [
-            {
-              role: 'system',
-              content: 'You are a friendly GCSE Maths tutor called Mentara. Be concise, clear, and helpful. When providing mathematical formulas, use LaTeX format with proper delimiters. For example, use \\[ ... \\] for display math or \\( ... \\) for inline math. Focus on GCSE Maths topics like algebra, geometry, fractions, statistics, and trigonometry. Provide direct answers without repeating the question - the question will be displayed separately.\n\nIMPORTANT: Always include visual aids in your explanations:\n- Create ASCII diagrams for geometric problems\n- Use step-by-step annotations with arrows (→) and explanations\n- Draw simple coordinate grids, number lines, or shapes using text characters\n- Add visual representations like: |--|--|--| for number lines, or basic shapes using *, +, -, | characters\n- Include detailed step-by-step breakdowns with clear annotations\n- Use visual spacing and formatting to make solutions easy to follow'
-            },
-            {
-              role: 'user',
-              content: message
-            }
-          ],
+          messages: messages,
           max_tokens: 800,
           temperature: 0.7
         })

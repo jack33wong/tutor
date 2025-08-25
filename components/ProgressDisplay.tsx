@@ -1,16 +1,16 @@
 'use client';
 
 import React, { useState } from 'react';
-import { UserProgress } from '@/data/progressTracking';
+import { useProgress } from '@/hooks/useProgress';
 import { Trophy, Target, BookOpen, Award, TrendingUp, Calendar } from 'lucide-react';
 
 interface ProgressDisplayProps {
-  userProgress: UserProgress;
   className?: string;
 }
 
-export default function ProgressDisplay({ userProgress, className = '' }: ProgressDisplayProps) {
+export default function ProgressDisplay({ className = '' }: ProgressDisplayProps) {
   const [showDetails, setShowDetails] = useState(false);
+  const { userProgress } = useProgress('default-user');
   const { stats, completedQuestions } = userProgress;
 
   if (stats.totalCompleted === 0) {

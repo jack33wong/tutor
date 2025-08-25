@@ -14,9 +14,8 @@ import {
 	LayoutDashboard,
 	FileText
 } from 'lucide-react';
-import { examPapers } from '@/data/examPapers';
+import { examPaperService } from '@/services/examPaperService';
 import DrawingPad from '@/components/DrawingPad';
-import { ExamQuestion } from '@/data/examPapers';
 import LeftSidebar from '@/components/LeftSidebar';
 import ChatHistory from '@/components/ChatHistory';
 
@@ -41,7 +40,22 @@ export default function ExamPage() {
 
 	// Get exam ID from URL
 	const examId = typeof window !== 'undefined' ? window.location.pathname.split('/').pop() : '';
-	const exam = examPapers.find(e => e.id === examId);
+	const [exam, setExam] = useState<any>(null);
+
+	// Load exam data
+	useEffect(() => {
+		const loadExam = async () => {
+			if (examId) {
+				try {
+					const examData = await examPaperService.getFullExamPaperById(examId);
+					setExam(examData);
+				} catch (error) {
+					console.error('Error loading exam:', error);
+				}
+			}
+		};
+		loadExam();
+	}, [examId]);
 
 	// Load chat sessions from localStorage
 	useEffect(() => {
@@ -216,12 +230,12 @@ export default function ExamPage() {
 		return <ExamResults exam={exam} answers={answers} startTime={examStartTime} chatSessions={chatSessions} />;
 	}
 
-	const renderAnswerInput = (question: ExamQuestion) => {
+	const renderAnswerInput = (question: any) => {
 		switch (question.questionType) {
 			case 'multiple-choice':
 				return (
 					<div className="space-y-3">
-						{question.options?.map((option, index) => (
+						{question.options?.map((option: any, index: number) => (
 							<label key={index} className="flex items-center space-x-3 cursor-pointer">
 								<input
 									type="radio"
@@ -423,7 +437,7 @@ export default function ExamPage() {
 									<h3 className="text-lg font-semibold text-gray-900 mb-4">Question Navigator</h3>
 									
 									<div className="grid grid-cols-5 gap-2 mb-6">
-										{exam.questions.map((question, index) => {
+										{exam.questions.map((question: any, index: number) => {
 											const isAnswered = answers[question.id];
 											const isFlagged = flaggedQuestions.has(index);
 											const isCurrent = index === currentQuestion;
@@ -468,6 +482,16 @@ export default function ExamPage() {
 									<div className="mt-6 pt-4 border-t border-gray-100">
 										<div className="space-y-2 text-sm">
 											<div className="flex items-center justify-between">
+												<span className="text-gray-600">Level</span>
+												<span className={`px-2 py-1 text-xs font-medium rounded-full ${
+													exam.level === 'A-Level' 
+														? 'bg-orange-100 text-orange-800' 
+														: 'bg-green-100 text-green-800'
+												}`}>
+													{exam.level}
+												</span>
+											</div>
+											<div className="flex items-center justify-between">
 												<span className="text-gray-600">Total Marks</span>
 												<span className="font-medium">{exam.totalMarks}</span>
 											</div>
@@ -502,7 +526,7 @@ function ExamResults({ exam, answers, startTime, chatSessions }: { exam: any, an
 		let totalScore = 0;
 		let totalMarks = 0;
 		
-		exam.questions.forEach((question: ExamQuestion) => {
+		exam.questions.forEach((question: any) => {
 			totalMarks += question.marks;
 			const userAnswer = answers[question.id];
 			if (userAnswer && userAnswer.trim().toLowerCase() === question.correctAnswer.toString().toLowerCase()) {
@@ -550,6 +574,8 @@ function ExamResults({ exam, answers, startTime, chatSessions }: { exam: any, an
 									<div className="flex items-center justify-center space-x-4 mt-2 text-sm text-gray-500">
 										<span>{exam.examBoard} {exam.paperType}</span>
 										<span>•</span>
+										<span>{exam.level}</span>
+										<span>•</span>
 										<span>{exam.difficulty} tier</span>
 										<span>•</span>
 										<span>{examDuration} minutes</span>
@@ -579,7 +605,7 @@ function ExamResults({ exam, answers, startTime, chatSessions }: { exam: any, an
 								{/* Question Review */}
 								<div className="space-y-6">
 									<h2 className="text-xl font-semibold text-gray-900">Question Review</h2>
-									{exam.questions.map((question: ExamQuestion, index: number) => {
+									{exam.questions.map((question: any, index: number) => {
 										const userAnswer = answers[question.id];
 										const isCorrect = userAnswer && userAnswer.trim().toLowerCase() === question.correctAnswer.toString().toLowerCase();
 										

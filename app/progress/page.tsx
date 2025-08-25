@@ -3,52 +3,45 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Trophy, Target, Calendar, BookOpen, Award, TrendingUp, BarChart3, Filter, MessageCircle } from 'lucide-react';
-import { UserProgress, calculateProgressStats, getQuestionStatus, removeCompletedQuestion } from '@/data/progressTracking';
+import { useProgress } from '@/hooks/useProgress';
+import { useExamPapers } from '@/hooks/useExamPapers';
 import LeftSidebar from '@/components/LeftSidebar';
 import FullExamPaperView from '@/components/FullExamPaperView';
-import { findExamPaperByQuestionId, fullExamPapers } from '@/data/fullExamPapers';
 
 export default function ProgressPage() {
-  const [userProgress, setUserProgress] = useState<UserProgress>({
-    completedQuestions: [],
-    stats: calculateProgressStats([]),
-    lastUpdated: new Date()
-  });
   const [filter, setFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'date' | 'marks' | 'difficulty'>('date');
   const [activeTab, setActiveTab] = useState<'overview' | 'history' | 'analytics'>('overview');
+  const [overviewSubTab, setOverviewSubTab] = useState<'papers' | 'activity'>('papers');
+  const [examPaperGroupBy, setExamPaperGroupBy] = useState<'date' | 'examBoard' | 'year' | 'difficulty' | 'topic'>('date');
   
   // Full exam paper view state
   const [selectedExamPaper, setSelectedExamPaper] = useState<any>(null);
   const [highlightedQuestionIds, setHighlightedQuestionIds] = useState<string[]>([]); // Changed from highlightedQuestionId to highlightedQuestionIds array
 
-  // Load progress from localStorage
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const savedProgress = localStorage.getItem('userProgress');
-        if (savedProgress) {
-          const parsed = JSON.parse(savedProgress);
-          
-          // Migrate existing data to include status field
-          const migratedProgress = {
-            ...parsed,
-            completedQuestions: parsed.completedQuestions?.map((q: any) => ({
-              ...q,
-              status: q.status || 'asked' // Default to 'asked' for existing questions
-            })) || []
-          };
-          
-          setUserProgress(migratedProgress);
-          
-          // Save migrated data back to localStorage
-          localStorage.setItem('userProgress', JSON.stringify(migratedProgress));
-        }
-      } catch (error) {
-        console.error('Error loading user progress:', error);
-      }
-    }
-  }, []);
+  // Use the new progress hook
+  const { 
+    userProgress, 
+    isLoading, 
+    error, 
+    loadUserProgress,
+    addCompletedQuestion,
+    updateQuestionStatus,
+    deleteQuestion,
+    getFilteredProgress,
+    getRecentQuestions
+  } = useProgress('default-user');
+
+  // Use the new exam papers hook
+  const { 
+    fullExamPapers, 
+    examPapers, 
+    pastExamQuestions,
+    isLoading: examPapersLoading,
+    error: examPapersError,
+    getFullExamPaperByMetadata,
+    getFullExamPaperById
+  } = useExamPapers();
 
   const { stats, completedQuestions } = userProgress;
 
@@ -76,71 +69,70 @@ export default function ProgressPage() {
   const examBoards = Array.from(new Set(completedQuestions.map(q => q.examBoard)));
 
   // Function to handle clicking on a recent activity question
-  const handleQuestionClick = (questionId: string) => {
+  const handleQuestionClick = async (questionId: string) => {
     console.log('🔍 Question clicked:', questionId);
     
-    // First try to find the exam paper using the question ID
-    let examPaper = findExamPaperByQuestionId(questionId);
-    console.log('📄 Found exam paper via question ID:', examPaper);
-    
-    // If not found, try to find by matching exam board, year, and paper from the completed question
-    if (!examPaper) {
-      console.log('🔍 Question ID not found in fullExamPapers, trying fallback method...');
-      
+    try {
       // Find the completed question to get its metadata
       const completedQuestion = completedQuestions.find(q => q.questionId === questionId);
-      if (completedQuestion) {
-        console.log('📋 Found completed question:', completedQuestion);
-        
-        // Try to find exam paper by matching exam board, year, and paper
-        examPaper = fullExamPapers.find(ep => 
-          ep.examBoard === completedQuestion.examBoard && 
-          ep.year === completedQuestion.year && 
-          ep.paper === completedQuestion.paper
-        ) || null;
-        console.log('📄 Found exam paper via fallback method:', examPaper);
+      if (!completedQuestion) {
+        console.log('❌ Could not find completed question:', questionId);
+        return;
       }
-    }
-    
-    if (examPaper) {
-      // Find all completed questions from this exam paper
-      const examPaperCompletedQuestions = completedQuestions.filter(question => {
-        // Match by exam board, year, and paper
-        return question.examBoard === examPaper.examBoard && 
-               question.year === examPaper.year && 
-               question.paper === examPaper.paper;
-      });
       
-      // Extract the question IDs that match the full exam paper question IDs
-      const matchingQuestionIds = examPaperCompletedQuestions
-        .map(completedQ => completedQ.questionId)
-        .filter(id => examPaper.questions.some(paperQ => paperQ.id === id));
+      console.log('📋 Found completed question:', completedQuestion);
       
-      console.log('✅ Found completed questions from this exam paper:', matchingQuestionIds);
+      // Try to find exam paper by matching exam board, year, and paper
+      const examPaper = await getFullExamPaperByMetadata(
+        completedQuestion.examBoard,
+        completedQuestion.year,
+        completedQuestion.paper
+      );
       
-      setSelectedExamPaper(examPaper);
-      setHighlightedQuestionIds(matchingQuestionIds);
-    } else {
-      console.log('❌ Could not find exam paper for question:', questionId);
-      // Show an alert or notification that the exam paper couldn't be found
-      alert('Sorry, the full exam paper for this question could not be found. This might be a new question that hasn\'t been added to the exam papers database yet.');
+      console.log('📄 Found exam paper via metadata:', examPaper);
+      
+      if (examPaper) {
+        // Find all completed questions from this exam paper
+        const examPaperCompletedQuestions = completedQuestions.filter(question => {
+          // Match by exam board, year, and paper
+          return question.examBoard === examPaper.examBoard && 
+                 question.year === examPaper.year && 
+                 question.paper === examPaper.paper;
+        });
+        
+        // Extract the question IDs that match the full exam paper question IDs
+        const matchingQuestionIds = examPaperCompletedQuestions
+          .map(completedQ => completedQ.questionId)
+          .filter(id => examPaper.questions.some(paperQ => paperQ.id === id));
+        
+        console.log('✅ Found completed questions from this exam paper:', matchingQuestionIds);
+        
+        setSelectedExamPaper(examPaper);
+        setHighlightedQuestionIds(matchingQuestionIds);
+      } else {
+        console.log('❌ Could not find exam paper for question:', questionId);
+        // Show an alert or notification that the exam paper couldn't be found
+        alert('Sorry, the full exam paper for this question could not be found. This might be a new question that hasn\'t been added to the exam papers database yet.');
+      }
+    } catch (error) {
+      console.error('Error finding exam paper:', error);
+      alert('Sorry, there was an error finding the exam paper. Please try again.');
     }
   };
 
   // Function to remove a question from recent activity
-  const handleRemoveQuestion = (questionId: string, event: React.MouseEvent) => {
+  const handleRemoveQuestion = async (questionId: string, event: React.MouseEvent) => {
     event.stopPropagation(); // Prevent triggering the question click
     
     if (confirm('Are you sure you want to remove this question from your progress? This action cannot be undone.')) {
-      const updatedProgress = removeCompletedQuestion(userProgress, questionId);
-      setUserProgress(updatedProgress);
-      
-      // Save to localStorage
       try {
-        localStorage.setItem('userProgress', JSON.stringify(updatedProgress));
-        console.log('🗑️ Question removed:', questionId);
+        // Actually delete the question from Firestore
+        await deleteQuestion(questionId);
+        console.log('🗑️ Question deleted from progress:', questionId);
       } catch (error) {
-        console.error('Error saving progress after removal:', error);
+        console.error('Error deleting question:', error);
+        // Show user-friendly error message
+        alert('Failed to delete question. Please try again.');
       }
     }
   };
@@ -163,14 +155,112 @@ export default function ProgressPage() {
     console.log('📊 Data check - fullExamPapers length:', fullExamPapers.length);
     console.log('📊 Data check - userProgress completedQuestions length:', userProgress.completedQuestions.length);
     console.log('📊 Data check - first fullExamPaper:', fullExamPapers[0]);
-  }, [userProgress.completedQuestions.length]);
+    console.log('📊 Data check - isLoading:', isLoading);
+    console.log('📊 Data check - error:', error);
+    console.log('📊 Data check - userProgress:', userProgress);
+    console.log('📊 Data check - examPapersLoading:', examPapersLoading);
+    console.log('📊 Data check - examPapersError:', examPapersError);
+  }, [fullExamPapers.length, userProgress.completedQuestions.length, isLoading, error, examPapersLoading, examPapersError]);
+
+  // Show loading state while data is being fetched
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="flex h-screen">
+          {/* Left Sidebar */}
+          <LeftSidebar>
+            {/* Progress Display */}
+            <div className="mb-4">
+              <h3 className="text-sm font-medium text-gray-700 mb-3 px-1">Progress Overview</h3>
+              <div className="space-y-2">
+                <div className="text-xs text-gray-500 px-1">
+                  Loading progress data...
+                </div>
+              </div>
+            </div>
+          </LeftSidebar>
+
+          {/* Main Content */}
+          <main className="flex-1 overflow-y-auto p-6">
+            <div className="max-w-4xl mx-auto">
+              {/* Header */}
+              <div className="mb-8">
+                <h1 className="text-3xl font-bold text-gray-900">Progress Tracker</h1>
+                <p className="text-gray-600 mt-2">Track your past paper practice and exam preparation</p>
+              </div>
+
+              {/* Loading State */}
+              <div className="bg-white rounded-lg shadow-sm p-12 text-center">
+                <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <h2 className="text-xl font-semibold text-gray-900 mb-2">Loading Progress Data</h2>
+                <p className="text-gray-600">
+                  Please wait while we load your progress information...
+                </p>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state if there's an error
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="flex h-screen">
+          {/* Left Sidebar */}
+          <LeftSidebar>
+            {/* Progress Display */}
+            <div className="mb-4">
+              <h3 className="text-sm font-medium text-gray-700 mb-3 px-1">Progress Overview</h3>
+              <div className="space-y-2">
+                <div className="text-xs text-gray-500 px-1">
+                  Error loading data
+                </div>
+              </div>
+            </div>
+          </LeftSidebar>
+
+          {/* Main Content */}
+          <main className="flex-1 overflow-y-auto p-6">
+            <div className="max-w-4xl mx-auto">
+              {/* Header */}
+              <div className="mb-8">
+                <h1 className="text-3xl font-bold text-gray-900">Progress Tracker</h1>
+                <p className="text-gray-600 mt-2">Track your past paper practice and exam preparation</p>
+              </div>
+
+              {/* Error State */}
+              <div className="bg-white rounded-lg shadow-sm p-12 text-center">
+                <div className="text-red-500 text-6xl mb-4">⚠️</div>
+                <h2 className="text-xl font-semibold text-gray-900 mb-2">Error Loading Progress</h2>
+                <p className="text-gray-600 mb-4">
+                  There was an error loading your progress data.
+                </p>
+                <p className="text-sm text-gray-500 mb-6">
+                  Error: {error}
+                </p>
+                <button 
+                  onClick={() => loadUserProgress()}
+                  className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Try Again
+                </button>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+  }
 
   if (stats.totalCompleted === 0) {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="flex h-screen">
           {/* Left Sidebar */}
-          <LeftSidebar userProgress={userProgress}>
+          <LeftSidebar>
             {/* Progress Display */}
             <div className="mb-4">
               <h3 className="text-sm font-medium text-gray-700 mb-3 px-1">Progress Overview</h3>
@@ -217,7 +307,7 @@ export default function ProgressPage() {
     <div className="min-h-screen bg-gray-50">
       <div className="flex h-screen">
         {/* Left Sidebar */}
-        <LeftSidebar userProgress={userProgress}>
+        <LeftSidebar>
           {/* Progress Display */}
           <div className="mb-4">
             <h3 className="text-sm font-medium text-gray-700 mb-3 px-1">Progress Overview</h3>
@@ -330,12 +420,9 @@ export default function ProgressPage() {
                   <div className="border-b border-gray-200">
                     <nav className="flex space-x-8 px-6">
                       <button
-                        onClick={() => {
-                          localStorage.removeItem('overviewSubTab');
-                          setUserProgress(prev => ({ ...prev }));
-                        }}
+                        onClick={() => setOverviewSubTab('papers')}
                         className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                          !localStorage.getItem('overviewSubTab')
+                          overviewSubTab === 'papers'
                             ? 'border-blue-500 text-blue-600'
                             : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                         }`}
@@ -343,12 +430,9 @@ export default function ProgressPage() {
                         Recent Exam Papers
                       </button>
                       <button
-                        onClick={() => {
-                          localStorage.setItem('overviewSubTab', 'activity');
-                          setUserProgress(prev => ({ ...prev }));
-                        }}
+                        onClick={() => setOverviewSubTab('activity')}
                         className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                          localStorage.getItem('overviewSubTab') === 'activity'
+                          overviewSubTab === 'activity'
                             ? 'border-blue-500 text-blue-600'
                             : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                         }`}
@@ -360,7 +444,7 @@ export default function ProgressPage() {
 
                   <div className="p-6">
                     {/* Recent Exam Papers Tab */}
-                    {!localStorage.getItem('overviewSubTab') && (
+                    {overviewSubTab === 'papers' && (
                       <div className="space-y-6">
                         <div className="flex items-center justify-between mb-4">
                           <h3 className="text-lg font-semibold text-gray-900 flex items-center">
@@ -370,20 +454,10 @@ export default function ProgressPage() {
                           <div className="flex items-center space-x-2">
                             <span className="text-sm text-gray-600">Group by:</span>
                             <select
-                              value={(() => {
-                                // Get the current group setting from localStorage or default to 'date'
-                                if (typeof window !== 'undefined') {
-                                  return localStorage.getItem('examPaperGroupBy') || 'date';
-                                }
-                                return 'date';
-                              })()}
+                              value={examPaperGroupBy}
                               onChange={(e) => {
-                                const groupBy = e.target.value;
-                                if (typeof window !== 'undefined') {
-                                  localStorage.setItem('examPaperGroupBy', groupBy);
-                                }
-                                // Force re-render by updating state
-                                setUserProgress(prev => ({ ...prev }));
+                                const groupBy = e.target.value as 'date' | 'examBoard' | 'year' | 'difficulty' | 'topic';
+                                setExamPaperGroupBy(groupBy);
                               }}
                               className="border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                             >
@@ -466,8 +540,8 @@ export default function ProgressPage() {
                             };
                           });
 
-                          // Get grouping preference
-                          const groupBy = typeof window !== 'undefined' ? localStorage.getItem('examPaperGroupBy') || 'date' : 'date';
+                          // Get grouping preference from React state
+                          const groupBy = examPaperGroupBy;
 
                           if (examPapers.length === 0) {
                             return (
@@ -559,20 +633,21 @@ export default function ProgressPage() {
                                             setHighlightedQuestionIds(questionIds);
                                             
                                             // Find and open the exam paper
-                                            const examPaper = fullExamPapers.find(ep => 
-                                              ep.examBoard === paper.examBoard && 
-                                              ep.year === paper.year && 
-                                              ep.paper === paper.paper
-                                            ) || null;
-                                            console.log('📋 Found exam paper:', examPaper);
-                                            if (examPaper) {
-                                              console.log('✅ Setting selected exam paper');
-                                              setSelectedExamPaper(examPaper);
-                                            } else {
-                                              console.log('❌ Exam paper not found in fullExamPapers');
-                                              console.log('🔍 Available exam papers:', fullExamPapers.map(ep => `${ep.examBoard} ${ep.year} ${ep.paper}`));
-                                              alert('Sorry, the full exam paper could not be found. This might be a new exam paper that hasn\'t been added to the database yet.');
-                                            }
+                                            getFullExamPaperByMetadata(paper.examBoard, paper.year, paper.paper)
+                                              .then(examPaper => {
+                                                console.log('📋 Found exam paper:', examPaper);
+                                                if (examPaper) {
+                                                  console.log('✅ Setting selected exam paper');
+                                                  setSelectedExamPaper(examPaper);
+                                                } else {
+                                                  console.log('❌ Exam paper not found in Firestore');
+                                                  alert('Sorry, the full exam paper could not be found. This might be a new exam paper that hasn\'t been added to the database yet.');
+                                                }
+                                              })
+                                              .catch(error => {
+                                                console.error('Error finding exam paper:', error);
+                                                alert('Sorry, there was an error finding the exam paper. Please try again.');
+                                              });
                                           }}
                                         >
                                           <div className="flex-1">
@@ -638,7 +713,7 @@ export default function ProgressPage() {
                     )}
 
                     {/* Recent Questions Tab */}
-                    {localStorage.getItem('overviewSubTab') === 'activity' && (
+                                          {overviewSubTab === 'activity' && (
                       <div className="space-y-6">
                         <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                           <Calendar className="w-5 h-5 mr-2" />
@@ -657,11 +732,11 @@ export default function ProgressPage() {
                                 handleQuestionClick(question.questionId);
                               }}
                             >
-                              <div className="flex-1">
-                                <p className="text-sm font-medium text-gray-900">{question.questionText.substring(0, 60)}...</p>
-                                <p className="text-xs text-gray-600">
-                                  {question.examBoard} • {question.year} • {question.topic}
-                                </p>
+                                                             <div className="flex-1">
+                                 <p className="text-sm font-medium text-gray-900">{question.questionText.substring(0, 60)}...</p>
+                                 <p className="text-xs text-gray-600">
+                                   {question.examBoard && question.examBoard !== 'Unknown' ? question.examBoard : 'General'} • {question.year} • {question.topic}
+                                 </p>
                                 {/* Question Status */}
                                 <div className="mt-1">
                                   <span className={`inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded-full ${
@@ -669,7 +744,9 @@ export default function ProgressPage() {
                                     (question.status || 'asked') === 'wrong' ? 'bg-red-100 text-red-800' :
                                     'bg-green-100 text-green-800'
                                   }`}>
-                                    {getQuestionStatus(question)}
+                                    {question.status === 'asked' ? '❓ Asked' : 
+                                     question.status === 'wrong' ? '❌ Wrong' : 
+                                     '✅ Correct'}
                                   </span>
                                 </div>
                               </div>

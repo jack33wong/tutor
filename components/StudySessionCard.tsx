@@ -1,8 +1,8 @@
 import { Clock, BookOpen, Target, Calendar } from 'lucide-react';
-import { StudySession } from '@/data/userProgress';
+
 
 interface StudySessionCardProps {
-  session: StudySession;
+  session: any;
 }
 
 const sessionTypeColors = {
@@ -20,7 +20,7 @@ const sessionTypeIcons = {
 };
 
 export default function StudySessionCard({ session }: StudySessionCardProps) {
-  const SessionIcon = sessionTypeIcons[session.sessionType];
+  const SessionIcon = sessionTypeIcons[session.sessionType as keyof typeof sessionTypeIcons];
   const date = new Date(session.date).toLocaleDateString('en-GB', {
     day: '2-digit',
     month: '2-digit',
@@ -36,7 +36,7 @@ export default function StudySessionCard({ session }: StudySessionCardProps) {
           <p className="text-sm text-gray-600 mb-2">{date} at {time}</p>
           
           <div className="flex items-center space-x-4 mb-3">
-            <span className={`px-2 py-1 text-xs font-medium rounded-full ${sessionTypeColors[session.sessionType]}`}>
+            <span className={`px-2 py-1 text-xs font-medium rounded-full ${sessionTypeColors[session.sessionType as keyof typeof sessionTypeColors]}`}>
               {session.sessionType.charAt(0).toUpperCase() + session.sessionType.slice(1)}
             </span>
             <div className="flex items-center text-sm text-gray-500">

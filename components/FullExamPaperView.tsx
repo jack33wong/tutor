@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef } from 'react';
 import { X, BookOpen, Calendar, Award, Target, ArrowUp, Hash, FileText, Clock, Users } from 'lucide-react';
-import { FullExamPaper, FullExamQuestion } from '@/data/fullExamPapers';
+import { FullExamPaper, FullExamQuestion } from '@/services/examPaperService';
 
 interface FullExamPaperViewProps {
   examPaper: FullExamPaper;

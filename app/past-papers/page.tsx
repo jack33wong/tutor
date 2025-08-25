@@ -1,9 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { examPapers } from '@/data/examPapers';
-import { sampleUserProgress } from '@/data/userProgress';
-import { pastExamQuestions, ExamQuestionMetadata } from '@/data/pastExamQuestions';
+import { examPaperService } from '@/services/examPaperService';
+import { useProgress } from '@/hooks/useProgress';
 import LeftSidebar from '@/components/LeftSidebar';
 import DrawingPad, { DrawingPadRef } from '@/components/DrawingPad';
 import dynamic from 'next/dynamic';
@@ -41,12 +40,31 @@ const ChatHistory = dynamic(() => import('@/components/ChatHistory'), {
 export default function PastPapersPage() {
 	const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
 	const [isHydrated, setIsHydrated] = useState(false);
-	const [selectedQuestion, setSelectedQuestion] = useState<ExamQuestionMetadata | null>(null);
+	const [selectedQuestion, setSelectedQuestion] = useState<any | null>(null);
 	const [questionAnswers, setQuestionAnswers] = useState<Record<string, QuestionAnswer>>({});
 	const [showPracticeMode, setShowPracticeMode] = useState(false);
-	const [currentPracticeQuestion, setCurrentPracticeQuestion] = useState<ExamQuestionMetadata | null>(null);
+	const [currentPracticeQuestion, setCurrentPracticeQuestion] = useState<any | null>(null);
 	const [practiceAnswers, setPracticeAnswers] = useState<Record<string, QuestionAnswer>>({});
 	const drawingPadRef = useRef<DrawingPadRef>(null);
+	const [pastExamQuestions, setPastExamQuestions] = useState<any[]>([]);
+	const [examPapers, setExamPapers] = useState<any[]>([]);
+
+	// Load data from exam paper service
+	useEffect(() => {
+		const loadData = async () => {
+			try {
+				const [questions, papers] = await Promise.all([
+					examPaperService.getAllPastExamQuestions(),
+					examPaperService.getAllExamPapers()
+				]);
+				setPastExamQuestions(questions);
+				setExamPapers(papers);
+			} catch (error) {
+				console.error('Error loading exam data:', error);
+			}
+		};
+		loadData();
+	}, []);
 
 	// Load chat sessions from localStorage with enhanced error handling
 	useEffect(() => {
@@ -77,7 +95,7 @@ export default function PastPapersPage() {
 		}
 	}, []);
 
-	const handlePracticeQuestion = (question: ExamQuestionMetadata) => {
+	const handlePracticeQuestion = (question: any) => {
 		setCurrentPracticeQuestion(question);
 		setShowPracticeMode(true);
 		// Initialize answer for this question
@@ -102,7 +120,7 @@ export default function PastPapersPage() {
 		return null;
 	};
 
-	const getAIFeedback = async (questionId: string, question: ExamQuestionMetadata, textAnswer: string, imageData?: string) => {
+	const getAIFeedback = async (questionId: string, question: any, textAnswer: string, imageData?: string) => {
 		setPracticeAnswers(prev => ({
 			...prev,
 			[questionId]: {
@@ -424,6 +442,13 @@ Keep the feedback encouraging and constructive for a GCSE student.`,
 													
 													<div className="flex items-center space-x-4 mb-3">
 														<span className={`px-2 py-1 text-xs font-medium rounded-full ${
+															exam.level === 'A-Level' 
+																? 'bg-orange-100 text-orange-800' 
+																: 'bg-green-100 text-green-800'
+														}`}>
+															{exam.level}
+														</span>
+														<span className={`px-2 py-1 text-xs font-medium rounded-full ${
 															exam.difficulty === 'foundation' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'
 														}`}>
 															{exam.difficulty} tier
@@ -442,6 +467,10 @@ Keep the feedback encouraging and constructive for a GCSE student.`,
 
 											{/* Exam Details */}
 											<div className="space-y-3">
+												<div className="flex items-center justify-between text-sm">
+													<span className="text-gray-600">Level</span>
+													<span className="font-medium">{exam.level}</span>
+												</div>
 												<div className="flex items-center justify-between text-sm">
 													<span className="text-gray-600">Total Marks</span>
 													<span className="font-medium">{exam.totalMarks}</span>

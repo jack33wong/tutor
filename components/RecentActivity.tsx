@@ -1,36 +1,29 @@
 import { Clock, BookOpen, FileText, Target, TrendingUp } from 'lucide-react';
-import { UserProgress } from '@/data/userProgress';
+import { useProgress } from '@/hooks/useProgress';
 
 interface RecentActivityProps {
-  userProgress: UserProgress;
 }
 
-export default function RecentActivity({ userProgress }: RecentActivityProps) {
-  const recentActivities = [
-    ...userProgress.examAttempts.map(attempt => ({
-      type: 'exam' as const,
-      date: new Date(attempt.date),
-      title: `Completed ${attempt.examId}`,
-      description: `Scored ${attempt.score}/${attempt.totalMarks} (${attempt.percentage.toFixed(1)}%)`,
+export default function RecentActivity({ }: RecentActivityProps) {
+  const { userProgress } = useProgress('default-user');
+  const recentActivities = userProgress.completedQuestions
+    .sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime())
+    .slice(0, 5)
+    .map(question => ({
+      type: 'question' as const,
+      date: new Date(question.completedAt),
+      title: `Completed Question`,
+      description: `${question.marks} marks • ${question.topic}`,
       icon: FileText,
       color: 'text-blue-600'
-    })),
-    ...userProgress.studySessions.map(session => ({
-      type: 'study' as const,
-      date: new Date(session.date),
-      title: `${session.sessionType.charAt(0).toUpperCase() + session.sessionType.slice(1)} Session`,
-      description: `${session.duration} minutes of ${session.sessionType}`,
-      icon: BookOpen,
-      color: 'text-green-600'
-    }))
-  ].sort((a, b) => b.date.getTime() - a.date.getTime()).slice(0, 5);
+    }));
 
-  const getActivityIcon = (type: 'exam' | 'study') => {
-    return type === 'exam' ? FileText : BookOpen;
+  const getActivityIcon = (type: 'question') => {
+    return FileText;
   };
 
-  const getActivityColor = (type: 'exam' | 'study') => {
-    return type === 'exam' ? 'text-blue-600' : 'text-green-600';
+  const getActivityColor = (type: 'question') => {
+    return 'text-blue-600';
   };
 
   return (
@@ -70,15 +63,15 @@ export default function RecentActivity({ userProgress }: RecentActivityProps) {
         <div className="grid grid-cols-2 gap-4">
           <div className="text-center">
             <p className="text-2xl font-bold text-primary-600">
-              {userProgress.examAttempts.length}
+              {userProgress.completedQuestions.length}
             </p>
-            <p className="text-xs text-gray-500">Exams taken</p>
+            <p className="text-xs text-gray-500">Questions completed</p>
           </div>
           <div className="text-center">
             <p className="text-2xl font-bold text-success-600">
-              {Math.round(userProgress.studySessions.reduce((acc, s) => acc + s.duration, 0) / 60)}
+              {userProgress.stats.completionRate}%
             </p>
-            <p className="text-xs text-gray-500">Hours studied</p>
+            <p className="text-xs text-gray-500">Completion rate</p>
           </div>
         </div>
       </div>

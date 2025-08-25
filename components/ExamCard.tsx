@@ -1,10 +1,9 @@
 import { FileText, Clock, Target, TrendingUp } from 'lucide-react';
-import { ExamPaper } from '@/data/examPapers';
-import { ExamAttempt } from '@/data/userProgress';
+import { examPaperService } from '@/services/examPaperService';
 
 interface ExamCardProps {
-  exam: ExamPaper;
-  attempt: ExamAttempt;
+  exam: any;
+  attempt: any;
 }
 
 const gradeColors = {
@@ -92,12 +91,12 @@ export default function ExamCard({ exam, attempt }: ExamCardProps) {
         <div className="flex items-center justify-between text-sm">
           <span className="text-gray-600">Questions</span>
           <span className="font-medium">
-            {attempt.questionResults.filter(q => q.correct).length}/{attempt.questionResults.length} correct
+            {attempt.questionResults.filter((q: any) => q.correct).length}/{attempt.questionResults.length} correct
           </span>
         </div>
         
         <div className="grid grid-cols-5 gap-1">
-          {attempt.questionResults.slice(0, 10).map((question, index) => (
+          {attempt.questionResults.slice(0, 10).map((question: any, index: number) => (
             <div 
               key={index}
               className={`w-6 h-6 rounded text-xs flex items-center justify-center font-medium ${
