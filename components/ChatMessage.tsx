@@ -9,7 +9,7 @@ interface ChatMessageProps {
   role: 'user' | 'assistant';
   imageData?: string;
   imageName?: string;
-  model?: ModelType; // Add model parameter
+  model?: ModelType | string; // Allow both ModelType and string for flexibility
   apiUsed?: string; // Specific API that was used for this response
 }
 
@@ -18,23 +18,33 @@ export default function ChatMessage({ content, role, imageData, imageName, model
   const hasImage = imageData && imageName;
   
   // Get model display name with exact backend version
-  const getModelDisplayName = (modelType: ModelType): string => {
+  const getModelDisplayName = (modelType: ModelType | string): string => {
     switch (modelType) {
       case 'gemini-2.5-pro':
         return 'Google Gemini 2.5 Pro';
+      case 'gemini-2.0-flash-exp':
+        return 'Google Gemini 2.0 Flash';
       case 'chatgpt-5':
         return 'OpenAI ChatGPT 5';
       case 'chatgpt-4o':
         return 'OpenAI GPT-4 Omni';
+      case 'gpt-5':
+        return 'OpenAI GPT-5';
+      case 'gpt-4o':
+        return 'OpenAI GPT-4 Omni';
       default:
+        // If it's a string but not a known ModelType, return it as is
+        if (typeof modelType === 'string') {
+          return modelType;
+        }
         return 'AI Assistant';
     }
   };
 
   // Get API display name - prioritize apiUsed if available, otherwise use model
   const getAPIDisplayName = (): string => {
-    if (apiUsed) {
-      // If apiUsed is provided, use it directly
+    if (apiUsed && apiUsed !== 'Error Response') {
+      // If apiUsed is provided and not an error, use it directly
       return apiUsed;
     }
     // Fall back to model-based display name

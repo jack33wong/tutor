@@ -452,7 +452,8 @@ export default function ChatHome() {
 				const assistantMsg: Omit<any, 'timestamp'> = {
 					role: 'assistant',
 					content: data.reply,
-					apiUsed: data.apiUsed
+					apiUsed: data.apiUsed,
+					model: selectedModel // Add the selected model to the message
 				};
 
 				await addMessageToCurrentSession(assistantMsg);
@@ -832,6 +833,7 @@ export default function ChatHome() {
 											imageData={message.imageData}
 											imageName={message.imageName}
 											apiUsed={message.apiUsed}
+											model={message.model} // Pass the model information
 										/>
 									))}
 								</div>

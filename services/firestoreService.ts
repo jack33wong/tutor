@@ -20,6 +20,7 @@ export interface ChatItem {
   imageData?: string;
   imageName?: string;
   apiUsed?: string;
+  model?: string; // Add model field to track which AI model was used
   timestamp: Timestamp;
 }
 
@@ -81,6 +82,7 @@ class FirestoreService {
           if (msg.imageData) cleanMessage.imageData = msg.imageData;
           if (msg.imageName) cleanMessage.imageName = msg.imageName;
           if (msg.apiUsed) cleanMessage.apiUsed = msg.apiUsed;
+          if (msg.model) cleanMessage.model = msg.model; // Ensure model is preserved
           
           return cleanMessage;
         }),
@@ -202,6 +204,7 @@ class FirestoreService {
           if (msg.imageData) cleanMessage.imageData = msg.imageData;
           if (msg.imageName) cleanMessage.imageName = msg.imageName;
           if (msg.apiUsed) cleanMessage.apiUsed = msg.apiUsed;
+          if (msg.model) cleanMessage.model = msg.model; // Ensure model is preserved
           
           return cleanMessage;
         });
@@ -264,6 +267,7 @@ class FirestoreService {
       if (message.imageData) newMessage.imageData = message.imageData;
       if (message.imageName) newMessage.imageName = message.imageName;
       if (message.apiUsed) newMessage.apiUsed = message.apiUsed;
+      if (message.model) newMessage.model = message.model; // Ensure model is preserved
       
       const updatedMessages = [...session.messages, newMessage];
       await this.updateChatSession(sessionId, { messages: updatedMessages });

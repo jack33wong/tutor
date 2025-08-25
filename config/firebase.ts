@@ -1,8 +1,7 @@
-import { initializeApp } from 'firebase/app';
-import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
+import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
+import { getFirestore, connectFirestoreEmulator, Firestore } from 'firebase/firestore';
 
-// Your Firebase configuration
-// You'll need to replace these with your actual Firebase project credentials
+// Firebase configuration
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -12,47 +11,93 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
 };
 
-// Initialize Firebase only on the client side
-let app: any = null;
-let db: any = null;
+// Global variables for Firebase instances
+let app: FirebaseApp | null = null;
+let db: Firestore | null = null;
 
 // Function to initialize Firebase
-function initializeFirebase() {
-  if (typeof window !== 'undefined' && !app) {
+function initializeFirebase(): { app: FirebaseApp; db: Firestore } {
+  // Check if Firebase is already initialized
+  if (getApps().length > 0) {
+    app = getApps()[0];
+    console.log('🔥 Firebase already initialized');
+  } else {
     try {
-      // Client-side initialization
+      // Initialize Firebase
       app = initializeApp(firebaseConfig);
       console.log('🔥 Firebase initialized with config:', {
         projectId: firebaseConfig.projectId,
         authDomain: firebaseConfig.authDomain
       });
+    } catch (error) {
+      console.error('❌ Firebase initialization failed:', error);
+      throw error;
+    }
+  }
 
-      // Initialize Firestore
+  // Initialize Firestore
+  if (!db) {
+    try {
       db = getFirestore(app);
       console.log('🗄️ Firestore initialized successfully');
     } catch (error) {
-      console.error('❌ Firebase initialization failed:', error);
+      console.error('❌ Firestore initialization failed:', error);
+      throw error;
     }
+  }
+
+  return { app, db };
+}
+
+// Client-side initialization
+if (typeof window !== 'undefined') {
+  try {
+    const { app: clientApp, db: clientDb } = initializeFirebase();
+    app = clientApp;
+    db = clientDb;
+  } catch (error) {
+    console.error('❌ Client-side Firebase initialization failed:', error);
   }
 }
 
-// Initialize immediately if we're on the client side
-if (typeof window !== 'undefined') {
-  initializeFirebase();
-} else {
-  // Server-side - export null values
-  console.log('🖥️ Running on server side, Firebase not initialized');
+// Server-side initialization function
+export function initializeServerFirebase(): { app: FirebaseApp; db: Firestore } {
+  if (typeof window === 'undefined') {
+    try {
+      const { app: serverApp, db: serverDb } = initializeFirebase();
+      console.log('🔥 Server-side Firebase initialized');
+      return { app: serverApp, db: serverDb };
+    } catch (error) {
+      console.error('❌ Server-side Firebase initialization failed:', error);
+      throw error;
+    }
+  } else {
+    // On client side, return existing instances
+    if (!app || !db) {
+      const { app: clientApp, db: clientDb } = initializeFirebase();
+      app = clientApp;
+      db = clientDb;
+    }
+    return { app, db };
+  }
 }
 
-// Export db for use in services
-export { db };
+// Export instances
+export { app, db };
 
-// Export initialization function for manual calls if needed
+// Export initialization function
 export { initializeFirebase };
 
 // Connect to Firestore emulator in development if needed
 if (process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_USE_FIRESTORE_EMULATOR === 'true') {
-  connectFirestoreEmulator(db, 'localhost', 8080);
+  if (db) {
+    try {
+      connectFirestoreEmulator(db, 'localhost', 8080);
+      console.log('🔧 Connected to Firestore emulator');
+    } catch (error) {
+      console.warn('⚠️ Firestore emulator connection failed:', error);
+    }
+  }
 }
 
 export default app;

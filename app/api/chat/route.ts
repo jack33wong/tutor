@@ -1,17 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server';
-
 import { examPaperServiceServer } from '@/services/examPaperServiceServer';
+import { initializeServerFirebase } from '@/config/firebase';
+
+// Types for better type safety
+interface ChatRequest {
+  message?: string;
+  imageData?: string;
+  imageName?: string;
+  model?: string;
+}
+
+interface ChatResponse {
+  reply: string;
+  apiUsed: string;
+  extractedQuestion?: string;
+  isImageQuestion?: boolean;
+  examMetadata?: any;
+  randomQuestion?: any;
+  isRandomGenerated?: boolean;
+}
 
 export async function POST(req: NextRequest) {
   try {
-    const requestBody = await req.json();
-    let { message, imageData, imageName, model }: { message?: string; imageData?: string; imageName?: string; model?: string } = requestBody;
+    // Initialize Firebase on server side
+    initializeServerFirebase();
+    
+    const requestBody: ChatRequest = await req.json();
+    let { message, imageData, imageName, model } = requestBody;
     const originalMessage = message;
     
-    // Declare selectedQuestion at function scope so it can be accessed later
-    let selectedQuestion: any = null;
-    
-    // Check for blank input and generate a random question to process
+    // Handle blank input by generating a random question
     if ((!message || message.trim() === '') && (!imageData || !imageName)) {
       console.log('🎲 Generating random past paper question for AI processing...');
       try {
@@ -22,222 +40,203 @@ export async function POST(req: NextRequest) {
           return NextResponse.json({ error: 'No random question available' }, { status: 500 });
         }
         
-        // Process the random question as if it was user input
         message = selectedQuestion.question;
         console.log('🎯 Processing random question:', message);
-        // Continue with normal processing flow below
       } catch (error) {
         console.error('Error getting random question from Firestore:', error);
         return NextResponse.json({ error: 'Failed to generate random question' }, { status: 500 });
       }
     }
     
-    // Allow requests with either a message or an image
+    // Validate input
     if ((!message || typeof message !== 'string') && (!imageData || !imageName)) {
       return NextResponse.json({ error: 'Missing message or image' }, { status: 400 });
     }
 
-    // Enhanced system prompt for image handling
-    const system = 'You are a friendly Mentara Maths tutor. Be concise and clear. When providing mathematical formulas, use LaTeX format with proper delimiters. For example, use \\[ ... \\] for display math or \\( ... \\) for inline math.';
+    // Process the request and get AI response
+    const { reply, apiUsed } = await processAIRequest(message, imageData, imageName, model);
     
-    // Compose message with image context
-    let userMessage = message || 'Please analyze the uploaded image and provide mathematical assistance.';
-    let composed = `${system}\n\nUser: ${userMessage}`;
-    
-    let reply: string | null = null;
-    let apiUsed = '';
-    
-    try {
-      
-      if (imageData && imageName) {
-        // For images, use selected model or default to Gemini
-        console.log('🔍 Image processing - Selected model:', model);
-        
-        if (model === 'chatgpt-5' || model === 'chatgpt-4o') {
-          try {
-            reply = await callChatGPT(userMessage, model, imageData, imageName);
-            apiUsed = model === 'chatgpt-5' ? 'OpenAI GPT-5' : 'OpenAI GPT-4 Omni';
-          } catch (chatgptError) {
-            console.log('ChatGPT image analysis failed, trying Gemini...');
-            try {
-              reply = await callGeminiWithImage(userMessage, imageData, imageName);
-              apiUsed = 'Google Gemini 2.0 Flash Exp';
-            } catch (geminiError) {
-              console.error('Both ChatGPT and Gemini failed:', { chatgptError, geminiError });
-              // Final fallback for images
-              reply = `I can see you've uploaded an image! 
-
-Since both AI services are having issues, could you please:
-
-1. **Describe what you see** in the image
-2. **Tell me the specific question** or problem
-3. **Share any equations or numbers** shown
-
-I'm here to help with GCSE Maths and can guide you through solving any mathematical concept!`;
-              apiUsed = 'Fallback Response';
-            }
-          }
-        } else {
-          // Default to Gemini for images
-          try {
-            reply = await callGeminiWithImage(userMessage, imageData, imageName);
-            apiUsed = 'Google Gemini 2.0 Flash Exp';
-          } catch (geminiError) {
-            console.log('Gemini image analysis failed, trying ChatGPT...');
-            try {
-              reply = await callChatGPT(userMessage, 'chatgpt-4o', imageData, imageName); // Pass model and image data for fallback
-              apiUsed = 'OpenAI GPT-4 Omni'; // Default to GPT-4 Omni as fallback
-            } catch (chatgptError) {
-              console.error('Both Gemini and ChatGPT failed:', { geminiError, chatgptError });
-              // Final fallback for images
-              reply = `I can see you've uploaded an image! 
-
-Since both AI services are having issues, could you please:
-
-1. **Describe what you see** in the image
-2. **Tell me the specific question** or problem
-3. **Share any equations or numbers** shown
-
-I'm here to help with GCSE Maths and can guide you through solving any mathematical concept!`;
-              apiUsed = 'Fallback Response';
-            }
-          }
-        }
-      } else {
-        // For text-only messages, use selected model or default to Gemini
-        console.log('🔍 Text processing - Selected model:', model);
-        
-        if (model === 'chatgpt-5' || model === 'chatgpt-4o') {
-          try {
-            reply = await callChatGPT(userMessage, model);
-            apiUsed = model === 'chatgpt-5' ? 'OpenAI GPT-5' : 'OpenAI GPT-4 Omni';
-          } catch (chatgptError) {
-            console.log('ChatGPT failed, trying Gemini...');
-            try {
-              reply = await callGemini(userMessage);
-              apiUsed = 'Google Gemini 2.0 Flash Exp';
-            } catch (geminiError) {
-              console.error('Both ChatGPT and Gemini failed:', { chatgptError, geminiError });
-              throw new Error('All AI services unavailable');
-            }
-          }
-        } else {
-          // Default to Gemini
-          try {
-            reply = await callGemini(userMessage);
-            apiUsed = 'Google Gemini 2.0 Flash Exp';
-          } catch (geminiError) {
-            console.log('Gemini failed, trying ChatGPT...');
-            try {
-              reply = await callChatGPT(userMessage, 'chatgpt-4o'); // Pass model for fallback (text-only)
-              apiUsed = 'OpenAI GPT-4 Omni'; // Default to GPT-4 Omni as fallback
-            } catch (chatgptError) {
-              console.error('Both Gemini and ChatGPT failed:', { geminiError, chatgptError });
-              throw new Error('All AI services unavailable');
-            }
-          }
-        }
-      }
-    } catch (error) {
-      console.error('All AI API calls failed:', error);
-      // Final fallback response
-      reply = 'I\'m here to help with your GCSE Maths questions! Please ask me anything about mathematics, and I\'ll do my best to assist you.';
-      apiUsed = 'Fallback Response';
-    }
-
     if (!reply) {
-      reply = 'Thanks for your question! Could you share the key steps you tried so far? Focus on units and ensure operations are applied in the correct order.';
+      return NextResponse.json({ error: 'Failed to generate response' }, { status: 500 });
     }
 
-    // Normalize LaTeX formatting for better rendering
-    reply = normalizeLatex(reply);
+    // Normalize LaTeX formatting
+    const normalizedReply = normalizeLatex(reply);
 
-    // Check if this was an image with question extraction
+    // Handle image questions with question extraction
     if (imageData && imageName) {
-      // Try to extract question text from AI response
-      const questionTextMatch = reply.match(/QUESTION_TEXT:\s*([\s\S]+?)(?:\n\n|$)/);
-      
-      if (questionTextMatch) {
-        const extractedQuestionText = questionTextMatch[1].trim();
-        console.log('📝 Extracted question text from image:', extractedQuestionText);
-        
-        // Remove the QUESTION_TEXT part from the reply
-        const cleanedReply = reply.replace(/QUESTION_TEXT:\s*[\s\S]+?(?:\n\n|$)/, '').trim();
-        
-        // Check if extracted text matches any past paper questions using server-side service
-        const examMetadata = await examPaperServiceServer.detectExamQuestion(extractedQuestionText);
-        
-        if (examMetadata) {
-          console.log('📋 Found exam metadata for extracted text:', examMetadata);
-          // Format with exam metadata using extracted text
-          const formattedReply = await formatChatReply(extractedQuestionText, cleanedReply);
-          return NextResponse.json({ 
-            reply: formattedReply, 
-            apiUsed,
-            extractedQuestion: extractedQuestionText,
-            isImageQuestion: true,
-            examMetadata: examMetadata
-          });
-        } else {
-          // No exam match, but still format nicely with extracted text
-          const formattedReply = await formatChatReply(extractedQuestionText, cleanedReply);
-          return NextResponse.json({ 
-            reply: formattedReply, 
-            apiUsed,
-            extractedQuestion: extractedQuestionText,
-            isImageQuestion: true
-          });
-        }
-      } else {
-        // No question text extracted, but still an image question
-        return NextResponse.json({ 
-          reply: await formatChatReply(`[📷 Image: ${imageName}]`, reply), 
-          apiUsed,
-          isImageQuestion: true,
-          imageName: imageName
-        });
-      }
+      return await handleImageQuestion(normalizedReply, apiUsed, imageName);
     }
 
-    // Check if this was a random question generation
-    const wasBlankInput = !originalMessage || originalMessage.trim() === '';
-    
-    if (wasBlankInput) {
-      // For random questions, return the full metadata object, not just the question text
-      const formattedReply = await formatChatReply(userMessage, reply);
+    // Handle random question generation
+    if (!originalMessage || originalMessage.trim() === '') {
+      const formattedReply = await formatChatReply(message!, normalizedReply);
       return NextResponse.json({ 
-        randomQuestion: selectedQuestion, // Return the full ExamQuestionMetadata object
+        randomQuestion: message,
         reply: formattedReply,
         isRandomGenerated: true,
         apiUsed
       });
     }
     
-    // Format the reply with Question and Answer template for normal messages
-    const formattedReply = await formatChatReply(userMessage, reply);
-
+    // Format the reply for normal messages
+    const formattedReply = await formatChatReply(message!, normalizedReply);
     return NextResponse.json({ reply: formattedReply, apiUsed });
-  } catch (e) {
-    console.error('Chat API error:', e);
-    // Return a helpful error message instead of failing completely
+
+  } catch (error) {
+    console.error('Chat API error:', error);
     return NextResponse.json({ 
       reply: 'I\'m experiencing some technical difficulties right now, but I\'m here to help with GCSE Maths! Please try asking your question again, or if the problem persists, you can:\n\n1. Check your internet connection\n2. Try refreshing the page\n3. Ask a simpler question to start with\n\nI\'m designed to help with algebra, geometry, fractions, statistics, and trigonometry - so feel free to ask anything!'
     });
   }
 }
 
+// Process AI request and return response
+async function processAIRequest(
+  message: string | undefined, 
+  imageData: string | undefined, 
+  imageName: string | undefined, 
+  model: string | undefined
+): Promise<{ reply: string; apiUsed: string }> {
+  const systemPrompt = 'You are a friendly Mentara Maths tutor. Be concise and clear. When providing mathematical formulas, use LaTeX format with proper delimiters. For example, use \\[ ... \\] for display math or \\( ... \\) for inline math.';
+  
+  if (imageData && imageName) {
+    return await processImageRequest(message, imageData, imageName, model);
+  } else {
+    return await processTextRequest(message, model);
+  }
+}
+
+// Process image requests
+async function processImageRequest(
+  message: string | undefined, 
+  imageData: string, 
+  imageName: string, 
+  model: string | undefined
+): Promise<{ reply: string; apiUsed: string }> {
+  console.log('🔍 Image processing - Selected model:', model);
+  
+  // Try ChatGPT first for images if specified
+  if (model === 'chatgpt-5' || model === 'chatgpt-4o') {
+    try {
+      const reply = await callChatGPT(message || 'Please analyze the uploaded image and provide mathematical assistance.', model, imageData, imageName);
+      const apiUsed = model === 'chatgpt-5' ? 'OpenAI GPT-5' : 'OpenAI GPT-4 Omni';
+      return { reply, apiUsed };
+    } catch (error) {
+      console.log('ChatGPT image analysis failed, trying Gemini...');
+    }
+  }
+  
+  // Try Gemini for images
+  try {
+    const reply = await callGeminiWithImage(message || 'Please analyze the uploaded image and provide mathematical assistance.', imageData, imageName);
+    return { reply, apiUsed: 'Google Gemini 2.0 Flash Exp' };
+  } catch (error) {
+    console.log('Gemini image analysis failed, trying ChatGPT as fallback...');
+    try {
+      const reply = await callChatGPT(message || 'Please analyze the uploaded image and provide mathematical assistance.', 'chatgpt-4o', imageData, imageName);
+      return { reply, apiUsed: 'OpenAI GPT-4 Omni' };
+    } catch (chatgptError) {
+      console.error('Both Gemini and ChatGPT failed for image:', { error, chatgptError });
+      return {
+        reply: `I can see you've uploaded an image! Since both AI services are having issues, could you please:\n\n1. **Describe what you see** in the image\n2. **Tell me the specific question** or problem\n3. **Share any equations or numbers** shown\n\nI'm here to help with GCSE Maths and can guide you through solving any mathematical concept!`,
+        apiUsed: 'Fallback Response'
+      };
+    }
+  }
+}
+
+// Process text requests
+async function processTextRequest(
+  message: string | undefined, 
+  model: string | undefined
+): Promise<{ reply: string; apiUsed: string }> {
+  console.log('🔍 Text processing - Selected model:', model);
+  
+  // Try ChatGPT first if specified
+  if (model === 'chatgpt-5' || model === 'chatgpt-4o') {
+    try {
+      const reply = await callChatGPT(message!, model);
+      const apiUsed = model === 'chatgpt-5' ? 'OpenAI GPT-5' : 'OpenAI GPT-4 Omni';
+      return { reply, apiUsed };
+    } catch (error) {
+      console.log('ChatGPT failed, trying Gemini...');
+    }
+  }
+  
+  // Try Gemini
+  try {
+    const reply = await callGemini(message!);
+    return { reply, apiUsed: 'Google Gemini 2.0 Flash Exp' };
+  } catch (error) {
+    console.log('Gemini failed, trying ChatGPT as fallback...');
+    try {
+      const reply = await callChatGPT(message!, 'chatgpt-4o');
+      return { reply, apiUsed: 'OpenAI GPT-4 Omni' };
+    } catch (chatgptError) {
+      console.error('Both Gemini and ChatGPT failed for text:', { error, chatgptError });
+      throw new Error('All AI services unavailable');
+    }
+  }
+}
+
+// Handle image questions with question extraction
+async function handleImageQuestion(
+  reply: string, 
+  apiUsed: string, 
+  imageName: string
+): Promise<NextResponse<ChatResponse>> {
+  // Try to extract question text from AI response
+  const questionTextMatch = reply.match(/QUESTION_TEXT:\s*([\s\S]+?)(?:\n\n|$)/);
+  
+  if (questionTextMatch) {
+    const extractedQuestionText = questionTextMatch[1].trim();
+    console.log('📝 Extracted question text from image:', extractedQuestionText);
+    
+    // Remove the QUESTION_TEXT part from the reply
+    const cleanedReply = reply.replace(/QUESTION_TEXT:\s*[\s\S]+?(?:\n\n|$)/, '').trim();
+    
+    // Check if extracted text matches any past paper questions
+    const examMetadata = await examPaperServiceServer.detectExamQuestion(extractedQuestionText);
+    
+    if (examMetadata) {
+      console.log('📋 Found exam metadata for extracted text:', examMetadata);
+      const formattedReply = await formatChatReply(extractedQuestionText, cleanedReply);
+      return NextResponse.json({ 
+        reply: formattedReply, 
+        apiUsed,
+        extractedQuestion: extractedQuestionText,
+        isImageQuestion: true,
+        examMetadata: examMetadata
+      });
+    } else {
+      const formattedReply = await formatChatReply(extractedQuestionText, cleanedReply);
+      return NextResponse.json({ 
+        reply: formattedReply, 
+        apiUsed,
+        extractedQuestion: extractedQuestionText,
+        isImageQuestion: true
+      });
+    }
+  } else {
+    // No question text extracted, but still an image question
+    return NextResponse.json({ 
+      reply: await formatChatReply(`[📷 Image: ${imageName}]`, reply), 
+      apiUsed,
+      isImageQuestion: true,
+      imageName: imageName
+    });
+  }
+}
+
 // Format chat reply with Question and Answer template
 async function formatChatReply(userMessage: string, aiReply: string): Promise<string> {
-  // Clean up the user message for display
   const question = userMessage.trim();
-  
-  // Clean up the AI reply
   const answer = aiReply.trim();
   
-  // Check if the question matches a past exam question using server-side service
+  // Check if the question matches a past exam question
   const examMetadata = await examPaperServiceServer.detectExamQuestion(question);
   
-  // Build the formatted reply
   let formattedReply = '';
   
   // Add exam metadata if detected
@@ -259,7 +258,6 @@ async function callChatGPT(message: string, model: string = 'gpt-4o', imageData?
     // Map model selection to actual OpenAI model names
     let openaiModel = 'gpt-4o';
     if (model === 'chatgpt-5') {
-      // Try gpt-5 first, fallback to gpt-4o if not available
       openaiModel = 'gpt-5';
     } else if (model === 'chatgpt-4o') {
       openaiModel = 'gpt-4o';
@@ -277,7 +275,6 @@ async function callChatGPT(message: string, model: string = 'gpt-4o', imageData?
 
     // Handle image + text or text-only messages
     if (imageData && imageName) {
-      // Multimodal message with image
       messages.push({
         role: 'user',
         content: [
@@ -295,53 +292,43 @@ async function callChatGPT(message: string, model: string = 'gpt-4o', imageData?
         ]
       });
     } else {
-      // Text-only message
       messages.push({
         role: 'user',
         content: message
       });
     }
     
-    // Try the selected model first
-    try {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
-        },
-        body: JSON.stringify({
-          model: openaiModel,
-          messages: messages,
-          max_tokens: 800,
-          temperature: 0.7
-        })
-      });
+    // Make API call
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: openaiModel,
+        messages: messages,
+        max_tokens: 800,
+        temperature: 0.7
+      })
+    });
 
-      if (response.ok) {
-        const data = await response.json();
-        console.log('ChatGPT response received');
-        return data.choices[0]?.message?.content || 'I understand your question. Let me help you with that.';
-      } else {
-        const errorData = await response.text();
-        console.error('ChatGPT API error:', response.status, response.statusText);
-        console.error('Error details:', errorData);
-        
-        // If gpt-5 fails, try gpt-4o as fallback
-        if (model === 'chatgpt-5' && openaiModel === 'gpt-5') {
-          console.log('🔄 gpt-5 failed, trying gpt-4o as fallback...');
-          return await callChatGPT(message, 'chatgpt-4o');
-        }
-        
-        throw new Error(`ChatGPT API error: ${response.status} - ${errorData}`);
-      }
-    } catch (error) {
+    if (response.ok) {
+      const data = await response.json();
+      console.log('ChatGPT response received');
+      return data.choices[0]?.message?.content || 'I understand your question. Let me help you with that.';
+    } else {
+      const errorData = await response.text();
+      console.error('ChatGPT API error:', response.status, response.statusText);
+      console.error('Error details:', errorData);
+      
       // If gpt-5 fails, try gpt-4o as fallback
       if (model === 'chatgpt-5' && openaiModel === 'gpt-5') {
         console.log('🔄 gpt-5 failed, trying gpt-4o as fallback...');
         return await callChatGPT(message, 'chatgpt-4o');
       }
-      throw error;
+      
+      throw new Error(`ChatGPT API error: ${response.status} - ${errorData}`);
     }
   } catch (error) {
     console.error('ChatGPT API call failed:', error);
@@ -464,6 +451,7 @@ Please analyze the uploaded image, extract the question text, and provide mathem
   }
 }
 
+// Normalize LaTeX formatting for better rendering
 function normalizeLatex(text: string): string {
   console.log('Normalizing LaTeX text:', text);
   
