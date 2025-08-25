@@ -3,10 +3,8 @@
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import remarkMath from 'remark-math';
-import rehypeKatex from 'rehype-katex';
 import rehypeRaw from 'rehype-raw';
-import 'katex/dist/katex.min.css';
+import { processLatexInText } from './LatexRenderer';
 
 type MarkdownMessageProps = {
   content: string;
@@ -44,11 +42,28 @@ export default function MarkdownMessage({ content, className = '', isGeometryRes
     );
   }
 
+  // Check if content contains LaTeX patterns (including multi-line)
+  const hasLatex = /\\[\(\[][\s\S]*?\\[\)\]]|\$\$[\s\S]*?\$\$|\$[\s\S]*?\$/.test(content);
+
+  // Process LaTeX first, then apply markdown
+  const latexProcessed = processLatexInText(content);
+
   return (
     <div className={className}>
+      {/* Show raw LaTeX if present */}
+      {hasLatex && (
+        <div className="mb-4 p-3 bg-gray-100 border border-gray-300 rounded-lg">
+          <h4 className="text-sm font-semibold text-gray-700 mb-2">🔍 Raw LaTeX:</h4>
+          <pre className="text-xs text-gray-600 whitespace-pre-wrap font-mono bg-white p-2 rounded border">
+            {content}
+          </pre>
+        </div>
+      )}
+
+      {/* Show processed content with LaTeX rendering and markdown formatting */}
       <ReactMarkdown
-        remarkPlugins={[remarkGfm, remarkMath]}
-        rehypePlugins={[rehypeRaw, rehypeKatex]}
+        remarkPlugins={[remarkGfm]}
+        rehypePlugins={[rehypeRaw]}
         components={{
           // Custom components for better styling
           h1: ({ children }) => <h1 className="text-2xl font-bold mb-4">{children}</h1>,
@@ -75,7 +90,7 @@ export default function MarkdownMessage({ content, className = '', isGeometryRes
           ),
         }}
       >
-        {content}
+        {latexProcessed}
       </ReactMarkdown>
     </div>
   );

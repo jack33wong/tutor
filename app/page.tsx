@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Send, ImageIcon, Pencil, Plus, MessageCircle, LayoutDashboard, FileText } from 'lucide-react';
 import DrawingPad from '@/components/DrawingPad';
 import ChatMessage from '@/components/ChatMessage';
-import { useRouter } from 'next/navigation';
+// import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import LeftSidebar from '@/components/LeftSidebar';
 import ModelSelector from '@/components/ModelSelector';
@@ -18,7 +18,6 @@ import { Timestamp } from 'firebase/firestore';
 import type { ChatItem, ChatSession } from '@/services/firestoreService';
 
 export default function ChatHome() {
-	const router = useRouter();
 
 	// Use Firestore hook for chat management
 	const {
@@ -41,7 +40,7 @@ export default function ChatHome() {
 			// For now, we'll just refresh the sessions to get the updated data
 			// The message will be updated in the local state when we refresh
 			await refreshSessions();
-		} catch (error) {
+				} catch (error) {
 			console.error('Error updating session messages:', error);
 		}
 	}, [refreshSessions]);
@@ -73,7 +72,7 @@ export default function ChatHome() {
 	const [showNotepad, setShowNotepad] = useState(false);
 	const [isSending, setIsSending] = useState(false);
 	const [isCreatingSession, setIsCreatingSession] = useState(false);
-	const [selectedModel, setSelectedModel] = useState<ModelType>('gemini-2.5-pro'); // Default to Gemini 2.5 Pro for main chat
+	  	    const [selectedModel, setSelectedModel] = useState<ModelType>('gemini-2.5-pro'); // Default to Gemini 2.5 Pro for main chat
 	const fileRef = useRef<HTMLInputElement | null>(null);
 
 	  // Progress tracking using the new hook
@@ -175,14 +174,14 @@ export default function ChatHome() {
 		setIsCreatingSession(true);
 		try {
 			await createNewChat();
-			setIsInitialized(true);
-			setInput('');
-			setUploadName(null);
+		setIsInitialized(true);
+		setInput('');
+		setUploadName(null);
 		} catch (error) {
 			console.error('Error creating new chat:', error);
 		} finally {
-			// Reset the flag after a short delay
-			setTimeout(() => setIsCreatingSession(false), 200);
+		// Reset the flag after a short delay
+		setTimeout(() => setIsCreatingSession(false), 200);
 		}
 	};
 
@@ -351,9 +350,9 @@ export default function ChatHome() {
 		// Prepare the API request
 		const requestBody: any = {
 			message: text || (uploadedImage ? `[📷 Image: ${uploadName}]` : ''),
-			model: selectedModel
-		};
-
+				model: selectedModel
+			};
+			
 		if (uploadedImage) {
 			requestBody.imageData = uploadedImage;
 			requestBody.imageName = uploadName;
@@ -400,7 +399,7 @@ export default function ChatHome() {
 				
 				// Add the random question as a user message to the chat dialog FIRST
 				const randomQuestionMsg: Omit<any, 'timestamp'> = {
-					role: 'user',
+				role: 'user', 
 					content: questionText || 'Random Question'
 				};
 				
@@ -486,7 +485,7 @@ export default function ChatHome() {
 								questionText = `${data.randomQuestion.difficulty} Level Question`;
 							} else if (data.randomQuestion.examBoard) {
 								questionText = `${data.randomQuestion.examBoard} Question`;
-							} else {
+			} else {
 								questionText = 'Random Question';
 							}
 						}
@@ -748,7 +747,7 @@ export default function ChatHome() {
 			</div>
 		);
 	}
-
+	
 	return (
 		<div className="min-h-screen bg-gray-50">
 			<div className="flex h-screen">
@@ -817,7 +816,7 @@ export default function ChatHome() {
 							</div>
 						</div>
 					</div>
-
+					
 					{/* Chat Messages Area */}
 					<div className="flex-1 overflow-y-auto p-4">
 						<div className="max-w-4xl mx-auto">
@@ -825,7 +824,7 @@ export default function ChatHome() {
 							{messages.length > 0 && (
 								<div className="space-y-4">
 									{messages.map((message, index) => (
-										<ChatMessage
+												<ChatMessage 
 											key={index}
 											content={message.content}
 											role={message.role}
@@ -834,7 +833,7 @@ export default function ChatHome() {
 											apiUsed={message.apiUsed}
 										/>
 									))}
-								</div>
+										</div>
 							)}
 						</div>
 					</div>
@@ -871,46 +870,46 @@ export default function ChatHome() {
 								/>
 								
 												{/* Send button */}
-				<button
-					onClick={send}
+								<button
+									onClick={send}
 					disabled={false}
 					className="absolute right-3 top-1/2 transform -translate-y-1/2 w-12 h-12 rounded-full transition-all duration-200 flex items-center justify-center shadow-sm hover:shadow-md bg-primary-600 hover:bg-primary-700 text-white"
 					title="Send message"
-				>
-					<Send className="w-5 h-5" />
-				</button>
+								>
+									<Send className="w-5 h-5" />
+								</button>
 							</div>
 							
 							{/* Display uploaded image */}
 							{uploadedImage && (
 								<div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
 									<div className="flex items-center justify-between">
-										<div className="flex items-center space-x-3">
-											<img 
-												src={uploadedImage} 
+									<div className="flex items-center space-x-3">
+												<img 
+													src={uploadedImage} 
 												alt="Uploaded" 
-												className="w-16 h-16 object-cover rounded-lg"
-											/>
+													className="w-16 h-16 object-cover rounded-lg"
+												/>
 											<div>
 												<p className="text-sm font-medium text-gray-900">{uploadName}</p>
 												<p className="text-xs text-gray-500">Image uploaded successfully</p>
 											</div>
 										</div>
-										<button
-											onClick={clearImage}
+												<button
+													onClick={clearImage}
 											className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50"
-											title="Remove image"
-										>
+													title="Remove image"
+												>
 											<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 												<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
 											</svg>
-										</button>
-									</div>
-								</div>
-							)}
+												</button>
+											</div>
+													</div>
+												)}
 
+							</div>
 						</div>
-					</div>
 				</main>
 			</div>
 		</div>

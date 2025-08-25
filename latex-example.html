@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LaTeX Rendering Example</title>
+    
+    <!-- KaTeX CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" 
+          integrity="sha384-6oIt2knR4W+k54v8JmEas7ONuc6T3L/AI4rYHs+5vb7bQt3sCe5fXJf6T5Cfc" 
+          crossorigin="anonymous">
+    
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        .math-example {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        
+        .latex-input {
+            font-family: monospace;
+            background-color: #f0f0f0;
+            padding: 5px;
+            border-radius: 3px;
+            margin: 5px 0;
+        }
+        
+        .math-output {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: white;
+            border-radius: 3px;
+        }
+        
+        .katex-display {
+            margin: 1em 0;
+            text-align: center;
+        }
+        
+        .katex {
+            font-size: 1.1em;
+        }
+        
+        .katex-display .katex {
+            font-size: 1.2em;
+        }
+    </style>
+</head>
+<body>
+    <h1>LaTeX Rendering with KaTeX</h1>
+    
+    <p>This page demonstrates how to render LaTeX mathematical expressions using KaTeX.</p>
+    
+    <div class="math-example">
+        <h3>Inline Math Example</h3>
+        <div class="latex-input">Input: \frac{3}{6} = \frac{1}{2}</div>
+        <div class="math-output" id="inline-example"></div>
+    </div>
+    
+    <div class="math-example">
+        <h3>Display Math Example</h3>
+        <div class="latex-input">Input: \[\frac{3}{6} = \frac{3 \div 3}{6 \div 3} = \frac{1}{2}\]</div>
+        <div class="math-output" id="display-example"></div>
+    </div>
+    
+    <div class="math-example">
+        <h3>Complex Math Example</h3>
+        <div class="latex-input">Input: \[\int_{0}^{\infty} e^{-x^2} dx = \frac{\sqrt{\pi}}{2}\]</div>
+        <div class="math-output" id="complex-example"></div>
+    </div>
+    
+    <div class="math-example">
+        <h3>Mixed Text and Math</h3>
+        <div class="latex-input">Input: The quadratic formula is \(x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}\)</div>
+        <div class="math-output" id="mixed-example"></div>
+    </div>
+    
+    <div class="math-example">
+        <h3>Interactive Example</h3>
+        <input type="text" id="latex-input" placeholder="Enter LaTeX (e.g., \frac{1}{2})" style="width: 300px; padding: 5px;">
+        <button onclick="renderInput()">Render</button>
+        <div class="math-output" id="interactive-example"></div>
+    </div>
+
+    <!-- KaTeX JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js" 
+            integrity="sha384-6oIt2knR4W+k54v8JmEas7ONuc6T3L/AI4rYHs+5vb7bQt3sCe5fXJf6T5Cfc" 
+            crossorigin="anonymous"></script>
+    
+    <script>
+        // Function to render LaTeX
+        function renderLatex(latex, elementId, displayMode = false) {
+            try {
+                const element = document.getElementById(elementId);
+                katex.render(latex, element, { displayMode: displayMode });
+            } catch (error) {
+                console.error('KaTeX rendering error:', error);
+                document.getElementById(elementId).innerHTML = 
+                    `<span style="color: red; font-family: monospace;">LaTeX Error: ${error.message}</span>`;
+            }
+        }
+        
+        // Function to process text with embedded LaTeX
+        function processLatexInText(text) {
+            try {
+                let processed = text;
+                
+                // Convert common LaTeX patterns to proper delimiters
+                processed = processed
+                    .replace(/\$\$(.*?)\$\$/g, '\\[$1\\]') // Convert $$ to \[ \]
+                    .replace(/\$(.*?)\$/g, '\\($1\\)') // Convert $ to \( \)
+                    .replace(/\[ (.*?) \]/g, '\\[$1\\]') // Convert [ ... ] to \[ ... \]
+                    .replace(/\( (.*?) \)/g, '\\($1\\)') // Convert ( ... ) to \( ... \)
+                    .replace(/\[(.*?)\]/g, '\\[$1\\]') // Convert [ ... ] (no spaces) to \[ ... \]
+                    .replace(/\((.*?)\)/g, '\\($1\\)'); // Convert ( ... ) (no spaces) to \( ... \)
+
+                // Render display math (\[ ... \])
+                processed = processed.replace(/\\\[(.*?)\\\]/g, (match, latex) => {
+                    try {
+                        return katex.renderToString(latex, { displayMode: true });
+                    } catch (error) {
+                        console.error('KaTeX display math error:', error);
+                        return match; // Return original if rendering fails
+                    }
+                });
+
+                // Render inline math (\( ... \))
+                processed = processed.replace(/\\\((.*?)\\\)/g, (match, latex) => {
+                    try {
+                        return katex.renderToString(latex, { displayMode: false });
+                    } catch (error) {
+                        console.error('KaTeX inline math error:', error);
+                        return match; // Return original if rendering fails
+                    }
+                });
+
+                return processed;
+            } catch (error) {
+                console.error('LaTeX processing error:', error);
+                return text; // Return original text if processing fails
+            }
+        }
+        
+        // Function to render user input
+        function renderInput() {
+            const input = document.getElementById('latex-input').value;
+            const output = document.getElementById('interactive-example');
+            
+            if (input.trim() === '') {
+                output.innerHTML = '<span style="color: gray;">Enter some LaTeX to render...</span>';
+                return;
+            }
+            
+            try {
+                // Try to render as display math first
+                katex.render(input, output, { displayMode: true });
+            } catch (error) {
+                try {
+                    // If that fails, try inline math
+                    katex.render(input, output, { displayMode: false });
+                } catch (error2) {
+                    output.innerHTML = `<span style="color: red; font-family: monospace;">LaTeX Error: ${error2.message}</span>`;
+                }
+            }
+        }
+        
+        // Render examples when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Inline math example
+            renderLatex('\\frac{3}{6} = \\frac{1}{2}', 'inline-example', false);
+            
+            // Display math example
+            renderLatex('\\frac{3}{6} = \\frac{3 \\div 3}{6 \\div 3} = \\frac{1}{2}', 'display-example', true);
+            
+            // Complex math example
+            renderLatex('\\int_{0}^{\\infty} e^{-x^2} dx = \\frac{\\sqrt{\\pi}}{2}', 'complex-example', true);
+            
+            // Mixed text and math example
+            const mixedText = 'The quadratic formula is \\(x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}\\)';
+            document.getElementById('mixed-example').innerHTML = processLatexInText(mixedText);
+        });
+    </script>
+</body>
+</html>

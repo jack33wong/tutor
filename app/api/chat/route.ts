@@ -149,8 +149,7 @@ I'm here to help with GCSE Maths and can guide you through solving any mathemati
       reply = 'Thanks for your question! Could you share the key steps you tried so far? Focus on units and ensure operations are applied in the correct order.';
     }
 
-    // Normalize LaTeX formatting for better rendering
-    reply = normalizeLatex(reply);
+    // No LaTeX normalization - using original content
 
     // Check if this was an image with question extraction
     if (imageData && imageName) {
@@ -354,7 +353,7 @@ async function callGemini(message: string): Promise<string> {
   try {
     console.log('Calling Gemini API...');
     
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${process.env.GEMINI_API_KEY}`, {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -363,6 +362,12 @@ async function callGemini(message: string): Promise<string> {
         contents: [{
           parts: [{
             text: `You are a friendly GCSE Maths tutor called Mentara. Be concise, clear, and helpful. When providing mathematical formulas, use LaTeX format with proper delimiters. For example, use \\[ ... \\] for display math or \\( ... \\) for inline math. Focus on GCSE Maths topics like algebra, geometry, fractions, statistics, and trigonometry. Provide direct answers without repeating the question - the question will be displayed separately.
+
+IMPORTANT: For LaTeX math formatting:
+- Use \\[ ... \\] for display/block math (centered, larger)
+- Use \\( ... \\) for inline math (within text)
+- Examples: \\[\\frac{3x + 7}{2} = 22\\] for display, \\(x = 5\\) for inline
+- Always use proper LaTeX syntax for fractions, roots, etc.
 
 IMPORTANT: Always include visual aids in your explanations:
 - Create ASCII diagrams for geometric problems
@@ -401,7 +406,7 @@ async function callGeminiWithImage(message: string, imageData: string, imageName
   try {
     console.log('Calling Gemini API with image...');
     
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${process.env.GEMINI_API_KEY}`, {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -464,37 +469,6 @@ Please analyze the uploaded image, extract the question text, and provide mathem
   }
 }
 
-function normalizeLatex(text: string): string {
-  console.log('Normalizing LaTeX text:', text);
-  
-  // Split into lines for processing
-  const lines = text.split('\n');
-  const processedLines = lines.map(line => {
-    // Look for mathematical expressions that might need proper delimiters
-    let processedLine = line;
-    
-    // Handle common LaTeX patterns that should be wrapped in display math
-    if (line.includes('\\frac') || line.includes('\\sqrt') || line.includes('\\left') || line.includes('\\right')) {
-      // If it's not already wrapped in delimiters, wrap it
-      if (!line.includes('\\[') && !line.includes('\(') && !line.includes('$')) {
-        // Find the mathematical part and wrap it
-        const mathMatch = line.match(/(.*?)(\\frac|\\sqrt|\\left|\\right.*?)(.*)/);
-        if (mathMatch) {
-          const before = mathMatch[1];
-          const math = mathMatch[2];
-          const after = mathMatch[3];
-          processedLine = `${before}\\[${math}\\]${after}`;
-          console.log('Wrapped LaTeX:', math, 'in delimiters');
-        }
-      }
-    }
-    
-    return processedLine;
-  });
-  
-  const result = processedLines.join('\n');
-  console.log('Normalized result:', result);
-  return result;
-}
+
 
 
