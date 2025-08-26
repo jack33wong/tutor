@@ -379,6 +379,21 @@ function createSVGOverlay(instructions: MarkingInstructions, imageWidth: number 
     // Create SVG with annotations - use actual image dimensions
     let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${imageWidth}" height="${imageHeight}" style="position: absolute; top: 0; left: 0;">`;
     
+    // Debug grid disabled
+    // const gridSize = 50;
+    // for (let x = 0; x <= imageWidth; x += gridSize) {
+    //   svg += `<line x1="${x}" y1="0" x2="${x}" y2="${imageHeight}" stroke="rgba(0,0,255,0.3)" stroke-width="1"/>`;
+    //   if (x > 0) {
+    //     svg += `<text x="${x - 10}" y="15" fill="blue" font-family="Arial" font-size="10">${x}</text>`;
+    //   }
+    // }
+    // for (let y = 0; y <= imageHeight; y += gridSize) {
+    //   svg += `<line x1="0" y1="${y}" x2="${imageWidth}" y2="${y}" stroke="rgba(0,0,255,0.3)" stroke-width="1"/>`;
+    //   if (y > 0) {
+    //     svg += `<text x="5" y="${y - 5}" fill="blue" font-family="Arial" font-size="10">${y}</text>`;
+    //   }
+    // }
+    
     instructions.annotations.forEach((annotation, index) => {
       const [x0, y0, x1, y1] = annotation.bbox;
       const centerX = (x0 + x1) / 2;
@@ -386,25 +401,22 @@ function createSVGOverlay(instructions: MarkingInstructions, imageWidth: number 
       const width = x1 - x0;
       const height = y1 - y0;
       
+      // Handle different annotation types
       switch (annotation.action) {
-        case 'circle':
-          svg += `<ellipse cx="${centerX}" cy="${centerY}" rx="${width/2 + 5}" ry="${height/2 + 5}" fill="none" stroke="red" stroke-width="3"/>`;
-          break;
-          
-        case 'write':
-          svg += `<text x="${x0}" y="${y0 - 10}" fill="red" font-family="Arial" font-size="16" font-weight="bold">${annotation.comment}</text>`;
-          break;
-          
         case 'tick':
-          svg += `<path d="M ${x0 - 10} ${y0 + height/2} L ${centerX} ${y1 + 10} L ${x1 + 10} ${y0 - 5}" stroke="red" stroke-width="3" fill="none"/>`;
+          // Use tick symbol instead of lines
+          svg += `<text x="${centerX}" y="${centerY + 5}" fill="red" font-family="Arial" font-size="100" font-weight="bold" text-anchor="middle">✔</text>`;
           break;
-          
         case 'cross':
-          svg += `<path d="M ${x0 - 5} ${y0 - 5} L ${x1 + 5} ${y1 + 5} M ${x1 + 5} ${y0 - 5} L ${x0 - 5} ${y1 + 5}" stroke="red" stroke-width="3"/>`;
+          // Use cross symbol
+          svg += `<text x="${centerX}" y="${centerY + 5}" fill="red" font-family="Arial" font-size="100" font-weight="bold" text-anchor="middle">✘</text>`;
           break;
-          
+        case 'write':
+        case 'circle':
         case 'underline':
-          svg += `<line x1="${x0}" y1="${y1 + 5}" x2="${x1}" y2="${y1 + 5}" stroke="red" stroke-width="3"/>`;
+        default:
+          // Show text comments for all other actions (3x bigger) - positioned at top right corner
+          svg += `<text x="${x0}" y="${y0}" fill="red" font-family="Comic Sans MS, cursive" font-size="48" font-weight="bold" text-anchor="start" dominant-baseline="hanging">${annotation.comment}</text>`;
           break;
       }
     });
