@@ -6,59 +6,6 @@ console.log('🔍 DEBUG: MathpixService imported:', !!MathpixService);
 console.log('🔍 DEBUG: MathpixService type:', typeof MathpixService);
 console.log('🔍 DEBUG: MathpixService methods:', Object.keys(MathpixService || {}));
 
-  // Import Tesseract with proper error handling and worker configuration
-  let Tesseract: any;
-  let TesseractAvailable = false;
-
-  try {
-    Tesseract = require('tesseract.js');
-    
-    // Configure Tesseract.js for Node.js environment
-    if (Tesseract && typeof window === 'undefined') {
-            try {
-        // For Node.js, we need to configure the worker paths properly
-        
-        // Try to load tesseract.js module directly without path resolution
-        let useDirectModule = false;
-        
-        try {
-          // Try to load the module directly
-          const tesseractModule = require('tesseract.js');
-          if (tesseractModule && typeof tesseractModule === 'object') {
-            console.log('🔍 Tesseract.js module loaded directly');
-            useDirectModule = true;
-          } else {
-            throw new Error('Tesseract.js module not found');
-          }
-        } catch (moduleError) {
-          console.warn('🔍 Could not load tesseract.js module directly:', moduleError);
-          throw new Error('Tesseract.js module not available');
-        }
-        
-        if (useDirectModule) {
-          // Use direct module loading without worker path configuration
-          TesseractAvailable = true;
-          console.log('🔍 Tesseract.js configured and available for Node.js (direct module)');
-          console.log('🔍 Note: Worker paths not configured, Tesseract will use default paths');
-        }
-      } catch (pathError) {
-        console.warn('🔍 Could not configure Tesseract.js worker paths:', pathError);
-        TesseractAvailable = false;
-      }
-    } else {
-      TesseractAvailable = true;
-    }
-  } catch (error) {
-    console.warn('🔍 Tesseract.js not available, falling back to pattern detection');
-    Tesseract = null;
-    TesseractAvailable = false;
-  }
-
-  // Initialize Tesseract.js at module load time
-  if (Tesseract && TesseractAvailable) {
-    console.log('🔍 Tesseract.js module loaded, will initialize on first use');
-  }
-
 export interface BoundingBox {
   x: number;
   y: number;
@@ -78,152 +25,107 @@ export interface ProcessedImage {
 }
 
 export class ImageProcessingService {
-  /**
-   * Initialize and test Tesseract.js at startup
-   */
-  static async initializeTesseract(): Promise<void> {
-    try {
-      console.log('🔍 ===== INITIALIZING TESSERACT.JS =====');
-      const testResult = await this.testTesseract();
-      
-      if (testResult.available) {
-        console.log('🔍 ✅ Tesseract.js is available and working properly');
-        console.log('🔍 Version:', testResult.version);
-        TesseractAvailable = true;
-      } else {
-        console.log('🔍 ❌ Tesseract.js is not available or has issues');
-        console.log('🔍 Error:', testResult.error);
-        TesseractAvailable = false;
-      }
-      console.log('🔍 ===== TESSERACT.JS INITIALIZATION COMPLETE =====');
-    } catch (error) {
-      console.error('🔍 Failed to initialize Tesseract.js:', error);
-      TesseractAvailable = false;
-    }
-  }
+
 
   /**
    * Process an image to extract bounding boxes and OCR text
-   * Using Mathpix API as primary OCR method with fallback to traditional processing:
-   * 1. Try Mathpix API first (best for mathematical content)
-   * 2. Fallback to traditional image processing if Mathpix fails
-   * 3. Extract bounding boxes and OCR text
-   * Enhanced with comprehensive debug logging for real images
+   * Using Mathpix API as the only OCR method - no fallbacks
+   * Throws an error if Mathpix is not available or fails
    */
   static async processImage(imageData: string): Promise<ProcessedImage> {
+    console.log('🔍 ===== IMAGE PROCESSING PIPELINE STARTED =====');
+    
+    // Debug: Check if MathpixService was imported correctly
+    console.log('🔍 DEBUG: MathpixService imported:', !!MathpixService);
+    console.log('🔍 DEBUG: MathpixService type:', typeof MathpixService);
+    console.log('🔍 DEBUG: MathpixService methods:', Object.keys(MathpixService || {}));
+    
+    console.log('🔍 Input image data length:', imageData.length);
+    console.log('🔍 Input image format:', imageData.substring(0, 30) + '...');
+    
+    // Step 1: Check Mathpix availability
+    console.log('🔍 Step 1: Checking Mathpix availability...');
+    console.log('🔍 MathpixService.isAvailable():', MathpixService.isAvailable());
+    console.log('🔍 Environment check - MATHPIX_API_KEY exists:', !!process.env.MATHPIX_API_KEY);
+    console.log('🔍 Environment check - MATHPIX_API_KEY length:', process.env.MATHPIX_API_KEY ? process.env.MATHPIX_API_KEY.length : 'undefined');
+    
+    if (!MathpixService.isAvailable()) {
+      const error = new Error('Mathpix API is not available. Please check your API key and configuration.');
+      console.error('🔍 ❌ Mathpix API not available:', error.message);
+      throw error;
+    }
+    
+    // Step 2: Attempt Mathpix OCR
+    console.log('🔍 Step 2: Attempting Mathpix OCR...');
+    console.log('🔍 Sending original image to Mathpix API (no preprocessing)...');
+    
+    let mathpixResult: any;
     try {
-      console.log('🔍 ===== IMAGE PROCESSING PIPELINE STARTED =====');
-      
-      // Debug: Check if MathpixService was imported correctly
-      console.log('🔍 DEBUG: MathpixService imported:', !!MathpixService);
-      console.log('🔍 DEBUG: MathpixService type:', typeof MathpixService);
-      console.log('🔍 DEBUG: MathpixService methods:', Object.keys(MathpixService || {}));
-      
-      console.log('🔍 Input image data length:', imageData.length);
-      console.log('🔍 Input image format:', imageData.substring(0, 30) + '...');
-      
-      // Step 1: Try Mathpix API first (best for mathematical content)
-      console.log('🔍 Step 1: Attempting Mathpix OCR...');
-      console.log('🔍 Checking Mathpix availability...');
-      console.log('🔍 MathpixService.isAvailable():', MathpixService.isAvailable());
-      console.log('🔍 Environment check - MATHPIX_API_KEY exists:', !!process.env.MATHPIX_API_KEY);
-      console.log('🔍 Environment check - MATHPIX_API_KEY length:', process.env.MATHPIX_API_KEY ? process.env.MATHPIX_API_KEY.length : 'undefined');
-      
-      let mathpixResult: any = null;
-      
-      try {
-        if (MathpixService.isAvailable()) {
-          // Send the ORIGINAL image data to Mathpix without any preprocessing
-          // This ensures we get the best possible OCR results
-          console.log('🔍 Sending original image to Mathpix API (no preprocessing)...');
-          mathpixResult = await MathpixService.performOCR(imageData);
-          console.log('🔍 ✅ Mathpix OCR successful!');
-        } else {
-          console.log('🔍 ⚠️ Mathpix API not available, falling back to traditional processing');
-          console.log('🔍 Reason: MathpixService.isAvailable() returned false');
-        }
-      } catch (mathpixError) {
-        console.log('🔍 ⚠️ Mathpix OCR failed, falling back to traditional processing:', mathpixError);
-      }
-      
-      // Step 2: If Mathpix succeeded, use its results
-      if (true) {
-        console.log('🔍 Using Mathpix OCR results');
-        console.log('🔍 Mathpix text preview:', mathpixResult.text.substring(0, 200) + '...');
+      mathpixResult = await MathpixService.performOCR(imageData);
+      console.log('🔍 ✅ Mathpix OCR successful!');
+    } catch (mathpixError) {
+      const error = new Error(`Mathpix OCR failed: ${mathpixError instanceof Error ? mathpixError.message : 'Unknown error'}`);
+      console.error('🔍 ❌ Mathpix OCR failed:', error.message);
+      throw error;
+    }
+    
+    // Step 3: Validate Mathpix results
+    if (!mathpixResult || !mathpixResult.text || !mathpixResult.boundingBoxes) {
+      const error = new Error('Mathpix OCR returned invalid or empty results');
+      console.error('🔍 ❌ Invalid Mathpix results:', mathpixResult);
+      throw error;
+    }
+    
+    // Step 4: Process Mathpix results
+    console.log('🔍 Step 4: Processing Mathpix OCR results');
+    console.log('🔍 Mathpix text preview:', mathpixResult.text.substring(0, 200) + '...');
+    
+    // Convert Mathpix bounding boxes to our format
+    const boundingBoxes = mathpixResult.boundingBoxes.map((bbox: any) => {
+      // Handle Mathpix's contour format: cnt = [[x,y]] - contour points for the word
+      if (bbox.cnt && Array.isArray(bbox.cnt) && bbox.cnt.length > 0) {
+        const points = bbox.cnt as number[][];
+        const x = Math.min(...points.map((p: number[]) => p[0]));
+        const y = Math.min(...points.map((p: number[]) => p[1]));
+        const width = Math.max(...points.map((p: number[]) => p[0])) - x;
+        const height = Math.max(...points.map((p: number[]) => p[1])) - y;
         
-        // Convert Mathpix bounding boxes to our format
-        const boundingBoxes = mathpixResult.boundingBoxes.map((bbox: any) => {
-          // Handle Mathpix's contour format: cnt = [[x,y]] - contour points for the word
-          if (bbox.cnt && Array.isArray(bbox.cnt) && bbox.cnt.length > 0) {
-            const points = bbox.cnt as number[][];
-            const x = Math.min(...points.map((p: number[]) => p[0]));
-            const y = Math.min(...points.map((p: number[]) => p[1]));
-            const width = Math.max(...points.map((p: number[]) => p[0])) - x;
-            const height = Math.max(...points.map((p: number[]) => p[1])) - y;
-            
-            return {
-              x,
-              y,
-              width,
-              height,
-              text: bbox.text,
-              confidence: bbox.confidence
-            };
-          } else {
-            // Fallback to legacy format if available
-            return {
-              x: bbox.x || 0,
-              y: bbox.y || 0,
-              width: bbox.width || 0,
-              height: bbox.height || 0,
-              text: bbox.text,
-              confidence: bbox.confidence
-            };
-          }
-        });
-        
-        // Get image dimensions
-        const imageBuffer = await this.readImage(imageData);
-        const imageDimensions = await this.getImageDimensions(imageBuffer);
-        
-        console.log('🔍 ===== MATHPIX OCR RESULT =====');
-        console.log(`🔍 Total bounding boxes: ${boundingBoxes.length}`);
-        console.log(`🔍 OCR text length: ${mathpixResult.text.length} characters`);
-        console.log(`🔍 OCR confidence: ${(mathpixResult.confidence * 100).toFixed(2)}%`);
-      console.log(`🔍 Image dimensions: ${imageDimensions.width}x${imageDimensions.height}`);
-      
-        return { 
-          boundingBoxes, 
-          ocrText: mathpixResult.text, 
-          imageDimensions 
+        return {
+          x,
+          y,
+          width,
+          height,
+          text: bbox.text,
+          confidence: bbox.confidence
         };
       } else {
-        console.log('🔍 ⚠️ Mathpix OCR returned empty or invalid text, falling back to traditional processing');
-        console.log('🔍 Mathpix result:', mathpixResult);
+        // Fallback to legacy format if available
+        return {
+          x: bbox.x || 0,
+          y: bbox.y || 0,
+          width: bbox.width || 0,
+          height: bbox.height || 0,
+          text: bbox.text,
+          confidence: bbox.confidence
+        };
       }
-      
-      // Step 3: TEMPORARILY DISABLED - Fallback to traditional image processing
-      console.log('🔍 Step 3: FALLBACK TEMPORARILY DISABLED - Only Mathpix OCR enabled');
-      
-      // For now, just return empty results if Mathpix fails
-      console.log('🔍 Mathpix OCR failed or unavailable - returning empty results');
-      
-      const imageBuffer = await this.readImage(imageData);
-      const imageDimensions = await this.getImageDimensions(imageBuffer);
-      
-      return { 
-        boundingBoxes: [], 
-        ocrText: '', 
-        imageDimensions 
-      };
-    } catch (error) {
-      // Return fallback data on error instead of throwing
-      return {
-        boundingBoxes: [],
-        ocrText: 'Error processing image - OCR failed',
-        imageDimensions: { width: 800, height: 600 }
-      };
-    }
+    });
+    
+    // Get image dimensions
+    const imageBuffer = await this.readImage(imageData);
+    const imageDimensions = await this.getImageDimensions(imageBuffer);
+    
+    console.log('🔍 ===== MATHPIX OCR RESULT =====');
+    console.log(`🔍 Total bounding boxes: ${boundingBoxes.length}`);
+    console.log(`🔍 OCR text length: ${mathpixResult.text.length} characters`);
+    console.log(`🔍 OCR confidence: ${(mathpixResult.confidence * 100).toFixed(2)}%`);
+    console.log(`🔍 Image dimensions: ${imageDimensions.width}x${imageDimensions.height}`);
+    
+    return { 
+      boundingBoxes, 
+      ocrText: mathpixResult.text, 
+      imageDimensions 
+    };
   }
 
   /**
@@ -503,306 +405,9 @@ export class ImageProcessingService {
     return boundingBoxes;
   }
 
-  /**
-   * Step 6: Perform OCR on the image using Tesseract.js for real text detection
-   * Enhanced with comprehensive debug logging for real images
-   */
-  private static async performOCR(imageData: string): Promise<{ text: string; confidence: number }> {
-    try {
-      // Check if Tesseract is available and properly configured
-      if (!Tesseract || !TesseractAvailable) {
-        console.log('🔍 Tesseract.js not available or not properly configured, using fallback pattern detection');
-        const fallbackText = await this.detectTextPatterns(imageData);
-        return {
-          text: fallbackText,
-          confidence: 0.3
-        };
-      }
 
-      // Check if we're in a Node.js environment that might have issues with Tesseract
-      if (typeof window === 'undefined') {
-        console.log('🔍 Running in Node.js environment, attempting Tesseract.js with enhanced configuration...');
-        // Don't immediately fallback - try Tesseract first
-      }
 
-      console.log('🔍 ===== STARTING REAL OCR WITH TESSERACT.JS =====');
-      console.log('🔍 Image data length:', imageData.length);
-      console.log('🔍 Image data starts with:', imageData.substring(0, 50) + '...');
-      
-      // Convert base64 to buffer for Tesseract
-      const base64Data = imageData.replace(/^data:image\/[a-z]+;base64,/, '');
-      const buffer = Buffer.from(base64Data, 'base64');
-      
-      console.log('🔍 Buffer size:', buffer.length, 'bytes');
-      
-      // Preprocess image for better OCR accuracy
-      const preprocessedBuffer = await this.preprocessImageForOCR(buffer);
-      console.log('🔍 Image preprocessing completed, buffer size:', preprocessedBuffer.length, 'bytes');
-      
-      // Configure Tesseract for better text detection with error handling
-      let worker: any = null;
-      let result: any = null;
-      
-      try {
-        // Create worker with minimal configuration to avoid Node.js compatibility issues
-        
-              // Try multiple initialization strategies to handle Node.js compatibility issues
-      for (let attempt = 1; attempt <= 3; attempt++) {
-        try {
-          if (attempt === 1) {
-            // First attempt: Create worker with language specification and OEM (v4 API)
-            worker = await Tesseract.createWorker('eng');
-            await worker.loadLanguage('eng');
-            await worker.initialize('eng', Tesseract.OEM.LSTM_ONLY);
-          } else if (attempt === 2) {
-            // Second attempt: With minimal configuration
-            if (worker) {
-              try {
-                await worker.terminate();
-              } catch (terminateError) {
-                // Silent termination
-              }
-            }
-            worker = await Tesseract.createWorker('eng');
-            await worker.loadLanguage('eng');
-            await worker.initialize('eng', Tesseract.OEM.LSTM_ONLY);
-          } else {
-            // Third attempt: With absolute minimal configuration
-            if (worker) {
-              try {
-                await worker.terminate();
-              } catch (terminateError) {
-                // Silent termination
-              }
-            }
-            worker = await Tesseract.createWorker('eng');
-            await worker.loadLanguage('eng');
-            await worker.initialize('eng', Tesseract.OEM.LSTM_ONLY);
-          }
-          
-          break;
-          
-        } catch (initError) {
-          if (attempt === 3) {
-            throw new Error(`Main worker initialization failed after ${attempt} attempts: ${initError}`);
-          }
-        }
-      }
-        
-              // Set minimal parameters to avoid Node.js compatibility issues (v4 API)
-      try {
-        // In v4, we need to use the correct parameter names
-        // Note: tessedit_ocr_engine_mode is now set during initialize()
-        await worker.setParameters({
-          tessedit_char_whitelist: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+-=×÷()[]{}.,;:!?@#$%^&*_|\\/<>~`\'"',
-          tessedit_pageseg_mode: Tesseract.PSM.AUTO,
-          // Suppress DPI warnings by setting a valid resolution
-          tessedit_resolution: 300,
-        });
-      } catch (paramError) {
-        console.warn('🔍 Parameter setting failed, using default parameters:', paramError);
-        // Continue with default parameters
-      }
-        
-        // Perform OCR on the preprocessed image
-        result = await worker.recognize(preprocessedBuffer);
-        
-      } catch (workerError) {
-        throw new Error(`Tesseract worker failed: ${workerError instanceof Error ? workerError.message : 'Unknown error'}`);
-      } finally {
-        // Always try to terminate the worker
-        if (worker) {
-          try {
-            await worker.terminate();
-          } catch (terminateError) {
-            // Silent termination
-          }
-        }
-      }
-      
-              // Check if OCR was successful
-        if (!result || !result.data) {
-          throw new Error('Tesseract OCR failed to return valid results');
-        }
-        
-        // If OCR found minimal text, try character-level recognition
-        if (!result.data.text.trim() || result.data.text.trim().length < 3) {
-          const charResult = await this.recognizeCharacters(preprocessedBuffer);
-          
-          if (charResult.characters.length > 0) {
-            result.data.text = charResult.characters.join('');
-            result.data.confidence = charResult.confidence * 100; // Convert back to percentage
-          }
-        }
-        
-        // Enhanced mathematical character recognition
-        if (result.data.text.trim()) {
-          const enhancedText = await this.enhanceMathematicalCharacters(result.data.text, preprocessedBuffer);
-          if (enhancedText !== result.data.text) {
-            result.data.text = enhancedText;
-          }
-        }
-        
-        // Filter out question content and keep only student answers
-        if (result.data.text.trim()) {
-          const filteredText = this.filterQuestionContent(result.data.text);
-          if (filteredText !== result.data.text) {
-            result.data.text = filteredText;
-          }
-        }
-        
-        // Only show final OCR result
-        if (result.data.text.trim()) {
-          console.log('🔍 ===== FINAL OCR RESULT =====');
-          console.log(`🔍 Text: "${result.data.text}"`);
-          console.log(`🔍 Confidence: ${result.data.confidence.toFixed(1)}%`);
-        }
-      
-      // Terminate worker
-      await worker.terminate();
-      
-      console.log('🔍 ===== OCR COMPLETED =====');
-      
-      return {
-        text: result.data.text,
-        confidence: result.data.confidence / 100 // Convert percentage to 0-1 scale
-      };
-      
-          } catch (error) {
-        // Check if it's a worker-related error
-        const isWorkerError = error instanceof Error && (
-          error.message.includes('worker') || 
-          error.message.includes('MODULE_NOT_FOUND') ||
-          error.message.includes('Cannot find module')
-        );
-        
-        // Fallback to pattern-based detection
-        const fallbackText = await this.detectTextPatterns(imageData);
-        
-        // Higher confidence for fallback when worker fails (since it's a system issue, not content issue)
-        const confidence = isWorkerError ? 0.5 : 0.3;
-        
-        return {
-          text: fallbackText,
-          confidence: confidence
-        };
-      }
-  }
 
-  /**
-   * Perform OCR on a specific cropped region using Tesseract.js
-   * Enhanced with detailed debug logging for region-specific OCR
-   */
-  private static async performRegionOCR(regionBuffer: Buffer): Promise<{ text: string; confidence: number }> {
-    try {
-      // Check if Tesseract is available and properly configured
-      if (!Tesseract || !TesseractAvailable) {
-        console.log('🔍 Tesseract.js not available or not properly configured for region OCR, using fallback pattern analysis');
-        const fallbackResult = await this.analyzeRegionForText(regionBuffer);
-        return {
-          text: fallbackResult.text,
-          confidence: fallbackResult.confidence
-        };
-      }
-
-      // Preprocess the region for better OCR accuracy
-      const preprocessedRegion = await this.preprocessImageForOCR(regionBuffer);
-      
-      // Configure Tesseract worker for the region with minimal configuration
-      let worker: any = null;
-      
-      // Try multiple initialization strategies to handle Node.js compatibility issues
-      for (let attempt = 1; attempt <= 3; attempt++) {
-        try {
-          if (attempt === 1) {
-            // First attempt: Create worker with language specification and OEM (v4 API)
-            worker = await Tesseract.createWorker('eng');
-            await worker.loadLanguage('eng');
-            await worker.initialize('eng', Tesseract.OEM.LSTM_ONLY);
-          } else if (attempt === 2) {
-            // Second attempt: With minimal configuration
-            if (worker) {
-              try {
-                await worker.terminate();
-              } catch (terminateError) {
-                // Silent termination
-              }
-            }
-            worker = await Tesseract.createWorker('eng');
-            await worker.loadLanguage('eng');
-            await worker.initialize('eng', Tesseract.OEM.LSTM_ONLY);
-          } else {
-            // Third attempt: With absolute minimal configuration
-            if (worker) {
-              try {
-                await worker.terminate();
-              } catch (terminateError) {
-                // Silent termination
-              }
-            }
-            worker = await Tesseract.createWorker('eng');
-            await worker.loadLanguage('eng');
-            await worker.initialize('eng', Tesseract.OEM.LSTM_ONLY);
-          }
-          
-          break;
-          
-        } catch (initError) {
-          if (attempt === 3) {
-            throw new Error(`Region worker initialization failed after ${attempt} attempts: ${initError}`);
-          }
-        }
-      }
-      
-      // Set parameters optimized for small regions (v4 API)
-      try {
-        // Note: tessedit_ocr_engine_mode is now set during initialize()
-        await worker.setParameters({
-          tessedit_char_whitelist: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+-=×÷()[]{}.,;:!?@#$%^&*_|\\/<>~`\'"',
-          tessedit_pageseg_mode: Tesseract.PSM.SINGLE_BLOCK,
-          // Suppress DPI warnings by setting a valid resolution
-          tessedit_resolution: 300,
-        });
-      } catch (paramError) {
-        console.warn('🔍 Region parameter setting failed, using default parameters:', paramError);
-        // Continue with default parameters
-      }
-      
-      console.log('🔍 Region OCR worker initialized, processing...');
-      
-      // Perform OCR on the preprocessed region
-      const result = await worker.recognize(preprocessedRegion);
-      
-      // Terminate worker
-      await worker.terminate();
-      
-      // If OCR didn't find much text, try character-level recognition
-      if (!result.data.text.trim() || result.data.text.trim().length < 2) {
-        const charResult = await this.recognizeCharacters(regionBuffer);
-        
-        if (charResult.characters.length > 0) {
-          return {
-            text: charResult.characters.join(''),
-            confidence: charResult.confidence
-          };
-        }
-      }
-      
-      return {
-        text: result.data.text.trim(),
-        confidence: result.data.confidence / 100
-      };
-      
-    } catch (error) {
-      // Fallback to pattern analysis
-      const fallbackResult = await this.analyzeRegionForText(regionBuffer);
-      
-      return {
-        text: fallbackResult.text,
-        confidence: fallbackResult.confidence
-      };
-    }
-  }
 
   /**
    * Detect text patterns using image analysis instead of traditional OCR
@@ -1120,8 +725,8 @@ export class ImageProcessingService {
             })
             .toBuffer();
           
-          // Perform real OCR on the cropped region
-          const regionOCRResult = await this.performRegionOCR(croppedBuffer);
+          // Since we only use Mathpix now, we'll analyze the region for basic content
+          const regionOCRResult = await this.analyzeRegionForText(croppedBuffer);
           
           // Add bounding box coordinates to the text for better debugging
           let enhancedText = regionOCRResult.text;
@@ -1450,79 +1055,7 @@ export class ImageProcessingService {
     });
   }
 
-  /**
-   * Recognize individual characters in a region for mathematical content
-   */
-  private static async recognizeCharacters(regionBuffer: Buffer): Promise<{ characters: string[]; confidence: number }> {
-    try {
-      console.log('🔍 Performing character-level recognition...');
-      
-      // Convert to grayscale and enhance for character recognition
-      const enhancedBuffer = await sharp(regionBuffer)
-        .grayscale()
-        .normalize()
-        .sharpen(2, 1, 3) // Stronger sharpening for character edges
-        .threshold(128)
-        .png()
-        .toBuffer();
-      
-      // Use Tesseract with character-level settings
-      if (Tesseract && TesseractAvailable && typeof window !== 'undefined') {
-        try {
-                  const worker = await Tesseract.createWorker('eng');
-        
-        try {
-          // Initialize worker with language and OEM (v4 API)
-          await worker.loadLanguage('eng');
-          await worker.initialize('eng', Tesseract.OEM.LSTM_ONLY);
-            
-            // Set parameters optimized for single character recognition (v4 API)
-            try {
-              // Note: tessedit_ocr_engine_mode is now set during initialize()
-              await worker.setParameters({
-                tessedit_char_whitelist: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+-=×÷()[]{}.,;:!?@#$%^&*_|\\/<>~`\'"',
-                tessedit_pageseg_mode: Tesseract.PSM.SINGLE_CHAR, // Single character mode
-                // Suppress DPI warnings by setting a valid resolution
-                tessedit_resolution: 300,
-              });
-            } catch (paramError) {
-              console.warn('🔍 Character recognition parameter setting failed, using default parameters:', paramError);
-              // Continue with default parameters
-            }
-            
-            const result = await worker.recognize(enhancedBuffer);
-            
-            // Extract individual characters
-            const text = result.data.text.trim();
-            const characters = text.split('').filter((char: string) => char.trim() !== '');
-            
-            console.log(`🔍 Character recognition: "${text}" -> [${characters.join(', ')}]`);
-            
-            return {
-              characters: characters,
-              confidence: result.data.confidence / 100
-            };
-            
-          } finally {
-            await worker.terminate();
-          }
-          
-        } catch (workerError) {
-          console.warn('🔍 Tesseract character recognition failed, using fallback:', workerError);
-        }
-      }
-      
-      // Fallback: analyze pixel patterns to guess characters
-      return this.analyzePixelPatternsForCharacters(enhancedBuffer);
-      
-    } catch (error) {
-      console.error('🔍 Character recognition failed:', error);
-      return {
-        characters: ['?'],
-        confidence: 0.1
-      };
-    }
-  }
+
 
   /**
    * Filter out question content and keep only student answers
@@ -1648,98 +1181,5 @@ export class ImageProcessingService {
     }
   }
 
-  /**
-   * Test Tesseract.js availability and functionality
-   */
-  static async testTesseract(): Promise<{ available: boolean; version?: string; error?: string }> {
-    try {
-      if (!Tesseract) {
-        return { available: false, error: 'Tesseract.js not installed' };
-      }
 
-      console.log('🔍 Testing Tesseract.js functionality...');
-      
-      // Create a simple test worker with minimal configuration
-      let worker: any = null;
-      
-      // Try multiple initialization strategies to handle Node.js compatibility issues
-      for (let attempt = 1; attempt <= 3; attempt++) {
-        try {
-          console.log(`🔍 Test worker initialization attempt ${attempt}/3...`);
-          
-          if (attempt === 1) {
-            // First attempt: Create worker with language specification and OEM (v4 API)
-            worker = await Tesseract.createWorker('eng');
-            await worker.loadLanguage('eng');
-            await worker.initialize('eng', Tesseract.OEM.LSTM_ONLY);
-          } else if (attempt === 2) {
-            // Second attempt: With minimal configuration
-            worker = await Tesseract.createWorker('eng');
-            await worker.loadLanguage('eng');
-            await worker.initialize('eng', Tesseract.OEM.LSTM_ONLY);
-          } else {
-            // Third attempt: With absolute minimal configuration
-            worker = await Tesseract.createWorker('eng');
-            await worker.loadLanguage('eng');
-            await worker.initialize('eng', Tesseract.OEM.LSTM_ONLY);
-          }
-          
-          console.log(`🔍 Test worker initialized successfully on attempt ${attempt}`);
-          
-          // Test with a simple 1x1 white pixel image
-          const testImage = Buffer.from([
-            0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, // PNG header
-            0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52, // IHDR chunk
-            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, // 1x1 dimensions
-            0x08, 0x02, 0x00, 0x00, 0x00, 0x90, 0x77, 0x53, // Color type, compression, etc.
-            0xDE, 0x00, 0x00, 0x00, 0x0C, 0x49, 0x44, 0x41, // IDAT chunk
-            0x54, 0x08, 0x99, 0x01, 0x01, 0x00, 0x00, 0x00, // Compressed data
-            0xFF, 0xFF, 0x00, 0x00, 0x00, 0x02, 0x00, 0x01, // White pixel
-            0xE2, 0x21, 0xBC, 0x33, 0x00, 0x00, 0x00, 0x00, // IEND chunk
-            0x49, 0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82
-          ]);
-
-          const result = await worker.recognize(testImage);
-          console.log('🔍 Tesseract test recognition successful');
-          
-          return { 
-            available: true, 
-            version: Tesseract.version || 'Unknown',
-            error: undefined
-          };
-          
-        } catch (initError) {
-          console.warn(`🔍 Test worker initialization attempt ${attempt} failed:`, initError);
-          
-          if (worker) {
-            try {
-              await worker.terminate();
-            } catch (terminateError) {
-              console.warn('🔍 Error terminating failed test worker:', terminateError);
-            }
-          }
-          
-          if (attempt === 3) {
-            return { 
-              available: false, 
-              error: `Test worker initialization failed after ${attempt} attempts: ${initError}`
-            };
-          }
-        }
-      }
-      
-      // This should never be reached, but TypeScript requires it
-      return { 
-        available: false, 
-        error: 'Unexpected end of function'
-      };
-      
-    } catch (error) {
-      console.error('🔍 Tesseract test failed:', error);
-      return { 
-        available: false, 
-        error: error instanceof Error ? error.message : 'Unknown error'
-      };
-    }
-  }
 }
