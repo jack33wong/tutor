@@ -7,7 +7,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test:mathpix": "node scripts/test-mathpix.js"
   },
   "dependencies": {
     "@types/node": "^20.0.0",
@@ -15,6 +16,7 @@
     "@types/react-dom": "^18.2.0",
     "autoprefixer": "^10.4.0",
     "clsx": "^2.0.0",
+    "dotenv": "^17.2.1",
     "firebase": "^12.1.0",
     "framer-motion": "^10.16.0",
     "jsxgraph": "^1.11.1",

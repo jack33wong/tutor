@@ -39,6 +39,37 @@ A comprehensive, interactive study application designed specifically for UK GCSE
 - Node.js 18.0 or higher
 - npm or yarn package manager
 
+### OCR Configuration (Mathpix API)
+
+The app uses **Mathpix API** for advanced OCR capabilities, especially for mathematical content. This provides superior accuracy for recognizing mathematical equations, symbols, and handwritten text compared to traditional OCR methods.
+
+#### Setting up Mathpix API:
+
+1. **Get a Mathpix API key**:
+   - Visit [Mathpix](https://mathpix.com/) and sign up for an account
+   - Navigate to your dashboard and get your API key
+   - Mathpix offers free tier with 1000 requests/month
+
+2. **Configure environment variables**:
+   Create a `.env.local` file in your project root:
+   ```bash
+   MATHPIX_API_KEY=your_mathpix_api_key_here
+   ```
+
+3. **Test the integration**:
+   ```bash
+   npm run test:mathpix
+   ```
+
+#### OCR Features:
+- **Mathematical Equation Recognition**: Accurately reads complex mathematical expressions
+- **Handwritten Text**: Better recognition of handwritten mathematical work
+- **Symbol Recognition**: Proper identification of mathematical symbols (+, -, ×, ÷, √, etc.)
+- **Fallback Support**: Automatically falls back to Tesseract.js if Mathpix is unavailable
+
+#### Without Mathpix API:
+If you don't configure Mathpix, the app will automatically use Tesseract.js as a fallback OCR method, which still provides good results but with lower accuracy for mathematical content.
+
 ### Installation
 
 1. **Clone the repository**

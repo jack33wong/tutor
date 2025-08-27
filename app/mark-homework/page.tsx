@@ -18,6 +18,7 @@ interface MarkingResult {
   }>;
   message: string;
   apiUsed?: string;
+  ocrMethod?: string;
 }
 
 export default function MarkHomeworkPage() {
@@ -438,9 +439,10 @@ export default function MarkHomeworkPage() {
                         </pre>
                         {/* Model API version footer */}
                         <div className="mt-3 pt-2 border-t border-gray-200">
-                          <p className="text-xs text-gray-500 text-right">
-                            Powered by {markingResult?.apiUsed || 'AI Assistant'}
-                          </p>
+                          <div className="flex justify-between items-center text-xs text-gray-500">
+                            <span>OCR: {markingResult?.ocrMethod || 'Unknown'}</span>
+                            <span>Powered by {markingResult?.apiUsed || 'AI Assistant'}</span>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -476,9 +478,10 @@ export default function MarkHomeworkPage() {
                           </div>
                           {/* Model API version footer */}
                           <div className="mt-3 pt-2 border-t border-green-200">
-                            <p className="text-xs text-green-600 text-right">
-                              Powered by {markingResult?.apiUsed || 'AI Assistant'}
-                            </p>
+                            <div className="flex justify-between items-center text-xs text-green-600">
+                              <span>OCR: {markingResult?.ocrMethod || 'Unknown'}</span>
+                              <span>Powered by {markingResult?.apiUsed || 'AI Assistant'}</span>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -494,9 +497,9 @@ export default function MarkHomeworkPage() {
                           1
                         </div>
                         <div>
-                          <h4 className="font-medium text-gray-900">AI Image Analysis</h4>
+                          <h4 className="font-medium text-gray-900">OCR & AI Image Analysis</h4>
                           <p className="text-sm text-gray-600">
-                            {selectedModel === 'gemini-2.5-pro' ? 'Gemini 2.5 Pro' : selectedModel === 'chatgpt-5' ? 'ChatGPT 5' : 'GPT-4 Omni'} analyzes your highly compressed homework image (400x300, 50% quality) and identifies mathematical errors.
+                            Mathpix API performs advanced OCR to extract mathematical text and equations, then {selectedModel === 'gemini-2.5-pro' ? 'Gemini 2.5 Pro' : selectedModel === 'chatgpt-5' ? 'ChatGPT 5' : 'GPT-4 Omni'} analyzes the content to identify mathematical errors.
                           </p>
                         </div>
                       </div>

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import sharp from 'sharp';
+import { ImageProcessingService } from '@/services/imageProcessingService';
 
 interface Annotation {
   action: 'circle' | 'write' | 'tick' | 'cross' | 'underline';
@@ -26,11 +27,31 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing image data or name' }, { status: 400 });
     }
 
-
+    // NEW: Call the enhanced ImageProcessingService to trigger OCR logging
+    let processedImage = null;
+    let ocrMethod = 'Unknown';
+    try {
+      processedImage = await ImageProcessingService.processImage(imageData);
+      console.log('🔍 ImageProcessingService completed successfully!');
+      console.log('🔍 OCR Text length:', processedImage.ocrText.length);
+      console.log('🔍 Bounding boxes found:', processedImage.boundingBoxes.length);
+      
+      // Simple OCR method detection - if we have good results, assume Mathpix
+      if (processedImage.ocrText && processedImage.ocrText.length > 0 && 
+          processedImage.boundingBoxes && processedImage.boundingBoxes.length > 0) {
+        ocrMethod = 'Mathpix API';
+      } else {
+        ocrMethod = 'Tesseract.js (Fallback)';
+      }
+      console.log('🔍 OCR Method used:', ocrMethod);
+    } catch (ocrError) {
+      console.error('🔍 ImageProcessingService failed:', ocrError);
+      ocrMethod = 'Failed';
+    }
 
     // Stage 1: AI Analysis with selected model
     // Stage 2: AI Analysis with compressed image data
-    const markingInstructions = await generateMarkingInstructions(imageData, model);
+    const markingInstructions = await generateMarkingInstructions(imageData, model, processedImage);
     
     if (!markingInstructions) {
       return NextResponse.json({ 
@@ -74,7 +95,8 @@ export async function POST(req: NextRequest) {
       markedImage,
       instructions: markingInstructions,
       message: `Homework marked successfully using ${modelName} + Sharp image processing`,
-      apiUsed
+      apiUsed,
+      ocrMethod
     });
 
   } catch (error) {
@@ -90,7 +112,7 @@ export async function POST(req: NextRequest) {
 
 
 
-async function generateMarkingInstructions(imageData: string, model?: string): Promise<MarkingInstructions | null> {
+async function generateMarkingInstructions(imageData: string, model?: string, processedImage?: any): Promise<MarkingInstructions | null> {
   try {
     // Compress and resize the image to reduce token usage
     const compressedImage = await compressImage(imageData);
@@ -130,13 +152,48 @@ Example Output for Non-Math Content (return exactly this format, no markdown):
 Available actions: circle, write, tick, cross, underline
 IMPORTANT: Do NOT use markdown code blocks. Return ONLY the raw JSON object.`;
 
-    const userPrompt = `Here is an uploaded image. Please:
+    // Build user prompt with OCR results if available
+    let userPrompt = `Here is an uploaded image. Please:
 
 1. Analyze the image content
 2. If it's math homework, provide marking annotations
 3. If it's not math homework, provide appropriate feedback
 
 Focus on providing clear, actionable annotations with bounding boxes and comments.`;
+
+    // Add OCR results to the prompt if available
+    if (processedImage && processedImage.boundingBoxes && processedImage.boundingBoxes.length > 0) {
+      userPrompt += `\n\nOCR DETECTION RESULTS - Use these bounding box positions as reference for annotations:\n`;
+      userPrompt += `The following text regions were detected in the image:\n`;
+      
+      processedImage.boundingBoxes.forEach((bbox: any, index: number) => {
+        if (bbox.text && bbox.text.trim()) {
+          const confidence = ((bbox.confidence || 0) * 100).toFixed(1);
+          
+          // Handle both Mathpix format (cnt array) and legacy format (x,y,width,height)
+          if (bbox.cnt && Array.isArray(bbox.cnt) && bbox.cnt.length === 4) {
+            // Mathpix format: cnt = [[x1,y1], [x2,y2], [x3,y3], [x4,y4]]
+            const points = bbox.cnt as number[][];
+            const x = Math.min(...points.map((p: number[]) => p[0]));
+            const y = Math.min(...points.map((p: number[]) => p[1]));
+            const width = Math.max(...points.map((p: number[]) => p[0])) - x;
+            const height = Math.max(...points.map((p: number[]) => p[1])) - y;
+            
+            userPrompt += `bbox[${x},${y},${width},${height}], text: "${bbox.text.trim()}", confidence: "${confidence}%"\n`;
+          } else if (bbox.x !== undefined && bbox.y !== undefined && bbox.width !== undefined && bbox.height !== undefined) {
+            // Legacy format: x, y, width, height
+            userPrompt += `bbox[${bbox.x},${bbox.y},${bbox.width},${bbox.height}], text: "${bbox.text.trim()}", confidence: "${confidence}%"\n`;
+          } else {
+            // Fallback: just show the text
+            userPrompt += `text: "${bbox.text.trim()}", confidence: "${confidence}%"\n`;
+          }
+        }
+      });
+      
+      userPrompt += `\nIMPORTANT: Use these exact bounding box coordinates [x,y,width,height] when creating your annotations.`;
+      userPrompt += `\nThe OCR has already identified the positions of text and mathematical symbols in the image.`;
+      userPrompt += `\nReference these positions to place your annotations accurately.`;
+    }
 
     // Route to appropriate API based on selected model
     if (model === 'gemini-2.5-pro') {
