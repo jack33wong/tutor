@@ -190,8 +190,8 @@ export class ImageProcessingService {
         console.log(`🔍 Total bounding boxes: ${boundingBoxes.length}`);
         console.log(`🔍 OCR text length: ${mathpixResult.text.length} characters`);
         console.log(`🔍 OCR confidence: ${(mathpixResult.confidence * 100).toFixed(2)}%`);
-        console.log(`🔍 Image dimensions: ${imageDimensions.width}x${imageDimensions.height}`);
-        
+      console.log(`🔍 Image dimensions: ${imageDimensions.width}x${imageDimensions.height}`);
+      
         return { 
           boundingBoxes, 
           ocrText: mathpixResult.text, 

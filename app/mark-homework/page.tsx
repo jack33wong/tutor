@@ -5,7 +5,6 @@ import { Upload, FileImage, CheckCircle, XCircle, Loader2, Download } from 'luci
 import LeftSidebar from '@/components/LeftSidebar';
 import ChatHistory from '@/components/ChatHistory';
 import ModelSelector from '@/components/ModelSelector';
-import AnnotationDisplay from '@/components/AnnotationDisplay';
 import { ModelType } from '@/config/aiModels';
 // Removed useDefaultModel hook to fix display issues
 
@@ -434,33 +433,16 @@ export default function MarkHomeworkPage() {
                            {markingResult?.instructions && (
                     <div className="card">
                       <h3 className="text-lg font-semibold text-gray-900 mb-4">Marking Instructions</h3>
-                      
-                      {/* Display annotations if available */}
-                      {markingResult.instructions.annotations && (
-                        <AnnotationDisplay 
-                          annotations={markingResult.instructions.annotations}
-                          imagePreview={imagePreview}
-                          imageDimensions={markingResult.instructions.imageDimensions}
-                        />
-                      )}
-                      
-                      {/* Raw JSON for debugging (collapsible) */}
-                      <details className="mt-4">
-                        <summary className="cursor-pointer text-sm text-gray-600 hover:text-gray-800 font-medium">
-                          📋 View Raw JSON Data
-                        </summary>
-                        <div className="bg-gray-50 p-4 rounded-lg mt-2">
-                          <pre className="text-sm text-gray-700 whitespace-pre-wrap">
-                            {JSON.stringify(markingResult.instructions, null, 2)}
-                          </pre>
-                        </div>
-                      </details>
-                      
-                      {/* Model API version footer */}
-                      <div className="mt-3 pt-2 border-t border-gray-200">
-                        <div className="flex justify-between items-center text-xs text-gray-500">
-                          <span>OCR: {markingResult?.ocrMethod || 'Unknown'}</span>
-                          <span>Powered by {markingResult?.apiUsed || 'AI Assistant'}</span>
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        <pre className="text-sm text-gray-700 whitespace-pre-wrap">
+                          {JSON.stringify(markingResult.instructions, null, 2)}
+                        </pre>
+                        {/* Model API version footer */}
+                        <div className="mt-3 pt-2 border-t border-gray-200">
+                          <div className="flex justify-between items-center text-xs text-gray-500">
+                            <span>OCR: {markingResult?.ocrMethod || 'Unknown'}</span>
+                            <span>Powered by {markingResult?.apiUsed || 'AI Assistant'}</span>
+                          </div>
                         </div>
                       </div>
                     </div>

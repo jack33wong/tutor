@@ -61,8 +61,8 @@ async function generateMarkingInstructions(imageData: string, model?: string, pr
   const compressedImage = await compressImage(imageData);
   const imageUrl = compressedImage;
 
-  const systemPrompt = `You are an AI assistant analyzing ocr of images. 
-You will receive ocr description of an image and your task is to:
+  const systemPrompt = `You are an AI assistant analyzing images. 
+You will receive an image and your task is to:
 
 1. Analyze the image content
 2. Provide marking annotations if it's math homework, or general feedback if not
@@ -90,13 +90,12 @@ Available actions: circle, write, tick, cross, underline
 bounding box coordinates are in the format [x,y,width,height] where x and y are the top left corner of the bounding box and width and height are the width and height of the bounding box.
 IMPORTANT: Do NOT use markdown code blocks. Return ONLY the raw JSON object.`;
 
-  let userPrompt = `Here is ocr description of the image. Please:
+  let userPrompt = `Here is an uploaded image. Please:
 
 1. Analyze the image content
 2. If it's math homework, provide marking annotations
 3. If it's not math homework, provide appropriate feedback
 
-The ocr description of the question are also provided, feel free to ignore it if it's not relevant to marking.
 Focus on providing clear, actionable annotations with bounding boxes and comments.`;
 
   if (processedImage && processedImage.boundingBoxes && processedImage.boundingBoxes.length > 0) {
@@ -127,13 +126,13 @@ Focus on providing clear, actionable annotations with bounding boxes and comment
   if (model === 'gemini-2.5-pro') {
     return await callGeminiForMarking(imageUrl, systemPrompt, userPrompt);
   } else if (model === 'chatgpt-5') {
-    return await callOpenAIForMarking(systemPrompt, userPrompt, 'gpt-5');
+    return await callOpenAIForMarking(imageUrl, systemPrompt, userPrompt, 'gpt-5');
   } else {
-    return await callOpenAIForMarking(systemPrompt, userPrompt, 'gpt-4o');
+    return await callOpenAIForMarking(imageUrl, systemPrompt, userPrompt, 'gpt-4o');
   }
 }
 
-async function callOpenAIForMarking(systemPrompt: string, userPrompt: string, openaiModel: string = 'gpt-4o'): Promise<MarkingInstructions> {
+async function callOpenAIForMarking(imageUrl: string, systemPrompt: string, userPrompt: string, openaiModel: string = 'gpt-4o'): Promise<MarkingInstructions> {
   const openaiApiKey = process.env.OPENAI_API_KEY;
   
   if (!openaiApiKey) {
@@ -155,7 +154,15 @@ async function callOpenAIForMarking(systemPrompt: string, userPrompt: string, op
       },
       {
         role: "user",
-        content: userPrompt,
+        content: [
+          { type: "text", text: userPrompt },
+          {
+            type: "image_url",
+            image_url: {
+              url: imageUrl,
+            },
+          },
+        ],
       },
     ],
     max_completion_tokens: 8000,
@@ -296,15 +303,54 @@ function createSVGOverlay(instructions: MarkingInstructions, imageWidth: number 
     return null;
   }
 
+  console.log('🔍 Creating SVG overlay with annotations:', instructions.annotations.length);
+  instructions.annotations.forEach((annotation, index) => {
+    console.log(`🔍 Annotation ${index + 1}:`, {
+      action: annotation.action,
+      comment: annotation.comment,
+      bbox: annotation.bbox,
+      hasComment: !!annotation.comment,
+      commentLength: annotation.comment ? annotation.comment.length : 0
+    });
+  });
+
   let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${imageWidth}" height="${imageHeight}" style="position: absolute; top: 0; left: 0;">`;
   
   instructions.annotations.forEach((annotation, index) => {
-    const [x0, y0, x1, y1] = annotation.bbox;
-    const centerX = (x0 + x1) / 2;
-    const centerY = (y0 + y1) / 2;
-    const width = x1 - x0;
-    const height = y1 - y0;
+    // Bounding box format: [x, y, width, height]
+    const [x, y, width, height] = annotation.bbox;
+    const centerX = x + (width / 2);
+    const centerY = y + (height / 2);
     
+    // Always add the comment text for all annotation types
+    if (annotation.comment && annotation.comment.trim()) {
+      // Clean and escape the comment text for SVG
+      const cleanComment = annotation.comment
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+      
+      // Position comment text to the right of the annotation area
+      const commentX = x + width + 10; // 10px to the right of the bounding box
+      const commentY = y + (height / 2); // Vertically centered with the annotation
+      
+      console.log(`🔍 Adding comment text for annotation ${index + 1}:`, {
+        original: annotation.comment,
+        cleaned: cleanComment,
+        position: { x: commentX, y: commentY }
+      });
+      
+      svg += `<text x="${commentX}" y="${commentY}" fill="red" font-family="Arial, sans-serif" font-size="24" font-weight="bold" text-anchor="start" dominant-baseline="middle">${cleanComment}</text>`;
+    } else {
+      console.log(`🔍 No comment text for annotation ${index + 1}:`, {
+        action: annotation.action,
+        comment: annotation.comment
+      });
+    }
+    
+    // Add the visual annotation based on type
     switch (annotation.action) {
       case 'tick':
         svg += `<text x="${centerX}" y="${centerY + 5}" fill="red" font-family="Arial" font-size="100" font-weight="bold" text-anchor="middle">✔</text>`;
@@ -312,16 +358,32 @@ function createSVGOverlay(instructions: MarkingInstructions, imageWidth: number 
       case 'cross':
         svg += `<text x="${centerX}" y="${centerY + 5}" fill="red" font-family="Arial" font-size="100" font-weight="bold" text-anchor="middle">✘</text>`;
         break;
-      case 'write':
       case 'circle':
+        // Draw a red circle around the area with better positioning
+        const radius = Math.max(width, height) / 2 + 5;
+        svg += `<circle cx="${centerX}" cy="${centerY}" r="${radius}" fill="none" stroke="red" stroke-width="3" opacity="0.8"/>`;
+        console.log(`🔍 Added circle annotation ${index + 1}:`, {
+          center: { x: centerX, y: centerY },
+          radius: radius,
+          bbox: { width, height }
+        });
+        break;
       case 'underline':
+        // Draw a red underline
+        svg += `<line x1="${x}" y1="${y + height + 5}" x2="${x + width}" y2="${y + height + 5}" stroke="red" stroke-width="3" opacity="0.8"/>`;
+        break;
+      case 'write':
       default:
-        svg += `<text x="${x0}" y="${y0}" fill="red" font-family="Comic Sans MS, cursive" font-size="48" font-weight="bold" text-anchor="start" dominant-baseline="hanging">${annotation.comment}</text>`;
+        // For write actions, just show the comment text (already added above)
         break;
     }
   });
   
   svg += '</svg>';
+  
+  console.log('🔍 SVG overlay created successfully, length:', svg.length);
+  console.log('🔍 SVG preview (first 500 chars):', svg.substring(0, 500));
+  
   return svg;
 }
 
