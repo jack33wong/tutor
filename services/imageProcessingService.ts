@@ -68,7 +68,7 @@ export class ImageProcessingService {
     }
     
     // Step 3: Validate Mathpix results
-    if (!mathpixResult || !mathpixResult.text || !mathpixResult.boundingBoxes) {
+    if (!mathpixResult || !mathpixResult.boundingBoxes) {
       const error = new Error('Mathpix OCR returned invalid or empty results');
       console.error('🔍 ❌ Invalid Mathpix results:', mathpixResult);
       throw error;
