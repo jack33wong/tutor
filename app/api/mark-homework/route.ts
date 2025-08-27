@@ -61,8 +61,8 @@ async function generateMarkingInstructions(imageData: string, model?: string, pr
   const compressedImage = await compressImage(imageData);
   const imageUrl = compressedImage;
 
-  const systemPrompt = `You are an AI assistant analyzing images. 
-You will receive an image and your task is to:
+  const systemPrompt = `You are an AI assistant analyzing ocr of images. 
+You will receive ocr description of an image and your task is to:
 
 1. Analyze the image content
 2. Provide marking annotations if it's math homework, or general feedback if not
@@ -90,12 +90,13 @@ Available actions: circle, write, tick, cross, underline
 bounding box coordinates are in the format [x,y,width,height] where x and y are the top left corner of the bounding box and width and height are the width and height of the bounding box.
 IMPORTANT: Do NOT use markdown code blocks. Return ONLY the raw JSON object.`;
 
-  let userPrompt = `Here is an uploaded image. Please:
+  let userPrompt = `Here is ocr description of the image. Please:
 
 1. Analyze the image content
 2. If it's math homework, provide marking annotations
 3. If it's not math homework, provide appropriate feedback
 
+The ocr description of the question are also provided, feel free to ignore it if it's not relevant to marking.
 Focus on providing clear, actionable annotations with bounding boxes and comments.`;
 
   if (processedImage && processedImage.boundingBoxes && processedImage.boundingBoxes.length > 0) {
@@ -126,13 +127,13 @@ Focus on providing clear, actionable annotations with bounding boxes and comment
   if (model === 'gemini-2.5-pro') {
     return await callGeminiForMarking(imageUrl, systemPrompt, userPrompt);
   } else if (model === 'chatgpt-5') {
-    return await callOpenAIForMarking(imageUrl, systemPrompt, userPrompt, 'gpt-5');
+    return await callOpenAIForMarking(systemPrompt, userPrompt, 'gpt-5');
   } else {
-    return await callOpenAIForMarking(imageUrl, systemPrompt, userPrompt, 'gpt-4o');
+    return await callOpenAIForMarking(systemPrompt, userPrompt, 'gpt-4o');
   }
 }
 
-async function callOpenAIForMarking(imageUrl: string, systemPrompt: string, userPrompt: string, openaiModel: string = 'gpt-4o'): Promise<MarkingInstructions> {
+async function callOpenAIForMarking(systemPrompt: string, userPrompt: string, openaiModel: string = 'gpt-4o'): Promise<MarkingInstructions> {
   const openaiApiKey = process.env.OPENAI_API_KEY;
   
   if (!openaiApiKey) {
@@ -154,15 +155,7 @@ async function callOpenAIForMarking(imageUrl: string, systemPrompt: string, user
       },
       {
         role: "user",
-        content: [
-          { type: "text", text: userPrompt },
-          {
-            type: "image_url",
-            image_url: {
-              url: imageUrl,
-            },
-          },
-        ],
+        content: userPrompt,
       },
     ],
     max_completion_tokens: 8000,
