@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import LatexRenderer, { renderLatexToString, processLatexInText } from './LatexRenderer';
+import LatexRenderer from './LatexRenderer';
+import { renderLatexToString, processLatexInText } from '@/utils/latexUtils';
 
 export default function LatexInputDemo() {
   const [latexInput, setLatexInput] = useState('\\frac{3}{6} = \\frac{1}{2}');

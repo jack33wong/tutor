@@ -112,6 +112,7 @@ export default function LeftSidebar({ children, onNewChat, onClearStorage, stora
 					<span>Homework</span>
 				</Link>
 
+				{/* LaTeX Demo - Temporarily disabled
 				<Link
 					href="/latex-demo"
 					className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors duration-200 mt-2 ${
@@ -123,6 +124,7 @@ export default function LeftSidebar({ children, onNewChat, onClearStorage, stora
 					<Type className="w-4 h-4" />
 					<span>LaTeX Demo</span>
 				</Link>
+				*/}
 			</nav>
 
 			{/* Progress Display */}

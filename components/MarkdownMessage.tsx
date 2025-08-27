@@ -4,7 +4,7 @@ import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
-import { processLatexInText } from './LatexRenderer';
+import { processLatexInText, hasLatexPatterns } from '@/utils/latexUtils';
 
 type MarkdownMessageProps = {
   content: string;
@@ -42,15 +42,15 @@ export default function MarkdownMessage({ content, className = '', isGeometryRes
     );
   }
 
-  // Check if content contains LaTeX patterns (including multi-line)
-  const hasLatex = /\\[\(\[][\s\S]*?\\[\)\]]|\$\$[\s\S]*?\$\$|\$[\s\S]*?\$/.test(content);
+  // Check if content contains LaTeX patterns
+  const hasLatex = hasLatexPatterns(content);
 
   // Process LaTeX first, then apply markdown
   const latexProcessed = processLatexInText(content);
 
   return (
     <div className={className}>
-      {/* Show raw LaTeX if present */}
+      {/* Raw LaTeX display disabled
       {hasLatex && (
         <div className="mb-4 p-3 bg-gray-100 border border-gray-300 rounded-lg">
           <h4 className="text-sm font-semibold text-gray-700 mb-2">🔍 Raw LaTeX:</h4>
@@ -59,6 +59,7 @@ export default function MarkdownMessage({ content, className = '', isGeometryRes
           </pre>
         </div>
       )}
+      */}
 
       {/* Show processed content with LaTeX rendering and markdown formatting */}
       <ReactMarkdown
