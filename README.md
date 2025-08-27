@@ -53,7 +53,8 @@ The app uses **Mathpix API** for advanced OCR capabilities, especially for mathe
 2. **Configure environment variables**:
    Create a `.env.local` file in your project root:
    ```bash
-   MATHPIX_API_KEY=your_mathpix_api_key_here
+   MATHPIX_APP_ID=your_mathpix_app_id_here
+   MATHPIX_APP_KEY=your_mathpix_app_key_here
    ```
 
 3. **Test the integration**:

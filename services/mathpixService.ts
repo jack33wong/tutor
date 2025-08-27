@@ -11,16 +11,16 @@ interface MathpixOCRResult {
   }>;
 }
 
-class MathpixService {
-  private static readonly API_URL = 'https://api.mathpix.com/v3/text';
-  private static readonly API_KEY = process.env.MATHPIX_API_KEY;
+  class MathpixService {
+    private static readonly API_URL = 'https://api.mathpix.com/v3/text';
+    private static readonly API_KEY = process.env.MATHPIX_API_KEY;
 
   /**
    * Check if Mathpix API is available
    */
-  static isAvailable(): boolean {
-    return !!this.API_KEY;
-  }
+      static isAvailable(): boolean {
+      return !!this.API_KEY;
+    }
 
   /**
    * Perform OCR on an image using Mathpix API
@@ -39,7 +39,8 @@ class MathpixService {
       // Mathpix handles all image formats natively
       const requestBody = {
         src: imageData, // Send the original data URL directly
-        formats: ['text']
+        formats: ["text", "data"],  // Request both text and data for bounding boxes
+        "include_word_data": true
       };
 
       console.log('🔍 Sending request to Mathpix API...');
@@ -48,8 +49,7 @@ class MathpixService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'app_id': 'tutor_app',
-          'app_key': this.API_KEY
+          'app_key': this.API_KEY || ''
         },
         body: JSON.stringify(requestBody)
       });
@@ -64,7 +64,14 @@ class MathpixService {
       console.log('🔍 Raw Mathpix response:', JSON.stringify(result, null, 2));
       
       // Extract text and confidence
+      console.log('🔍 DEBUG: result.text exists:', !!result.text);
+      console.log('🔍 DEBUG: result.text length:', result.text ? result.text.length : 'undefined');
+      console.log('🔍 DEBUG: result.text preview:', result.text ? result.text.substring(0, 100) + '...' : 'undefined');
+      
       const text = result.text || '';
+      console.log('🔍 DEBUG: extracted text length:', text.length);
+      console.log('🔍 DEBUG: extracted text preview:', text.substring(0, 100) + '...');
+      
       const confidence = this.calculateOverallConfidence(result);
       
       // Extract bounding boxes from line data
@@ -119,7 +126,7 @@ class MathpixService {
   }
 
   /**
-   * Extract bounding boxes from Mathpix response data
+   * Extract bounding boxes from Mathpix response data with coordinate scaling
    */
   private static extractBoundingBoxes(result: any): Array<{
     x: number;
@@ -138,17 +145,33 @@ class MathpixService {
         text: string;
         confidence: number;
       }> = [];
+      console.log("RAW Mathpix Response word_data")
+      console.log(result.word_data)
+      // Mathpix API now returns coordinates in the correct scale
+      // No manual scaling needed
 
-      // Extract from the new Mathpix format: data array with cnt coordinates
-      if (result.data && Array.isArray(result.data)) {
-        result.data.forEach((item: any) => {
-          if (item.cnt && Array.isArray(item.cnt) && item.cnt.length === 4 && item.text) {
-            // Mathpix format: cnt = [[x1,y1], [x2,y2], [x3,y3], [x4,y4]]
+      // Extract from the new Mathpix format: word_data array with cnt coordinates
+      if (result.word_data && Array.isArray(result.word_data)) {
+        result.word_data.forEach((item: any) => {
+          if (item.cnt && Array.isArray(item.cnt) && item.cnt.length > 0 && item.text) {
+            // Mathpix format: cnt = [[x,y]] - contour points for the word
             const points = item.cnt as number[][];
-            const x = Math.min(...points.map((p: number[]) => p[0]));
-            const y = Math.min(...points.map((p: number[]) => p[1]));
-            const width = Math.max(...points.map((p: number[]) => p[0])) - x;
-            const height = Math.max(...points.map((p: number[]) => p[1])) - y;
+            const rawX = Math.min(...points.map((p: number[]) => p[0]));
+            const rawY = Math.min(...points.map((p: number[]) => p[1]));
+            const rawWidth = Math.max(...points.map((p: number[]) => p[0])) - rawX;
+            const rawHeight = Math.max(...points.map((p: number[]) => p[1])) - rawY;
+            console.log("Getting cnt for each item")
+            // Use coordinates directly from Mathpix API (already in correct scale)
+            const x = Math.round(rawX);
+            const y = Math.round(rawY);
+            const width = Math.round(rawWidth);
+            const height = Math.round(rawHeight);
+            
+            console.log('🔍 Bounding box coordinates:', {
+              raw: { x: rawX, y: rawY, width: rawWidth, height: rawHeight },
+              final: { x, y, width, height },
+              text: item.text.substring(0, 30) + '...'
+            });
             
             boundingBoxes.push({
               x,

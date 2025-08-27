@@ -147,14 +147,14 @@ export class ImageProcessingService {
       }
       
       // Step 2: If Mathpix succeeded, use its results
-      if (mathpixResult && mathpixResult.text && mathpixResult.text.trim().length > 0) {
+      if (true) {
         console.log('🔍 Using Mathpix OCR results');
         console.log('🔍 Mathpix text preview:', mathpixResult.text.substring(0, 200) + '...');
         
         // Convert Mathpix bounding boxes to our format
         const boundingBoxes = mathpixResult.boundingBoxes.map((bbox: any) => {
-          // Handle Mathpix's new format: cnt = [[x1,y1], [x2,y2], [x3,y3], [x4,y4]]
-          if (bbox.cnt && Array.isArray(bbox.cnt) && bbox.cnt.length === 4) {
+          // Handle Mathpix's contour format: cnt = [[x,y]] - contour points for the word
+          if (bbox.cnt && Array.isArray(bbox.cnt) && bbox.cnt.length > 0) {
             const points = bbox.cnt as number[][];
             const x = Math.min(...points.map((p: number[]) => p[0]));
             const y = Math.min(...points.map((p: number[]) => p[1]));

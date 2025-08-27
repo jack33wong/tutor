@@ -13,118 +13,55 @@ interface MarkingInstructions {
 }
 
 export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json();
-    const { imageData, imageName, model } = body;
-    
-    console.log('🔍 Mark Homework API - Model Selection:', { 
-      model, 
-      hasModel: !!model, 
-      modelType: typeof model 
-    });
-    
-    if (!imageData || !imageName) {
-      return NextResponse.json({ error: 'Missing image data or name' }, { status: 400 });
-    }
-
-    // NEW: Call the enhanced ImageProcessingService to trigger OCR logging
-    let processedImage = null;
-    let ocrMethod = 'Unknown';
-    try {
-      processedImage = await ImageProcessingService.processImage(imageData);
-      console.log('🔍 ImageProcessingService completed successfully!');
-      console.log('🔍 OCR Text length:', processedImage.ocrText.length);
-      console.log('🔍 Bounding boxes found:', processedImage.boundingBoxes.length);
-      
-      // Simple OCR method detection - if we have good results, assume Mathpix
-      if (processedImage.ocrText && processedImage.ocrText.length > 0 && 
-          processedImage.boundingBoxes && processedImage.boundingBoxes.length > 0) {
-        ocrMethod = 'Mathpix API';
-      } else {
-        ocrMethod = 'Tesseract.js (Fallback)';
-      }
-      console.log('🔍 OCR Method used:', ocrMethod);
-    } catch (ocrError) {
-      console.error('🔍 ImageProcessingService failed:', ocrError);
-      ocrMethod = 'Failed';
-    }
-
-    // Stage 1: AI Analysis with selected model
-    // Stage 2: AI Analysis with compressed image data
-    const markingInstructions = await generateMarkingInstructions(imageData, model, processedImage);
-    
-    if (!markingInstructions) {
-      return NextResponse.json({ 
-        markedImage: null,
-        instructions: {
-          annotations: [
-            {
-              action: 'write',
-              bbox: [50, 50, 400, 100],
-              comment: 'AI service temporarily unavailable. Please try again later.'
-            }
-          ]
-        },
-        message: 'AI analysis service unavailable. Please try again later.',
-        error: 'AI Service Unavailable',
-        details: 'OpenAI API did not return content. This could be due to API key issues, model availability, or service problems.'
-      });
-    }
-
-    // Stage 3: Image Annotation using Sharp
-    const markedImage = await applyMarkingsToImage(imageData, markingInstructions);
-    
-    if (!markedImage) {
-      return NextResponse.json({ error: 'Failed to apply markings to image' }, { status: 500 });
-    }
-
-    const modelName = model === 'gemini-2.5-pro' ? 'Google Gemini 2.5 Pro' : 
-                     model === 'chatgpt-5' ? 'OpenAI ChatGPT 5' : 'OpenAI GPT-4 Omni';
-    
-    // Determine which specific API was used
-    let apiUsed = '';
-    if (model === 'gemini-2.5-pro') {
-      apiUsed = 'Google Gemini 2.0 Flash Exp';
-    } else if (model === 'chatgpt-5') {
-      apiUsed = 'OpenAI GPT-5';
-    } else {
-      apiUsed = 'OpenAI GPT-4 Omni';
-    }
-    
-    return NextResponse.json({ 
-      markedImage,
-      instructions: markingInstructions,
-      message: `Homework marked successfully using ${modelName} + Sharp image processing`,
-      apiUsed,
-      ocrMethod
-    });
-
-  } catch (error) {
-    return NextResponse.json({ 
-      error: 'Failed to process homework marking',
-      details: error instanceof Error ? error.message : 'Unknown error',
-      timestamp: new Date().toISOString()
-    }, { status: 500 });
+  const body = await req.json();
+  const { imageData, imageName, model } = body;
+  
+  console.log('🔍 Mark Homework API - Model Selection:', { 
+    model, 
+    hasModel: !!model, 
+    modelType: typeof model 
+  });
+  
+  if (!imageData || !imageName) {
+    return NextResponse.json({ error: 'Missing image data or name' }, { status: 400 });
   }
+
+  const processedImage = await ImageProcessingService.processImage(imageData);
+  console.log('🔍 ImageProcessingService completed successfully!');
+  console.log('🔍 OCR Text length:', processedImage.ocrText.length);
+  console.log('🔍 Bounding boxes found:', processedImage.boundingBoxes.length);
+  
+  const markingInstructions = await generateMarkingInstructions(imageData, model, processedImage);
+  const markedImage = await applyMarkingsToImage(imageData, markingInstructions);
+  
+  const modelName = model === 'gemini-2.5-pro' ? 'Google Gemini 2.5 Pro' : 
+                   model === 'chatgpt-5' ? 'OpenAI ChatGPT 5' : 'OpenAI GPT-4 Omni';
+  
+  let apiUsed = '';
+  if (model === 'gemini-2.5-pro') {
+    apiUsed = 'Google Gemini 2.0 Flash Exp';
+  } else if (model === 'chatgpt-5') {
+    apiUsed = 'OpenAI GPT-5';
+  } else {
+    apiUsed = 'OpenAI GPT-4 Omni';
+  }
+  
+  return NextResponse.json({ 
+    markedImage,
+    instructions: markingInstructions,
+    message: `Homework marked successfully using ${modelName} + Sharp image processing`,
+    apiUsed,
+    ocrMethod: processedImage.ocrText && processedImage.ocrText.length > 0 && 
+               processedImage.boundingBoxes && processedImage.boundingBoxes.length > 0 ? 
+               'Mathpix API' : 'Tesseract.js (Fallback)'
+  });
 }
 
+async function generateMarkingInstructions(imageData: string, model?: string, processedImage?: any): Promise<MarkingInstructions> {
+  const compressedImage = await compressImage(imageData);
+  const imageUrl = compressedImage;
 
-
-
-
-async function generateMarkingInstructions(imageData: string, model?: string, processedImage?: any): Promise<MarkingInstructions | null> {
-  try {
-    // Compress and resize the image to reduce token usage
-    const compressedImage = await compressImage(imageData);
-    if (!compressedImage) {
-      return null;
-    }
-
-    // For development, use base64 data directly instead of uploading to temp host
-    // In production, you'd want to use a proper image hosting service
-    const imageUrl = compressedImage; // Use base64 data directly
-
-    const systemPrompt = `You are an AI assistant analyzing images. 
+  const systemPrompt = `You are an AI assistant analyzing images. 
 You will receive an image and your task is to:
 
 1. Analyze the image content
@@ -150,10 +87,10 @@ Example Output for Non-Math Content (return exactly this format, no markdown):
 }
 
 Available actions: circle, write, tick, cross, underline
+bounding box coordinates are in the format [x,y,width,height] where x and y are the top left corner of the bounding box and width and height are the width and height of the bounding box.
 IMPORTANT: Do NOT use markdown code blocks. Return ONLY the raw JSON object.`;
 
-    // Build user prompt with OCR results if available
-    let userPrompt = `Here is an uploaded image. Please:
+  let userPrompt = `Here is an uploaded image. Please:
 
 1. Analyze the image content
 2. If it's math homework, provide marking annotations
@@ -161,57 +98,41 @@ IMPORTANT: Do NOT use markdown code blocks. Return ONLY the raw JSON object.`;
 
 Focus on providing clear, actionable annotations with bounding boxes and comments.`;
 
-    // Add OCR results to the prompt if available
-    if (processedImage && processedImage.boundingBoxes && processedImage.boundingBoxes.length > 0) {
-      userPrompt += `\n\nOCR DETECTION RESULTS - Use these bounding box positions as reference for annotations:\n`;
-      userPrompt += `The following text regions were detected in the image:\n`;
-      
-      processedImage.boundingBoxes.forEach((bbox: any, index: number) => {
-        if (bbox.text && bbox.text.trim()) {
-          const confidence = ((bbox.confidence || 0) * 100).toFixed(1);
-          
-          // Handle both Mathpix format (cnt array) and legacy format (x,y,width,height)
-          if (bbox.cnt && Array.isArray(bbox.cnt) && bbox.cnt.length === 4) {
-            // Mathpix format: cnt = [[x1,y1], [x2,y2], [x3,y3], [x4,y4]]
-            const points = bbox.cnt as number[][];
-            const x = Math.min(...points.map((p: number[]) => p[0]));
-            const y = Math.min(...points.map((p: number[]) => p[1]));
-            const width = Math.max(...points.map((p: number[]) => p[0])) - x;
-            const height = Math.max(...points.map((p: number[]) => p[1])) - y;
-            
-            userPrompt += `bbox[${x},${y},${width},${height}], text: "${bbox.text.trim()}", confidence: "${confidence}%"\n`;
-          } else if (bbox.x !== undefined && bbox.y !== undefined && bbox.width !== undefined && bbox.height !== undefined) {
-            // Legacy format: x, y, width, height
-            userPrompt += `bbox[${bbox.x},${bbox.y},${bbox.width},${bbox.height}], text: "${bbox.text.trim()}", confidence: "${confidence}%"\n`;
-          } else {
-            // Fallback: just show the text
-            userPrompt += `text: "${bbox.text.trim()}", confidence: "${confidence}%"\n`;
-          }
+  if (processedImage && processedImage.boundingBoxes && processedImage.boundingBoxes.length > 0) {
+    userPrompt += `\n\nOCR DETECTION RESULTS - Use these bounding box positions as reference for annotations:\n`;
+    userPrompt += `The following text regions were detected in the image:\n`;
+    
+    processedImage.boundingBoxes.forEach((bbox: any, index: number) => {
+      if (bbox.text && bbox.text.trim()) {
+        const confidence = ((bbox.confidence || 0) * 100).toFixed(1);
+        
+                 // The MathpixService has already converted cnt coordinates to x,y,width,height format
+         // and scaled them to match the original image dimensions
+         if (bbox.x !== undefined && bbox.y !== undefined && bbox.width !== undefined && bbox.height !== undefined) {
+          userPrompt += `bbox[${bbox.x},${bbox.y},${bbox.width},${bbox.height}], text: "${bbox.text.trim()}", confidence: "${confidence}%"\n`;
+        } else {
+          userPrompt += `text: "${bbox.text.trim()}", confidence: "${confidence}%"\n`;
         }
-      });
-      
-      userPrompt += `\nIMPORTANT: Use these exact bounding box coordinates [x,y,width,height] when creating your annotations.`;
-      userPrompt += `\nThe OCR has already identified the positions of text and mathematical symbols in the image.`;
-      userPrompt += `\nReference these positions to place your annotations accurately.`;
-    }
-
-    // Route to appropriate API based on selected model
-    if (model === 'gemini-2.5-pro') {
-      return await callGeminiForMarking(imageUrl, systemPrompt, userPrompt);
-    } else if (model === 'chatgpt-5') {
-      return await callOpenAIForMarking(imageUrl, systemPrompt, userPrompt, 'gpt-5');
-    } else {
-      // Default to ChatGPT 4o
-      return await callOpenAIForMarking(imageUrl, systemPrompt, userPrompt, 'gpt-4o');
-    }
-
-  } catch (error) {
-    throw new Error(`Failed to generate marking instructions: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    });
+    
+    userPrompt += `\nIMPORTANT: Use these exact bounding box coordinates [x,y,width,height] when creating your annotations.`;
+    userPrompt += `\nThe OCR has already identified the positions of text and mathematical symbols in the image.`;
+    userPrompt += `\nReference these positions to place your annotations accurately.`;
+  }
+  
+  console.log(systemPrompt+userPrompt)
+  
+  if (model === 'gemini-2.5-pro') {
+    return await callGeminiForMarking(imageUrl, systemPrompt, userPrompt);
+  } else if (model === 'chatgpt-5') {
+    return await callOpenAIForMarking(imageUrl, systemPrompt, userPrompt, 'gpt-5');
+  } else {
+    return await callOpenAIForMarking(imageUrl, systemPrompt, userPrompt, 'gpt-4o');
   }
 }
 
-// OpenAI API function for marking
-async function callOpenAIForMarking(imageUrl: string, systemPrompt: string, userPrompt: string, openaiModel: string = 'gpt-4o'): Promise<MarkingInstructions | null> {
+async function callOpenAIForMarking(imageUrl: string, systemPrompt: string, userPrompt: string, openaiModel: string = 'gpt-4o'): Promise<MarkingInstructions> {
   const openaiApiKey = process.env.OPENAI_API_KEY;
   
   if (!openaiApiKey) {
@@ -225,7 +146,7 @@ async function callOpenAIForMarking(imageUrl: string, systemPrompt: string, user
   });
   
   const requestBody = {
-    model: openaiModel, // Use the specified OpenAI model
+    model: openaiModel,
     messages: [
       {
         role: "system",
@@ -238,7 +159,7 @@ async function callOpenAIForMarking(imageUrl: string, systemPrompt: string, user
           {
             type: "image_url",
             image_url: {
-              url: imageUrl, // Using base64 data directly
+              url: imageUrl,
             },
           },
         ],
@@ -272,32 +193,19 @@ async function callOpenAIForMarking(imageUrl: string, systemPrompt: string, user
   const content = data.choices?.[0]?.message?.content;
   
   if (!content) {
-    return null;
+    throw new Error('OpenAI API returned no content');
   }
 
-  // Parse the JSON response
-  try {
-    const instructions = JSON.parse(content);
-    return instructions;
-  } catch (parseError) {
-    // Try to extract JSON from markdown code blocks if the AI still returns them
-    try {
-      const jsonMatch = content.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
-      if (jsonMatch) {
-        const extractedJson = jsonMatch[1];
-        const instructions = JSON.parse(extractedJson);
-        return instructions;
-      }
-    } catch (extractError) {
-      // JSON extraction failed, continue to next method
-    }
-    
-    return null;
+  const jsonMatch = content.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+  if (jsonMatch) {
+    const extractedJson = jsonMatch[1];
+    return JSON.parse(extractedJson);
   }
+  
+  return JSON.parse(content);
 }
 
-// Gemini API function for marking
-async function callGeminiForMarking(imageUrl: string, systemPrompt: string, userPrompt: string): Promise<MarkingInstructions | null> {
+async function callGeminiForMarking(imageUrl: string, systemPrompt: string, userPrompt: string): Promise<MarkingInstructions> {
   const geminiApiKey = process.env.GEMINI_API_KEY;
   
   if (!geminiApiKey) {
@@ -320,7 +228,7 @@ async function callGeminiForMarking(imageUrl: string, systemPrompt: string, user
           {
             inline_data: {
               mime_type: "image/jpeg",
-              data: imageUrl.replace('data:image/jpeg;base64,', '') // Remove data URL prefix
+              data: imageUrl.replace('data:image/jpeg;base64,', '')
             }
           }
         ]
@@ -352,234 +260,123 @@ async function callGeminiForMarking(imageUrl: string, systemPrompt: string, user
   const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
   
   if (!content) {
-    return null;
+    throw new Error('Gemini API returned no content');
   }
 
-  // Parse the JSON response
-  try {
-    const instructions = JSON.parse(content);
-    return instructions;
-  } catch (parseError) {
-    // Try to extract JSON from markdown code blocks if the AI still returns them
-    try {
-      const jsonMatch = content.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
-      if (jsonMatch) {
-        const extractedJson = jsonMatch[1];
-        const instructions = JSON.parse(extractedJson);
-        return instructions;
-      }
-    } catch (extractError) {
-      // JSON extraction failed, continue to next method
-    }
-    
-    return null;
+  const jsonMatch = content.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+  if (jsonMatch) {
+    const extractedJson = jsonMatch[1];
+    return JSON.parse(extractedJson);
   }
+  
+  return JSON.parse(content);
 }
 
-async function applyMarkingsToImage(originalImage: string, instructions: MarkingInstructions): Promise<string | null> {
-  try {
-    // Convert base64 to buffer
-    const base64Data = originalImage.replace(/^data:image\/[a-z]+;base64,/, '');
-    const imageBuffer = Buffer.from(base64Data, 'base64');
-    
-    // Test Sharp functionality
-    try {
-      const testSharp = sharp(imageBuffer);
-    } catch (sharpError) {
-      throw sharpError;
-    }
-    
-    // Create a new image with annotations using Sharp
-    let markedImage = sharp(imageBuffer);
-    
-    // For now, we'll create a simple overlay with text
-    // In a production system, you'd want more sophisticated annotation drawing
-    
-    // Get image dimensions
-    const imageMetadata = await markedImage.metadata();
-    
-    // Create SVG overlay for annotations with correct dimensions
-    const svgOverlay = createSVGOverlay(instructions, imageMetadata.width || 400, imageMetadata.height || 300);
-    
-    if (svgOverlay) {
-          try {
-      markedImage = markedImage.composite([
-        {
-          input: Buffer.from(svgOverlay),
-          top: 0,
-          left: 0
-        }
-      ]);
-    } catch (compositeError) {
-      throw compositeError;
-    }
+async function applyMarkingsToImage(originalImage: string, instructions: MarkingInstructions): Promise<string> {
+  const base64Data = originalImage.replace(/^data:image\/[a-z]+;base64,/, '');
+  const imageBuffer = Buffer.from(base64Data, 'base64');
+  
+  const testSharp = sharp(imageBuffer);
+  let markedImage = sharp(imageBuffer);
+  
+  const imageMetadata = await markedImage.metadata();
+  const svgOverlay = createSVGOverlay(instructions, imageMetadata.width || 400, imageMetadata.height || 300);
+  
+  if (svgOverlay) {
+    markedImage = markedImage.composite([
+      {
+        input: Buffer.from(svgOverlay),
+        top: 0,
+        left: 0
+      }
+    ]);
   }
   
-  // Convert back to base64
   const outputBuffer = await markedImage.png().toBuffer();
-  
   const base64Output = `data:image/png;base64,${outputBuffer.toString('base64')}`;
   
   return base64Output;
-
-  } catch (error) {
-    throw new Error(`Failed to apply markings to image: ${error instanceof Error ? error.message : 'Unknown error'}`);
-  }
 }
 
 function createSVGOverlay(instructions: MarkingInstructions, imageWidth: number = 400, imageHeight: number = 300): string | null {
-  try {
-    if (!instructions.annotations || instructions.annotations.length === 0) {
-      return null;
-    }
-
-    // Create SVG with annotations - use actual image dimensions
-    let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${imageWidth}" height="${imageHeight}" style="position: absolute; top: 0; left: 0;">`;
-    
-    // Debug grid disabled
-    // const gridSize = 50;
-    // for (let x = 0; x <= imageWidth; x += gridSize) {
-    //   svg += `<line x1="${x}" y1="0" x2="${x}" y2="${imageHeight}" stroke="rgba(0,0,255,0.3)" stroke-width="1"/>`;
-    //   if (x > 0) {
-    //     svg += `<text x="${x - 10}" y="15" fill="blue" font-family="Arial" font-size="10">${x}</text>`;
-    //   }
-    // }
-    // for (let y = 0; y <= imageHeight; y += gridSize) {
-    //   svg += `<line x1="0" y1="${y}" x2="${imageWidth}" y2="${y}" stroke="rgba(0,0,255,0.3)" stroke-width="1"/>`;
-    //   if (y > 0) {
-    //     svg += `<text x="5" y="${y - 5}" fill="blue" font-family="Arial" font-size="10">${y}</text>`;
-    //   }
-    // }
-    
-    instructions.annotations.forEach((annotation, index) => {
-      const [x0, y0, x1, y1] = annotation.bbox;
-      const centerX = (x0 + x1) / 2;
-      const centerY = (y0 + y1) / 2;
-      const width = x1 - x0;
-      const height = y1 - y0;
-      
-      // Handle different annotation types
-      switch (annotation.action) {
-        case 'tick':
-          // Use tick symbol instead of lines
-          svg += `<text x="${centerX}" y="${centerY + 5}" fill="red" font-family="Arial" font-size="100" font-weight="bold" text-anchor="middle">✔</text>`;
-          break;
-        case 'cross':
-          // Use cross symbol
-          svg += `<text x="${centerX}" y="${centerY + 5}" fill="red" font-family="Arial" font-size="100" font-weight="bold" text-anchor="middle">✘</text>`;
-          break;
-        case 'write':
-        case 'circle':
-        case 'underline':
-        default:
-          // Show text comments for all other actions (3x bigger) - positioned at top right corner
-          svg += `<text x="${x0}" y="${y0}" fill="red" font-family="Comic Sans MS, cursive" font-size="48" font-weight="bold" text-anchor="start" dominant-baseline="hanging">${annotation.comment}</text>`;
-          break;
-      }
-    });
-    
-    svg += '</svg>';
-    return svg;
-
-  } catch (error) {
+  if (!instructions.annotations || instructions.annotations.length === 0) {
     return null;
   }
+
+  let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${imageWidth}" height="${imageHeight}" style="position: absolute; top: 0; left: 0;">`;
+  
+  instructions.annotations.forEach((annotation, index) => {
+    const [x0, y0, x1, y1] = annotation.bbox;
+    const centerX = (x0 + x1) / 2;
+    const centerY = (y0 + y1) / 2;
+    const width = x1 - x0;
+    const height = y1 - y0;
+    
+    switch (annotation.action) {
+      case 'tick':
+        svg += `<text x="${centerX}" y="${centerY + 5}" fill="red" font-family="Arial" font-size="100" font-weight="bold" text-anchor="middle">✔</text>`;
+        break;
+      case 'cross':
+        svg += `<text x="${centerX}" y="${centerY + 5}" fill="red" font-family="Arial" font-size="100" font-weight="bold" text-anchor="middle">✘</text>`;
+        break;
+      case 'write':
+      case 'circle':
+      case 'underline':
+      default:
+        svg += `<text x="${x0}" y="${y0}" fill="red" font-family="Comic Sans MS, cursive" font-size="48" font-weight="bold" text-anchor="start" dominant-baseline="hanging">${annotation.comment}</text>`;
+        break;
+    }
+  });
+  
+  svg += '</svg>';
+  return svg;
 }
 
-async function compressImage(imageData: string): Promise<string | null> {
-  try {
-    // Validate input format
-    if (!imageData || typeof imageData !== 'string') {
-      return null;
-    }
-
-    // Check if it's a valid data URL
-    if (!imageData.startsWith('data:image/')) {
-      return null;
-    }
-
-    // Extract format and base64 data
-    const match = imageData.match(/^data:image\/([a-z]+);base64,(.+)$/i);
-    if (!match) {
-      return null;
-    }
-
-    const [, format, base64Data] = match;
-    
-    // Check if base64 data is valid (not test data)
-    if (!base64Data || base64Data === 'test') {
-      return null;
-    }
-
-    // Allow very small images (canvas-generated images can be small)
-    if (base64Data.length < 50) {
-      return null;
-    }
-
-    // Validate base64 format
-    const base64Regex = /^[A-Za-z0-9+/]*={0,2}$/;
-    if (!base64Regex.test(base64Data)) {
-      return null;
-    }
-
-    let imageBuffer: Buffer | undefined;
-    try {
-      imageBuffer = Buffer.from(base64Data, 'base64');
-      
-      // Validate buffer size
-      if (imageBuffer.length === 0) {
-        return null;
-      }
-
-      // For very small images (like 1x1 pixel), don't compress - just return original
-      if (imageBuffer.length < 100) {
-        return imageData;
-      }
-
-      // Try to compress with Sharp
-      const compressedBuffer = await sharp(imageBuffer)
-        .resize(800, 600, { fit: 'inside', withoutEnlargement: true }) // Larger size for better quality
-        .jpeg({ quality: 80 }) // Higher quality
-        .toBuffer();
-      
-      // Convert back to base64
-      const compressedBase64 = `data:image/jpeg;base64,${compressedBuffer.toString('base64')}`;
-      
-      return compressedBase64;
-      
-    } catch (sharpError) {
-      // If Sharp fails but it's a valid format, try to return original
-      const validFormats = ['jpeg', 'jpg', 'png', 'webp', 'gif', 'bmp'];
-      if (validFormats.includes(format.toLowerCase())) {
-        return imageData;
-      }
-      
-      return null;
-    }
-    
-  } catch (error) {
-    return null;
+async function compressImage(imageData: string): Promise<string> {
+  if (!imageData || typeof imageData !== 'string') {
+    throw new Error('Invalid image data format');
   }
-}
 
-async function uploadImageToTempHost(base64Image: string): Promise<string | null> {
-  try {
-    // For development/testing, we'll use a simple approach
-    // In production, you'd want to use a proper image hosting service like AWS S3, Cloudinary, etc.
-    
-    // Option 1: Use a free image hosting service (requires API key)
-    // Option 2: Use a public image hosting service
-    // Option 3: For now, return a test URL to verify the API structure
-    
-    // For testing purposes, we'll use a placeholder URL
-    // This will allow us to test the API structure, but OpenAI will reject it
-    // You'll need to implement proper image hosting for production use
-    
-    const testUrl = 'https://httpbin.org/image/jpeg'; // A test image URL
-    
-    return testUrl;
-    
-  } catch (error) {
-    return null;
+  if (!imageData.startsWith('data:image/')) {
+    throw new Error('Invalid image data URL format');
   }
+
+  const match = imageData.match(/^data:image\/([a-z]+);base64,(.+)$/i);
+  if (!match) {
+    throw new Error('Failed to parse image data URL');
+  }
+
+  const [, format, base64Data] = match;
+  
+  if (!base64Data || base64Data === 'test') {
+    throw new Error('Invalid base64 image data');
+  }
+
+  if (base64Data.length < 50) {
+    throw new Error('Image data too small');
+  }
+
+  const base64Regex = /^[A-Za-z0-9+/]*={0,2}$/;
+  if (!base64Regex.test(base64Data)) {
+    throw new Error('Invalid base64 format');
+  }
+
+  const imageBuffer = Buffer.from(base64Data, 'base64');
+  
+  if (imageBuffer.length === 0) {
+    throw new Error('Failed to create image buffer');
+  }
+
+  if (imageBuffer.length < 100) {
+    return imageData;
+  }
+
+  const compressedBuffer = await sharp(imageBuffer)
+    .resize(800, 600, { fit: 'inside', withoutEnlargement: true })
+    .jpeg({ quality: 80 })
+    .toBuffer();
+  
+  const compressedBase64 = `data:image/jpeg;base64,${compressedBuffer.toString('base64')}`;
+  
+  return compressedBase64;
 }
