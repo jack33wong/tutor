@@ -257,7 +257,7 @@ export default function MarkHomeworkPage() {
                   className="justify-start"
                 />
                 <div className="text-sm text-gray-600">
-                  Current Model: <span className="font-medium text-blue-600">{selectedModel === 'chatgpt-5' ? 'ChatGPT 5' : selectedModel === 'chatgpt-4o' ? 'ChatGPT 4o' : 'Gemini 2.5 Pro'}</span>
+                  Current Model: <span className="font-medium text-primary-600">{selectedModel === 'chatgpt-5' ? 'ChatGPT 5' : selectedModel === 'chatgpt-4o' ? 'ChatGPT 4o' : 'Gemini 2.5 Pro'}</span>
                 </div>
               </div>
             </div>
@@ -364,7 +364,7 @@ export default function MarkHomeworkPage() {
                             </>
                           )}
                           <details className="mt-2">
-                            <summary className="cursor-pointer text-blue-600 hover:text-blue-800">View Full Stack Trace</summary>
+                            <summary className="cursor-pointer text-primary-600 hover:text-primary-800">View Full Stack Trace</summary>
                             <pre className="mt-2 p-2 bg-gray-100 rounded text-xs overflow-x-auto whitespace-pre-wrap">
                               {detailedError.stack}
                             </pre>
@@ -408,15 +408,15 @@ export default function MarkHomeworkPage() {
                         </div>
                                                          <div className="space-y-2 text-sm text-gray-500">
                                    <div className="flex items-center justify-center space-x-2">
-                                     <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
+                                     <Loader2 className="w-4 h-4 animate-spin text-primary-500" />
                                      <span>Stage 1: AI analysis of homework image</span>
                                    </div>
                                    <div className="flex items-center justify-center space-x-2">
-                                     <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
+                                     <Loader2 className="w-4 h-4 animate-spin text-primary-500" />
                                      <span>Stage 2: Generating marking instructions</span>
                                    </div>
                                    <div className="flex items-center justify-center space-x-2">
-                                     <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
+                                     <Loader2 className="w-4 h-4 animate-spin text-primary-500" />
                                      <span>Stage 3: Applying annotations with Sharp</span>
                                    </div>
                                  </div>
@@ -543,7 +543,7 @@ export default function MarkHomeworkPage() {
                     </div>
                     <div className="flex items-center space-x-2">
                       <span>Current Model:</span>
-                      <span className="font-medium text-blue-600">
+                      <span className="font-medium text-primary-600">
                         {selectedModel === 'gemini-2.5-pro' ? 'Google Gemini 2.5 Pro' : selectedModel === 'chatgpt-5' ? 'OpenAI ChatGPT 5' : 'OpenAI GPT-4 Omni'}
                       </span>
                     </div>

@@ -1,0 +1,139 @@
+[1mdiff --git a/app/api/mark-homework/route.ts b/app/api/mark-homework/route.ts[m
+[1mindex b79b214..5604392 100644[m
+[1m--- a/app/api/mark-homework/route.ts[m
+[1m+++ b/app/api/mark-homework/route.ts[m
+[36m@@ -342,7 +342,7 @@[m [mfunction createSVGOverlay(instructions: MarkingInstructions, imageWidth: number[m
+         position: { x: commentX, y: commentY }[m
+       });[m
+       [m
+[31m-      svg += `<text x="${commentX}" y="${commentY}" fill="red" font-family="Arial, sans-serif" font-size="24" font-weight="bold" text-anchor="start" dominant-baseline="middle">${cleanComment}</text>`;[m
+[32m+[m[32m      svg += `<text x="${commentX}" y="${commentY}" fill="red" font-family="Segoe Script, cursive" font-size="56" font-weight="bold" text-anchor="start" dominant-baseline="middle">${cleanComment}</text>`;[m
+     } else {[m
+       console.log(`🔍 No comment text for annotation ${index + 1}:`, {[m
+         action: annotation.action,[m
+[36m@@ -353,10 +353,10 @@[m [mfunction createSVGOverlay(instructions: MarkingInstructions, imageWidth: number[m
+     // Add the visual annotation based on type[m
+     switch (annotation.action) {[m
+       case 'tick':[m
+[31m-        svg += `<text x="${centerX}" y="${centerY + 5}" fill="red" font-family="Arial" font-size="100" font-weight="bold" text-anchor="middle">✔</text>`;[m
+[32m+[m[32m        svg += `<text x="${centerX}" y="${centerY + 5}" fill="red" font-family="Segoe Script, cursive" font-size="160" font-weight="bold" text-anchor="middle">✔</text>`;[m
+         break;[m
+       case 'cross':[m
+[31m-        svg += `<text x="${centerX}" y="${centerY + 5}" fill="red" font-family="Arial" font-size="100" font-weight="bold" text-anchor="middle">✘</text>`;[m
+[32m+[m[32m        svg += `<text x="${centerX}" y="${centerY + 5}" fill="red" font-family="Segoe Script, cursive" font-size="200" font-weight="bold" text-anchor="middle">✘</text>`;[m
+         break;[m
+       case 'circle':[m
+         // Draw a red circle around the area with better positioning[m
+[1mdiff --git a/app/mark-homework/page.tsx b/app/mark-homework/page.tsx[m
+[1mindex cb737d6..c1a7c41 100644[m
+[1m--- a/app/mark-homework/page.tsx[m
+[1m+++ b/app/mark-homework/page.tsx[m
+[36m@@ -5,6 +5,7 @@[m [mimport { Upload, FileImage, CheckCircle, XCircle, Loader2, Download } from 'luci[m
+ import LeftSidebar from '@/components/LeftSidebar';[m
+ import ChatHistory from '@/components/ChatHistory';[m
+ import ModelSelector from '@/components/ModelSelector';[m
+[32m+[m[32mimport DebugGrid from '@/components/DebugGrid';[m
+ import { ModelType } from '@/config/aiModels';[m
+ // Removed useDefaultModel hook to fix display issues[m
+ [m
+[36m@@ -24,11 +25,13 @@[m [minterface MarkingResult {[m
+ export default function MarkHomeworkPage() {[m
+   const [selectedImage, setSelectedImage] = useState<File | null>(null);[m
+   const [imagePreview, setImagePreview] = useState<string | null>(null);[m
+[32m+[m[32m  const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null);[m
+   const [isProcessing, setIsProcessing] = useState(false);[m
+   const [markingResult, setMarkingResult] = useState<MarkingResult | null>(null);[m
+   const [error, setError] = useState<string | null>(null);[m
+   const [detailedError, setDetailedError] = useState<any>(null);[m
+[31m-      const [selectedModel, setSelectedModel] = useState<ModelType>('chatgpt-4o'); // Default to ChatGPT 4o for homework marking[m
+[32m+[m[32m  const [showDebugGrid, setShowDebugGrid] = useState(false); // Debug grid disabled by default[m
+[32m+[m[32m  const [selectedModel, setSelectedModel] = useState<ModelType>('chatgpt-4o'); // Default to ChatGPT 4o for homework marking[m
+   [m
+   // Log when selectedModel changes[m
+   useEffect(() => {[m
+[36m@@ -76,6 +79,13 @@[m [mexport default function MarkHomeworkPage() {[m
+         [m
+         if (result && result.length > 100) {[m
+           setImagePreview(result);[m
+[32m+[m[41m          [m
+[32m+[m[32m          // Get image dimensions[m
+[32m+[m[32m          const img = new Image();[m
+[32m+[m[32m          img.onload = () => {[m
+[32m+[m[32m            setImageDimensions({ width: img.width, height: img.height });[m
+[32m+[m[32m          };[m
+[32m+[m[32m          img.src = result;[m
+         } else {[m
+           setError('Failed to read image file. Please try again.');[m
+           setSelectedImage(null);[m
+[36m@@ -231,9 +241,11 @@[m [mexport default function MarkHomeworkPage() {[m
+   const resetForm = () => {[m
+     setSelectedImage(null);[m
+     setImagePreview(null);[m
+[32m+[m[32m    setImageDimensions(null);[m
+     setMarkingResult(null);[m
+     setError(null);[m
+     setDetailedError(null);[m
+[32m+[m[32m    setShowDebugGrid(false);[m
+     if (fileInputRef.current) {[m
+       fileInputRef.current.value = '';[m
+     }[m
+[36m@@ -373,6 +385,18 @@[m [mexport default function MarkHomeworkPage() {[m
+                       </div>[m
+                     )}[m
+ [m
+[32m+[m[32m                    {/* Debug Grid Toggle */}[m
+[32m+[m[32m                    {imagePreview && ([m
+[32m+[m[32m                      <div className="mt-4">[m
+[32m+[m[32m                        <button[m
+[32m+[m[32m                          onClick={() => setShowDebugGrid(!showDebugGrid)}[m
+[32m+[m[32m                          className="w-full btn-secondary"[m
+[32m+[m[32m                        >[m
+[32m+[m[32m                          {showDebugGrid ? 'Hide' : 'Show'} Debug Coordinate Grid[m
+[32m+[m[32m                        </button>[m
+[32m+[m[32m                      </div>[m
+[32m+[m[32m                    )}[m
+[32m+[m
+                     {/* Process Button */}[m
+                     {imagePreview && ([m
+                       <div className="mt-6">[m
+[36m@@ -488,6 +512,23 @@[m [mexport default function MarkHomeworkPage() {[m
+                     </div>[m
+                   )}[m
+ [m
+[32m+[m[32m                  {/* Debug Grid */}[m
+[32m+[m[32m                  {showDebugGrid && imagePreview && ([m
+[32m+[m[32m                    <DebugGrid[m
+[32m+[m[32m                      imagePreview={imagePreview}[m
+[32m+[m[32m                      markedImage={markingResult?.markedImage}[m
+[32m+[m[32m                      imageDimensions={imageDimensions}[m
+[32m+[m[32m                      boundingBoxes={markingResult?.ocrResults?.map(result => ({[m
+[32m+[m[32m                        x: result.bbox[0],[m
+[32m+[m[32m                        y: result.bbox[1],[m
+[32m+[m[32m                        width: result.bbox[2] - result.bbox[0],[m
+[32m+[m[32m                        height: result.bbox[3] - result.bbox[1],[m
+[32m+[m[32m                        text: result.text,[m
+[32m+[m[32m                        confidence: result.confidence[m
+[32m+[m[32m                      })) || []}[m
+[32m+[m[32m                    />[m
+[32m+[m[32m                  )}[m
+[32m+[m
+                   {/* How It Works */}[m
+                   <div className="card">[m
+                     <h3 className="text-lg font-semibold text-gray-900 mb-4">How It Works</h3>[m
+[1mdiff --git a/services/imageAnnotationService.ts b/services/imageAnnotationService.ts[m
+[1mindex beb1a68..6be604d 100644[m
+[1m--- a/services/imageAnnotationService.ts[m
+[1m+++ b/services/imageAnnotationService.ts[m
+[36m@@ -160,7 +160,7 @@[m [mexport class ImageAnnotationService {[m
+    * Create write comment SVG[m
+    */[m
+   private static createWriteSVG(x1: number, y1: number, x2: number, y2: number, comment: string, index: number): string {[m
+[31m-    const fontSize = Math.max(12, Math.min(x2 - x1, y2 - y1) / 8);[m
+[32m+[m[32m    const fontSize = Math.max(24, Math.min(x2 - x1, y2 - y1) / 4);[m
+     const textX = x1 + 5;[m
+     const textY = y1 + fontSize + 5;[m
+     [m
+[36m@@ -168,7 +168,7 @@[m [mexport class ImageAnnotationService {[m
+       <g id="write-${index}">[m
+         <rect x="${x1}" y="${y1}" width="${x2 - x1}" height="${y2 - y1}" [m
+               

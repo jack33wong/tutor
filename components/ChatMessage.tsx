@@ -50,7 +50,7 @@ export default function ChatMessage({ content, role, imageData, imageName, model
       // User message - aligned to right with blue background
       return (
         <div className="flex justify-end mb-4">
-          <div className="max-w-[80%] bg-blue-600 text-white rounded-2xl rounded-br-md px-4 py-3 shadow-sm">
+          <div className="max-w-[80%] bg-primary-600 text-white rounded-2xl rounded-br-md px-4 py-3 shadow-sm">
             <MarkdownMessage content={content} />
           </div>
         </div>
@@ -80,7 +80,7 @@ export default function ChatMessage({ content, role, imageData, imageName, model
     // User image message - aligned to right with blue background
     return (
       <div className="flex justify-end mb-4">
-        <div className="max-w-[80%] bg-blue-600 text-white rounded-2xl rounded-br-md px-4 py-3 shadow-sm">
+                  <div className="max-w-[80%] bg-primary-600 text-white rounded-2xl rounded-br-md px-4 py-3 shadow-sm">
           {/* Text content if any */}
           {content && content !== `[📷 Image: ${imageName}]` && (
             <div className="mb-3">
@@ -90,7 +90,7 @@ export default function ChatMessage({ content, role, imageData, imageName, model
           
           {/* Image thumbnail */}
           <div className="flex items-center space-x-3">
-            <div className="w-16 h-16 rounded-lg overflow-hidden shadow-sm border border-blue-400">
+                            <div className="w-16 h-16 rounded-lg overflow-hidden shadow-sm border border-primary-400">
               <img 
                 src={imageData} 
                 alt={imageName}
@@ -107,8 +107,8 @@ export default function ChatMessage({ content, role, imageData, imageName, model
               </div>
             </div>
             <div className="flex-1">
-              <p className="text-sm font-medium text-blue-100">Image attached</p>
-              <p className="text-xs text-blue-200 mt-1">{imageName}</p>
+              <p className="text-sm font-medium text-primary-100">Image attached</p>
+              <p className="text-xs text-primary-200 mt-1">{imageName}</p>
             </div>
           </div>
         </div>

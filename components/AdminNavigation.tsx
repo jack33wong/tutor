@@ -56,20 +56,20 @@ export default function AdminNavigation() {
               href={link.href}
               className={`block p-4 rounded-lg border-2 transition-all hover:shadow-md ${
                 isActive
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-gray-200 hover:border-blue-300'
+                          ? 'border-primary-500 bg-primary-50'
+        : 'border-gray-200 hover:border-primary-300'
               }`}
             >
               <div className="flex items-start space-x-3">
                 <div className="text-2xl">{link.icon}</div>
                 <div className="flex-1">
                   <h3 className={`font-semibold ${
-                    isActive ? 'text-blue-900' : 'text-gray-900'
+                    isActive ? 'text-primary-900' : 'text-gray-900'
                   }`}>
                     {link.label}
                   </h3>
                   <p className={`text-sm mt-1 ${
-                    isActive ? 'text-blue-700' : 'text-gray-600'
+                    isActive ? 'text-primary-700' : 'text-gray-600'
                   }`}>
                     {link.description}
                   </p>
@@ -85,7 +85,7 @@ export default function AdminNavigation() {
         <div className="flex flex-wrap gap-2">
           <Link
             href="/admin/manage-exam-papers"
-            className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm hover:bg-blue-200 transition-colors"
+            className="px-3 py-1 bg-primary-100 text-primary-800 rounded-full text-sm hover:bg-primary-200 transition-colors"
           >
             ➕ Add Question
           </Link>

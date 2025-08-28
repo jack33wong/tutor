@@ -56,7 +56,7 @@ export default function BoundingBoxDisplay({
             return (
               <div
                 key={index}
-                className="absolute border-2 border-blue-500 bg-blue-100 bg-opacity-30"
+                className="absolute border-2 border-primary-500 bg-primary-100 bg-opacity-30"
                 style={{
                   left: scaledX,
                   top: scaledY,
@@ -65,7 +65,7 @@ export default function BoundingBoxDisplay({
                 }}
                 title={`Region ${index + 1}: "${bbox.text}" (Confidence: ${bbox.confidence.toFixed(1)}%)`}
               >
-                <div className="absolute -top-6 left-0 bg-blue-500 text-white text-xs px-1 py-0.5 rounded">
+                <div className="absolute -top-6 left-0 bg-primary-500 text-white text-xs px-1 py-0.5 rounded">
                   {index + 1}
                 </div>
               </div>
@@ -79,7 +79,7 @@ export default function BoundingBoxDisplay({
           <div className="space-y-2 max-h-48 overflow-y-auto">
             {boundingBoxes.map((bbox, index) => (
               <div key={index} className="flex items-start space-x-3 p-2 bg-white rounded border">
-                <div className="w-6 h-6 bg-blue-500 text-white text-xs rounded-full flex items-center justify-center flex-shrink-0">
+                                  <div className="w-6 h-6 bg-primary-500 text-white text-xs rounded-full flex items-center justify-center flex-shrink-0">
                   {index + 1}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -99,8 +99,8 @@ export default function BoundingBoxDisplay({
         </div>
 
         {/* Processing information */}
-        <div className="text-xs text-gray-500 bg-blue-50 p-3 rounded-lg">
-          <div className="font-medium text-blue-800 mb-1">Processing Information</div>
+        <div className="text-xs text-gray-500 bg-primary-50 p-3 rounded-lg">
+          <div className="font-medium text-primary-800 mb-1">Processing Information</div>
           <div>• Bounding boxes detected using image processing algorithms</div>
           <div>• Text extracted using OCR (Optical Character Recognition)</div>
           <div>• Coordinates are in pixels relative to original image dimensions</div>
