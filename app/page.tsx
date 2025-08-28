@@ -675,9 +675,9 @@ export default function ChatHome() {
 	};
 
 	// Show loading state until we're on the client side
-	if (!isClient) {
-		return (
-								<div className="min-h-screen bg-gray-50 flex items-center justify-center">
+	  if (!isClient) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
 						<div className="text-center">
 							<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
 							<p className="text-gray-600">Initializing...</p>
@@ -687,9 +687,9 @@ export default function ChatHome() {
 	}
 
 	// Show loading state until Firestore is ready
-	if (isLoading) {
-		return (
-			<div className="min-h-screen bg-gray-50 flex items-center justify-center">
+	  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
 				<div className="text-center">
 					<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
 					<p className="text-gray-600">Loading chat...</p>
@@ -699,9 +699,9 @@ export default function ChatHome() {
 	}
 
 	// Show error state if there's an error
-	if (error) {
-		return (
-			<div className="min-h-screen bg-gray-50 flex items-center justify-center">
+	  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
 				<div className="text-center">
 					<div className="text-red-500 mb-4">
 						<MessageCircle className="w-16 h-16 mx-auto" />
@@ -730,7 +730,7 @@ export default function ChatHome() {
 	// Show fallback state if no sessions exist
 	if (!isLoading && chatSessions.length === 0 && !currentSessionId) {
 		return (
-			<div className="min-h-screen bg-gray-50 flex items-center justify-center">
+			<div className="min-h-screen bg-gray-900 flex items-center justify-center">
 				<div className="text-center">
 					<div className="text-blue-500 mb-4">
 						<MessageCircle className="w-16 h-16 mx-auto" />
@@ -749,7 +749,7 @@ export default function ChatHome() {
 	}
 	
 	return (
-		<div className="min-h-screen bg-gray-50">
+		<div className="min-h-screen bg-gray-900">
 			<div className="flex h-screen">
 				{/* Left Sidebar */}
 				<LeftSidebar 
@@ -770,7 +770,7 @@ export default function ChatHome() {
 									className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors duration-200 ${
 										currentSessionId === session.id
 											? 'bg-gray-100 text-gray-800'
-											: 'text-gray-600 hover:bg-gray-50 hover:text-gray-800'
+											                : 'text-gray-400 hover:bg-gray-800 hover:text-gray-200'
 									}`}
 								>
 									<div className="truncate">{session.title}</div>
@@ -882,7 +882,7 @@ export default function ChatHome() {
 							
 							{/* Display uploaded image */}
 							{uploadedImage && (
-								<div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+								        <div className="mt-3 p-3 bg-gray-800 rounded-lg border border-gray-700">
 									<div className="flex items-center justify-between">
 									<div className="flex items-center space-x-3">
 												<img 

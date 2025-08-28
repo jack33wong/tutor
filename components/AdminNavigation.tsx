@@ -41,10 +41,10 @@ export default function AdminNavigation() {
   ];
 
   return (
-    <div className="bg-white rounded-lg shadow-sm p-6">
+         <div className="bg-gray-800 rounded-lg shadow-sm p-6">
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">🔧 Admin Tools</h2>
-        <p className="text-gray-600">Manage exam papers, import questions, and debug the system</p>
+                 <h2 className="text-2xl font-bold text-gray-100 mb-2">🔧 Admin Tools</h2>
+         <p className="text-gray-300">Manage exam papers, import questions, and debug the system</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -80,8 +80,8 @@ export default function AdminNavigation() {
         })}
       </div>
 
-      <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-        <h3 className="font-medium text-gray-900 mb-2">💡 Quick Actions</h3>
+               <div className="mt-6 p-4 bg-gray-700 rounded-lg">
+                 <h3 className="font-medium text-gray-100 mb-2">💡 Quick Actions</h3>
         <div className="flex flex-wrap gap-2">
           <Link
             href="/admin/manage-exam-papers"

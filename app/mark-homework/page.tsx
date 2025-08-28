@@ -240,7 +240,7 @@ export default function MarkHomeworkPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-900">
       <div className="flex h-screen">
         <LeftSidebar>
           <ChatHistory chatSessions={chatSessions} />
@@ -248,7 +248,7 @@ export default function MarkHomeworkPage() {
 
         <main className="flex-1 flex flex-col">
           {/* Header with Model Selector - matching main chat page design */}
-          <div className="bg-white border-b border-gray-200 px-6 py-3">
+          <div className="bg-gray-800 border-b border-gray-700 px-6 py-3">
             <div className="max-w-4xl mx-auto">
               <div className="flex items-center space-x-4">
                 <ModelSelector 
@@ -268,7 +268,7 @@ export default function MarkHomeworkPage() {
             <div className="max-w-4xl mx-auto">
               {/* Description below header */}
               <div className="mb-8 text-center">
-                <p className="text-gray-600 text-lg">
+                                 <p className="text-gray-300 text-lg">
                   Upload a photo of student homework and get AI-powered marking with red pen corrections
                 </p>
               </div>
@@ -278,7 +278,7 @@ export default function MarkHomeworkPage() {
                 <div className="space-y-6">
                   {/* Image Upload Area */}
                   <div className="card">
-                    <h2 className="text-xl font-semibold text-gray-900 mb-4">Upload Homework Image</h2>
+                                         <h2 className="text-xl font-semibold text-gray-100 mb-4">Upload Homework Image</h2>
                     
                     <div
                       className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
@@ -290,32 +290,32 @@ export default function MarkHomeworkPage() {
                       onDragOver={handleDragOver}
                     >
                       {imagePreview ? (
-                        <div className="space-y-4">
-                          <div className="relative">
-                            <img
-                              src={imagePreview}
-                              alt="Homework preview"
-                              className="max-w-full h-auto max-h-64 mx-auto rounded-lg shadow-sm"
-                            />
-                            <button
-                              onClick={resetForm}
-                              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
-                            >
-                              <XCircle className="w-4 h-4" />
-                            </button>
-                          </div>
-                          <p className="text-sm text-gray-600">
-                            {selectedImage?.name}
-                          </p>
+                                               <div className="space-y-4">
+                         <div className="relative">
+                           <img
+                             src={imagePreview}
+                             alt="Homework preview"
+                             className="max-w-full h-auto max-h-64 mx-auto rounded-lg shadow-sm"
+                           />
+                           <button
+                             onClick={resetForm}
+                             className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                           >
+                             <XCircle className="w-4 h-4" />
+                           </button>
+                         </div>
+                         <p className="text-sm text-gray-300">
+                           {selectedImage?.name}
+                         </p>
                         </div>
                       ) : (
                         <div className="space-y-4">
                           <Upload className="w-12 h-12 text-gray-400 mx-auto" />
-                          <div>
-                            <p className="text-lg font-medium text-gray-900">
-                              Drop your homework image here
-                            </p>
-                            <p className="text-gray-500">or click to browse</p>
+                                                     <div>
+                             <p className="text-lg font-medium text-gray-100">
+                               Drop your homework image here
+                             </p>
+                             <p className="text-gray-400">or click to browse</p>
                           </div>
                           <input
                             ref={fileInputRef}
@@ -402,9 +402,9 @@ export default function MarkHomeworkPage() {
                     <div className="card">
                       <div className="text-center space-y-4">
                         <Loader2 className="w-12 h-12 animate-spin text-primary-600 mx-auto" />
-                        <div>
-                          <h3 className="text-lg font-semibold text-gray-900">Processing Your Homework</h3>
-                          <p className="text-gray-600">This may take a few moments...</p>
+                                                 <div>
+                           <h3 className="text-lg font-semibold text-gray-100">Processing Your Homework</h3>
+                           <p className="text-gray-300">This may take a few moments...</p>
                         </div>
                                                          <div className="space-y-2 text-sm text-gray-500">
                                    <div className="flex items-center justify-center space-x-2">
@@ -432,14 +432,14 @@ export default function MarkHomeworkPage() {
                            {/* Marking Instructions */}
                            {markingResult?.instructions && (
                     <div className="card">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">Marking Instructions</h3>
-                      <div className="bg-gray-50 p-4 rounded-lg">
-                        <pre className="text-sm text-gray-700 whitespace-pre-wrap">
+                                             <h3 className="text-lg font-semibold text-gray-100 mb-4">Marking Instructions</h3>
+                                             <div className="bg-gray-700 p-4 rounded-lg">
+                         <pre className="text-sm text-gray-200 whitespace-pre-wrap">
                           {JSON.stringify(markingResult.instructions, null, 2)}
                         </pre>
                         {/* Model API version footer */}
-                        <div className="mt-3 pt-2 border-t border-gray-200">
-                          <div className="flex justify-between items-center text-xs text-gray-500">
+                                                 <div className="mt-3 pt-2 border-t border-gray-600">
+                           <div className="flex justify-between items-center text-xs text-gray-400">
                             <span>OCR: {markingResult?.ocrMethod || 'Unknown'}</span>
                             <span>Powered by {markingResult?.apiUsed || 'AI Assistant'}</span>
                           </div>
@@ -452,7 +452,7 @@ export default function MarkHomeworkPage() {
                   {markingResult?.markedImage && (
                     <div className="card">
                       <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-semibold text-gray-900">Marked Homework</h3>
+                                                 <h3 className="text-lg font-semibold text-gray-100">Marked Homework</h3>
                         <button
                           onClick={downloadMarkedImage}
                           className="btn-secondary flex items-center space-x-2"
@@ -463,11 +463,11 @@ export default function MarkHomeworkPage() {
                       </div>
                       
                       <div className="space-y-4">
-                        <img
-                          src={markingResult.markedImage}
-                          alt="Marked homework"
-                          className="w-full h-auto rounded-lg border border-gray-200 shadow-sm"
-                        />
+                                                 <img
+                           src={markingResult.markedImage}
+                           alt="Marked homework"
+                           className="w-full h-auto rounded-lg border border-gray-600 shadow-sm"
+                         />
                         
                         <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                           <div className="flex items-center space-x-2">
@@ -490,15 +490,15 @@ export default function MarkHomeworkPage() {
 
                   {/* How It Works */}
                   <div className="card">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">How It Works</h3>
+                                             <h3 className="text-lg font-semibold text-gray-100 mb-4">How It Works</h3>
                     <div className="space-y-4">
                       <div className="flex items-start space-x-3">
                         <div className="w-8 h-8 bg-primary-100 text-primary-600 rounded-full flex items-center justify-center text-sm font-medium">
                           1
                         </div>
                         <div>
-                          <h4 className="font-medium text-gray-900">OCR & AI Image Analysis</h4>
-                          <p className="text-sm text-gray-600">
+                                                     <h4 className="font-medium text-gray-100">OCR & AI Image Analysis</h4>
+                           <p className="text-sm text-gray-300">
                             Mathpix API performs advanced OCR to extract mathematical text and equations, then {selectedModel === 'gemini-2.5-pro' ? 'Gemini 2.5 Pro' : selectedModel === 'chatgpt-5' ? 'ChatGPT 5' : 'GPT-4 Omni'} analyzes the content to identify mathematical errors.
                           </p>
                         </div>
@@ -509,8 +509,8 @@ export default function MarkHomeworkPage() {
                           2
                         </div>
                         <div>
-                          <h4 className="font-medium text-gray-900">Marking Instructions</h4>
-                          <p className="text-sm text-gray-600">
+                                                     <h4 className="font-medium text-gray-100">Marking Instructions</h4>
+                           <p className="text-sm text-gray-300">
                             The AI generates structured instructions for placing red pen corrections on the image.
                           </p>
                         </div>
@@ -521,8 +521,8 @@ export default function MarkHomeworkPage() {
                           3
                         </div>
                         <div>
-                          <h4 className="font-medium text-gray-900">Image Processing</h4>
-                          <p className="text-sm text-gray-600">
+                                                     <h4 className="font-medium text-gray-100">Image Processing</h4>
+                           <p className="text-sm text-gray-300">
                             Sharp image processing library applies red pen annotations using SVG overlays.
                           </p>
                         </div>
@@ -533,9 +533,9 @@ export default function MarkHomeworkPage() {
               </div>
               
               {/* Footer */}
-              <footer className="mt-8 border-t border-gray-200 bg-gray-50">
+                             <footer className="mt-8 border-t border-gray-700 bg-gray-800">
                 <div className="max-w-6xl mx-auto px-6 py-4">
-                  <div className="flex flex-col sm:flex-row justify-between items-center text-sm text-gray-600">
+                                     <div className="flex flex-col sm:flex-row justify-between items-center text-sm text-gray-400">
                     <div className="flex items-center space-x-4 mb-2 sm:mb-0">
                       <span>© 2024 Mentara Tutor</span>
                       <span>•</span>

@@ -31,13 +31,13 @@ export default function BoundingBoxDisplay({
 
   return (
     <div className="card">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">
+             <h3 className="text-lg font-semibold text-gray-100 mb-4">
         Detected Text Regions ({boundingBoxes.length})
       </h3>
       
       <div className="space-y-4">
         {/* Image with bounding box overlays */}
-        <div className="relative border border-gray-200 rounded-lg overflow-hidden">
+                 <div className="relative border border-gray-600 rounded-lg overflow-hidden">
           <img
             src={imagePreview}
             alt="Homework with bounding boxes"
@@ -74,23 +74,23 @@ export default function BoundingBoxDisplay({
         </div>
 
         {/* Bounding box details */}
-        <div className="bg-gray-50 p-4 rounded-lg">
-          <h4 className="font-medium text-gray-900 mb-3">Text Region Details</h4>
+                 <div className="bg-gray-700 p-4 rounded-lg">
+                     <h4 className="font-medium text-gray-100 mb-3">Text Region Details</h4>
           <div className="space-y-2 max-h-48 overflow-y-auto">
             {boundingBoxes.map((bbox, index) => (
-              <div key={index} className="flex items-start space-x-3 p-2 bg-white rounded border">
+                             <div key={index} className="flex items-start space-x-3 p-2 bg-gray-800 rounded border border-gray-600">
                                   <div className="w-6 h-6 bg-primary-500 text-white text-xs rounded-full flex items-center justify-center flex-shrink-0">
                   {index + 1}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-gray-900">
-                    Coordinates: [{bbox.bbox[0]}, {bbox.bbox[1]}, {bbox.bbox[2]}, {bbox.bbox[3]}]
-                  </div>
-                  <div className="text-sm text-gray-600 mt-1">
-                    <strong>Text:</strong> "{bbox.text || 'No text detected'}"
-                  </div>
-                  <div className="text-xs text-gray-500 mt-1">
-                    Confidence: {bbox.confidence.toFixed(1)}%
+                                     <div className="text-sm font-medium text-gray-100">
+                     Coordinates: [{bbox.bbox[0]}, {bbox.bbox[1]}, {bbox.bbox[2]}, {bbox.bbox[3]}]
+                   </div>
+                   <div className="text-sm text-gray-300 mt-1">
+                     <strong>Text:</strong> "{bbox.text || 'No text detected'}"
+                   </div>
+                   <div className="text-xs text-gray-400 mt-1">
+                     Confidence: {bbox.confidence.toFixed(1)}%
                   </div>
                 </div>
               </div>
