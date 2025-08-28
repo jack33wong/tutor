@@ -135,7 +135,7 @@ IMPORTANT: Separate marking actions from comments:
     });
     
     userPrompt += `\n\nIMAGE DIMENSIONS: ${processedImage.imageDimensions.width}x${processedImage.imageDimensions.height} pixels`;
-    userPrompt += `\nNote: Use these dimensions to ensure annotations are placed within the image boundaries and to help position comments in appropriate blank spaces.`;
+    userPrompt += `\nNo annotation/comments should cross the boundary of the image. Check yourself by adding coordinate and width/height of each annotation/comment, and making sure it is within the image boundaries.`;
     userPrompt += `\n\nIMPORTANT: Use these exact bounding box coordinates [x,y,width,height] when creating your annotations.`;
     userPrompt += `\nThe OCR has already identified the positions of text and mathematical symbols in the image.`;
     userPrompt += `\nReference and extrapolate these positions to place your annotations accurately.`;
@@ -357,17 +357,28 @@ function createSVGOverlay(instructions: MarkingInstructions, imageWidth: number 
           .replace(/"/g, '&quot;')
           .replace(/'/g, '&#39;');
         
+        // Split text by line breaks and handle each line separately
+        const lines = cleanComment.split('\n');
+        const lineHeight = 28; // Approximate line height for font-size 24
+        
         // Position comment text to the right of the annotation area
         const commentX = x + width + 10; // 10px to the right of the bounding box
-        const commentY = y + (height / 2); // Vertically centered with the annotation
+        const startY = y + (height / 2) - ((lines.length - 1) * lineHeight / 2); // Center the multi-line text
         
         console.log(`🔍 Adding comment text for annotation ${index + 1}:`, {
           original: annotation.text,
           cleaned: cleanComment,
-          position: { x: commentX, y: commentY }
+          lines: lines.length,
+          position: { x: commentX, y: startY }
         });
         
-        svg += `<text x="${commentX}" y="${commentY}" fill="red" font-family="Arial, sans-serif" font-size="24" font-weight="bold" text-anchor="start" dominant-baseline="middle">${cleanComment}</text>`;
+        // Add each line as a separate text element
+        lines.forEach((line, lineIndex) => {
+          if (line.trim()) { // Only add non-empty lines
+            const lineY = startY + (lineIndex * lineHeight);
+            svg += `<text x="${commentX}" y="${lineY}" fill="red" font-family="Arial, sans-serif" font-size="24" font-weight="bold" text-anchor="start" dominant-baseline="middle">${line}</text>`;
+          }
+        });
       }
       return; // Skip visual annotation for comment actions
     }
@@ -382,17 +393,28 @@ function createSVGOverlay(instructions: MarkingInstructions, imageWidth: number 
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
       
+      // Split text by line breaks and handle each line separately
+      const lines = cleanComment.split('\n');
+      const lineHeight = 28; // Approximate line height for font-size 24
+      
       // Position comment text to the right of the annotation area
-      const commentX = x + (width / 2); // 10px to the right of the bounding box
-      const commentY = y + (height / 2); // Vertically centered with the annotation
+      const commentX = x + width + 10; // 10px to the right of the bounding box
+      const startY = y + (height / 2) - ((lines.length - 1) * lineHeight / 2); // Center the multi-line text
       
       console.log(`🔍 Adding legacy comment text for annotation ${index + 1}:`, {
         original: annotation.comment,
         cleaned: cleanComment,
-        position: { x: commentX, y: commentY }
+        lines: lines.length,
+        position: { x: commentX, y: startY }
       });
       
-      svg += `<text x="${commentX}" y="${commentY}" fill="red" font-family="Arial, sans-serif" font-size="24" font-weight="bold" text-anchor="start" dominant-baseline="middle">${cleanComment}</text>`;
+      // Add each line as a separate text element
+      lines.forEach((line, lineIndex) => {
+        if (line.trim()) { // Only add non-empty lines
+          const lineY = startY + (lineIndex * lineHeight);
+          svg += `<text x="${commentX}" y="${lineY}" fill="red" font-family="Arial, sans-serif" font-size="24" font-weight="bold" text-anchor="start" dominant-baseline="middle">${line}</text>`;
+        }
+      });
     }
     
     // Add the visual annotation based on type
