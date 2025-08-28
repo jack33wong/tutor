@@ -677,7 +677,7 @@ export default function ChatHome() {
 	// Show loading state until we're on the client side
 	  if (!isClient) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
 						<div className="text-center">
 							<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
 							<p className="text-gray-300">Initializing...</p>
@@ -689,7 +689,7 @@ export default function ChatHome() {
 	// Show loading state until Firestore is ready
 	  if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
 				<div className="text-center">
 					<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
 					<p className="text-gray-300">Loading chat...</p>
@@ -701,7 +701,7 @@ export default function ChatHome() {
 	// Show error state if there's an error
 	  if (error) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
 				<div className="text-center">
 					<div className="text-red-500 mb-4">
 						<MessageCircle className="w-16 h-16 mx-auto" />
@@ -730,7 +730,7 @@ export default function ChatHome() {
 	// Show fallback state if no sessions exist
 	if (!isLoading && chatSessions.length === 0 && !currentSessionId) {
 		return (
-			<div className="min-h-screen bg-gray-900 flex items-center justify-center">
+			<div className="min-h-screen bg-gray-950 flex items-center justify-center">
 				<div className="text-center">
 					<div className="text-blue-500 mb-4">
 						<MessageCircle className="w-16 h-16 mx-auto" />
@@ -749,7 +749,7 @@ export default function ChatHome() {
 	}
 	
 	return (
-		<div className="min-h-screen bg-gray-900">
+		<div className="min-h-screen bg-gray-950">
 			<div className="flex h-screen">
 				{/* Left Sidebar */}
 				<LeftSidebar 

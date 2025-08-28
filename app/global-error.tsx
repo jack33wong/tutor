@@ -10,7 +10,7 @@ export default function GlobalError({
   return (
     <html>
       <body>
-                 <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
+                 <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4">
                      <div className="max-w-md w-full bg-gray-800 rounded-lg shadow-lg p-6 text-center">
             <div className="text-red-500 mb-4">
               <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">

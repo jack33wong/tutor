@@ -240,7 +240,7 @@ export default function MarkHomeworkPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    		<div className="min-h-screen bg-gray-950">
       <div className="flex h-screen">
         <LeftSidebar>
           <ChatHistory chatSessions={chatSessions} />
