@@ -120,19 +120,27 @@ IMPORTANT: Separate marking actions from comments:
     userPrompt += `\n\nOCR DETECTION RESULTS - Use these bounding box positions as reference for annotations:\n`;
     userPrompt += `The following text regions were detected in the image:\n`;
     
-    processedImage.boundingBoxes.forEach((bbox: any, index: number) => {
-      if (bbox.text && bbox.text.trim()) {
-        const confidence = ((bbox.confidence || 0) * 100).toFixed(1);
-        
-                 // The MathpixService has already converted cnt coordinates to x,y,width,height format
+         processedImage.boundingBoxes.forEach((bbox: any, index: number) => {
+       if (bbox.text && bbox.text.trim()) {
+         const confidence = ((bbox.confidence || 0) * 100).toFixed(1);
+         
+         // Clean and escape the text to prevent JSON parsing issues
+         const cleanText = bbox.text.trim()
+           .replace(/\\/g, '\\\\')
+           .replace(/"/g, '\\"')
+           .replace(/\n/g, '\\n')
+           .replace(/\r/g, '\\r')
+           .replace(/\t/g, '\\t');
+         
+         // The MathpixService has already converted cnt coordinates to x,y,width,height format
          // and scaled them to match the original image dimensions
          if (bbox.x !== undefined && bbox.y !== undefined && bbox.width !== undefined && bbox.height !== undefined) {
-          userPrompt += `bbox[${bbox.x},${bbox.y},${bbox.width},${bbox.height}], text: "${bbox.text.trim()}", confidence: "${confidence}%"\n`;
-        } else {
-          userPrompt += `text: "${bbox.text.trim()}", confidence: "${confidence}%"\n`;
-        }
-      }
-    });
+           userPrompt += `bbox[${bbox.x},${bbox.y},${bbox.width},${bbox.height}], text: "${cleanText}", confidence: "${confidence}%"\n`;
+         } else {
+           userPrompt += `text: "${cleanText}", confidence: "${confidence}%"\n`;
+         }
+       }
+     });
     
     userPrompt += `\n\nIMAGE DIMENSIONS: ${processedImage.imageDimensions.width}x${processedImage.imageDimensions.height} pixels`;
     userPrompt += `\nNo annotation/comments should cross the boundary of the image. Check yourself by adding coordinate and width/height of each annotation/comment, and making sure it is within the image boundaries.`;
