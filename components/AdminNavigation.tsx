@@ -41,7 +41,7 @@ export default function AdminNavigation() {
   ];
 
   return (
-         <div className="bg-gray-900 rounded-lg shadow-sm p-6">
+         <div className="bg-gray-950 rounded-lg shadow-sm p-6">
       <div className="mb-6">
                  <h2 className="text-2xl font-bold text-gray-100 mb-2">🔧 Admin Tools</h2>
          <p className="text-gray-300">Manage exam papers, import questions, and debug the system</p>
@@ -80,7 +80,7 @@ export default function AdminNavigation() {
         })}
       </div>
 
-               <div className="mt-6 p-4 bg-gray-800 rounded-lg">
+               <div className="mt-6 p-4 bg-gray-900 rounded-lg">
                  <h3 className="font-medium text-gray-100 mb-2">💡 Quick Actions</h3>
         <div className="flex flex-wrap gap-2">
           <Link

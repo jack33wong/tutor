@@ -59,11 +59,11 @@ export default function ChatMessage({ content, role, imageData, imageName, model
       // Assistant message - aligned to left with white background
       return (
         <div className="flex justify-start mb-4">
-          <div className="min-w-[600px] max-w-[80%] bg-gray-900 border border-gray-800 rounded-2xl rounded-bl-md px-4 py-3 shadow-sm">
+                           <div className="min-w-[600px] max-w-[80%] bg-gray-950 border border-gray-900 rounded-2xl rounded-bl-md px-4 py-3 shadow-sm">
             <MarkdownMessage content={content} />
                          {/* Add API info footer for assistant messages */}
              {(model || apiUsed) && (
-               <div className="mt-3 pt-2 border-t border-gray-800">
+               <div className="mt-3 pt-2 border-t border-gray-900">
                  <p className="text-xs text-gray-400 text-right">
                    Powered by {getAPIDisplayName()}
                  </p>
@@ -118,7 +118,7 @@ export default function ChatMessage({ content, role, imageData, imageName, model
     // Assistant image message - aligned to left with white background
     return (
       <div className="flex justify-start mb-4">
-                 <div className="min-w-[600px] max-w-[80%] bg-gray-900 border border-gray-800 rounded-2xl rounded-bl-md px-4 py-3 shadow-sm">
+                 <div className="min-w-[600px] max-w-[80%] bg-gray-950 border border-gray-900 rounded-2xl rounded-bl-md px-4 py-3 shadow-sm">
           {/* Text content if any */}
           {content && content !== `[📷 Image: ${imageName}]` && (
             <div className="mb-3">
@@ -127,8 +127,8 @@ export default function ChatMessage({ content, role, imageData, imageName, model
           )}
           
           {/* Image thumbnail */}
-                     <div className="flex items-center space-x-3 p-3 bg-gray-800 rounded-lg border border-gray-700">
-                         <div className="w-16 h-16 rounded-lg overflow-hidden shadow-sm border border-gray-700">
+                     <div className="flex items-center space-x-3 p-3 bg-gray-900 rounded-lg border border-gray-800">
+                                                    <div className="w-16 h-16 rounded-lg overflow-hidden shadow-sm border border-gray-800">
               <img 
                 src={imageData} 
                 alt={imageName}
@@ -152,7 +152,7 @@ export default function ChatMessage({ content, role, imageData, imageName, model
           
                      {/* API info footer */}
            {(model || apiUsed) && (
-             <div className="mt-3 pt-2 border-t border-gray-800">
+             <div className="mt-3 pt-2 border-t border-gray-900">
                <p className="text-xs text-gray-400 text-right">
                  Powered by {getAPIDisplayName()}
                </p>

@@ -69,7 +69,7 @@ export default function LeftSidebar({ children, onNewChat, onClearStorage, stora
 	];
 
 	return (
-		<aside className="w-64 bg-gray-900 border-r border-gray-800 p-4 hidden md:flex md:flex-col">
+		<aside className="w-64 bg-gray-950 border-r border-gray-900 p-4 hidden md:flex md:flex-col">
 			{/* Header Label */}
 			<h2 className="text-lg font-semibold text-gray-100 mb-4">Mentara</h2>
 			
@@ -80,8 +80,8 @@ export default function LeftSidebar({ children, onNewChat, onClearStorage, stora
 					onClick={handleChatClick}
 					className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors duration-200 ${
 						pathname === '/'
-							? 'bg-gray-800 hover:bg-gray-700 text-gray-100'
-							: 'hover:bg-gray-800 text-gray-300 hover:text-gray-100'
+							? 'bg-gray-900 hover:bg-gray-800 text-gray-100'
+							: 'hover:bg-gray-900 text-gray-300 hover:text-gray-100'
 					}`}
 				>
 					<Plus className="w-4 h-4" />
@@ -92,8 +92,8 @@ export default function LeftSidebar({ children, onNewChat, onClearStorage, stora
 					href="/progress"
 					className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors duration-200 mt-2 ${
 						pathname === '/progress'
-							? 'bg-gray-800 hover:bg-gray-700 text-gray-100'
-							: 'hover:bg-gray-800 text-gray-300 hover:text-gray-100'
+							? 'bg-gray-900 hover:bg-gray-800 text-gray-100'
+							: 'hover:bg-gray-900 text-gray-300 hover:text-gray-100'
 					}`}
 				>
 					<TrendingUp className="w-4 h-4" />
@@ -104,8 +104,8 @@ export default function LeftSidebar({ children, onNewChat, onClearStorage, stora
 					href="/mark-homework"
 					className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors duration-200 mt-2 ${
 						pathname === '/mark-homework'
-							? 'bg-gray-800 hover:bg-gray-700 text-gray-100'
-							: 'hover:bg-gray-800 text-gray-300 hover:text-gray-100'
+							? 'bg-gray-900 hover:bg-gray-800 text-gray-100'
+							: 'hover:bg-gray-900 text-gray-300 hover:text-gray-100'
 					}`}
 				>
 					<CheckSquare className="w-4 h-4" />
@@ -140,12 +140,12 @@ export default function LeftSidebar({ children, onNewChat, onClearStorage, stora
 			)}
 
 			{/* Admin Menu Section */}
-			<div className="mt-auto pt-4 border-t border-gray-800">
+			<div className="mt-auto pt-4 border-t border-gray-900">
 				{/* Admin Menu Toggle */}
 				<div className="mb-3">
 					<button
 						onClick={() => setShowAdminMenu(!showAdminMenu)}
-						className="flex items-center justify-between w-full px-3 py-2 text-sm text-gray-300 hover:text-gray-100 hover:bg-gray-800 rounded-lg transition-colors"
+						className="flex items-center justify-between w-full px-3 py-2 text-sm text-gray-300 hover:text-gray-100 hover:bg-gray-900 rounded-lg transition-colors"
 					>
 						<div className="flex items-center space-x-2">
 							<Settings className="w-4 h-4" />
@@ -166,11 +166,11 @@ export default function LeftSidebar({ children, onNewChat, onClearStorage, stora
 									<Link
 										key={item.href}
 										href={item.href}
-																className={`flex items-center space-x-2 px-3 py-2 text-xs rounded-lg transition-colors ${
-							isActive
-								? 'bg-primary-100 text-primary-700 border border-primary-300'
-								: 'text-gray-300 hover:text-gray-100 hover:bg-gray-800'
-						}`}
+																							className={`flex items-center space-x-2 px-3 py-2 text-xs rounded-lg transition-colors ${
+								isActive
+									? 'bg-primary-100 text-primary-700 border border-primary-300'
+									: 'text-gray-300 hover:text-gray-100 hover:bg-gray-900'
+							}`}
 										title={item.description}
 									>
 										<IconComponent className="w-3 h-3" />
