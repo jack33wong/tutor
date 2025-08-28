@@ -376,7 +376,7 @@ function createSVGOverlay(instructions: MarkingInstructions, imageWidth: number 
         lines.forEach((line, lineIndex) => {
           if (line.trim()) { // Only add non-empty lines
             const lineY = startY + (lineIndex * lineHeight);
-            svg += `<text x="${commentX}" y="${lineY}" fill="red" font-family="Arial, sans-serif" font-size="24" font-weight="bold" text-anchor="start" dominant-baseline="middle">${line}</text>`;
+            svg += `<text x="${commentX}" y="${lineY}" fill="red" font-family="Segoe Script, cursive" font-size="56" font-weight="bold" text-anchor="start" dominant-baseline="middle">${line}</text>`;
           }
         });
       }
@@ -412,7 +412,7 @@ function createSVGOverlay(instructions: MarkingInstructions, imageWidth: number 
       lines.forEach((line, lineIndex) => {
         if (line.trim()) { // Only add non-empty lines
           const lineY = startY + (lineIndex * lineHeight);
-          svg += `<text x="${commentX}" y="${lineY}" fill="red" font-family="Arial, sans-serif" font-size="24" font-weight="bold" text-anchor="start" dominant-baseline="middle">${line}</text>`;
+          svg += `<text x="${commentX}" y="${lineY}" fill="red" font-family="Segoe Script, cursive" font-size="56" font-weight="bold" text-anchor="start" dominant-baseline="middle">${line}</text>`;
         }
       });
     }
@@ -420,10 +420,10 @@ function createSVGOverlay(instructions: MarkingInstructions, imageWidth: number 
     // Add the visual annotation based on type
     switch (annotation.action) {
       case 'tick':
-        svg += `<text x="${centerX}" y="${centerY + 5}" fill="red" font-family="Arial" font-size="100" font-weight="bold" text-anchor="middle">✔</text>`;
+        svg += `<text x="${centerX}" y="${centerY + 5}" fill="red" font-family="Segoe Script, cursive" font-size="160" font-weight="bold" text-anchor="middle">✔</text>`;
         break;
       case 'cross':
-        svg += `<text x="${centerX}" y="${centerY + 5}" fill="red" font-family="Arial" font-size="100" font-weight="bold" text-anchor="middle">✘</text>`;
+        svg += `<text x="${centerX}" y="${centerY + 5}" fill="red" font-family="Segoe Script, cursive" font-size="200" font-weight="bold" text-anchor="middle">✘</text>`;
         break;
       case 'circle':
         // Draw a red circle around the area with better positioning
