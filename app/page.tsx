@@ -680,7 +680,7 @@ export default function ChatHome() {
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
 						<div className="text-center">
 							<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
-							<p className="text-gray-600">Initializing...</p>
+							<p className="text-gray-300">Initializing...</p>
 						</div>
 					</div>
 		);
@@ -692,7 +692,7 @@ export default function ChatHome() {
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
 				<div className="text-center">
 					<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
-					<p className="text-gray-600">Loading chat...</p>
+					<p className="text-gray-300">Loading chat...</p>
 				</div>
 			</div>
 		);
@@ -706,8 +706,8 @@ export default function ChatHome() {
 					<div className="text-red-500 mb-4">
 						<MessageCircle className="w-16 h-16 mx-auto" />
 					</div>
-					<h3 className="text-lg font-medium text-gray-900 mb-2">Error Loading Chat</h3>
-					<p className="text-gray-600 mb-4">{error}</p>
+					<h3 className="text-lg font-medium text-gray-100 mb-2">Error Loading Chat</h3>
+					<p className="text-gray-300 mb-4">{error}</p>
 					<div className="space-y-2">
 						<button 
 							onClick={refreshSessions}
@@ -735,8 +735,8 @@ export default function ChatHome() {
 					<div className="text-blue-500 mb-4">
 						<MessageCircle className="w-16 h-16 mx-auto" />
 					</div>
-					<h3 className="text-lg font-medium text-gray-900 mb-2">Welcome to Mentara!</h3>
-					<p className="text-gray-600 mb-4">No chat sessions found. Create your first chat to get started.</p>
+					<h3 className="text-lg font-medium text-gray-100 mb-2">Welcome to Mentara!</h3>
+					<p className="text-gray-300 mb-4">No chat sessions found. Create your first chat to get started.</p>
 					<button 
 						onClick={createNewChat}
 						className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
@@ -760,17 +760,17 @@ export default function ChatHome() {
 					<div className="flex-1 overflow-y-auto">
 						{/* Recent Chats Header */}
 						<div className="mb-4">
-							<h3 className="text-sm font-medium text-gray-700 mb-3 px-1">Recent Chats</h3>
+							<h3 className="text-sm font-medium text-gray-300 mb-3 px-1">Recent Chats</h3>
 						</div>
 						
 						{chatSessions.map((session: any, index: number) => (
 							<div key={session.id} className="mb-2">
 								<button
 									onClick={() => switchToSession(session.id)}
-									className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors duration-200 ${
+																		className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors duration-200 ${
 										currentSessionId === session.id
-											? 'bg-gray-100 text-gray-800'
-											                : 'text-gray-400 hover:bg-gray-800 hover:text-gray-200'
+											? 'bg-gray-700 text-gray-100'
+											: 'text-gray-400 hover:bg-gray-700 hover:text-gray-200'
 									}`}
 								>
 									<div className="truncate">{session.title}</div>
@@ -782,13 +782,13 @@ export default function ChatHome() {
 									<div className="flex space-x-1 mt-1 px-3">
 										<button
 											onClick={() => updateSessionTitle(session.id, session.messages?.find((m: any) => m.role === 'user')?.content || 'New Chat')}
-											className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1 rounded hover:bg-gray-100"
+											className="text-xs text-gray-400 hover:text-gray-200 px-2 py-1 rounded hover:bg-gray-700"
 										>
 											Edit
 										</button>
 										<button
 											onClick={() => deleteSession(session.id)}
-											className="text-xs text-red-500 hover:text-red-700 px-2 py-1 rounded hover:bg-red-50"
+											className="text-xs text-red-400 hover:text-red-300 px-2 py-1 rounded hover:bg-red-900"
 										>
 											Delete
 										</button>
@@ -802,7 +802,7 @@ export default function ChatHome() {
 				{/* Main Chat Area */}
 				<main className="flex-1 flex flex-col">
 					{/* Header with Model Selector */}
-					<div className="bg-white border-b border-gray-200 px-6 py-3">
+					<div className="bg-gray-800 border-b border-gray-700 px-6 py-3">
 						<div className="max-w-4xl mx-auto">
 							<div className="flex items-center space-x-4">
 								<ModelSelector 
@@ -810,8 +810,8 @@ export default function ChatHome() {
 									initialModel={selectedModel}
 									className="justify-start"
 								/>
-								<div className="text-sm text-gray-600">
-									Current Model: <span className="font-medium text-blue-600">{selectedModel === 'gemini-2.5-pro' ? 'Gemini 2.5 Pro' : selectedModel === 'chatgpt-5' ? 'ChatGPT 5' : 'ChatGPT 4o'}</span>
+								<div className="text-sm text-gray-300">
+									Current Model: <span className="font-medium text-primary-600">{selectedModel === 'gemini-2.5-pro' ? 'Gemini 2.5 Pro' : selectedModel === 'chatgpt-5' ? 'ChatGPT 5' : 'ChatGPT 4o'}</span>
 								</div>
 							</div>
 						</div>
@@ -839,7 +839,7 @@ export default function ChatHome() {
 					</div>
 
 					{/* Chat Input Area */}
-					<div className="border-t border-gray-200 bg-white p-4">
+					<div className="border-t border-gray-700 bg-gray-800 p-4">
 						<div className="max-w-4xl mx-auto">
 							<div className="relative">
 								{/* Image upload button */}
@@ -853,7 +853,7 @@ export default function ChatHome() {
 								
 								<button
 									onClick={() => fileRef.current?.click()}
-									className="absolute left-3 top-1/2 transform -translate-y-1/2 w-8 h-8 text-gray-400 hover:text-gray-600 transition-colors"
+									className="absolute left-3 top-1/2 transform -translate-y-1/2 w-8 h-8 text-gray-400 hover:text-gray-300 transition-colors"
 									title="Upload image"
 								>
 									<ImageIcon className="w-5 h-5" />
@@ -866,7 +866,7 @@ export default function ChatHome() {
 									onChange={(e) => setInput(e.target.value)}
 									onKeyPress={(e) => e.key === 'Enter' && send()}
 									placeholder="Ask a question or upload an image and tell me about it."
-									className="w-full pl-12 pr-20 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+									className="w-full pl-12 pr-20 py-3 border border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-gray-700 text-gray-100 placeholder-gray-400"
 								/>
 								
 												{/* Send button */}
@@ -891,13 +891,13 @@ export default function ChatHome() {
 													className="w-16 h-16 object-cover rounded-lg"
 												/>
 											<div>
-												<p className="text-sm font-medium text-gray-900">{uploadName}</p>
-												<p className="text-xs text-gray-500">Image uploaded successfully</p>
+												<p className="text-sm font-medium text-gray-100">{uploadName}</p>
+												<p className="text-xs text-gray-400">Image uploaded successfully</p>
 											</div>
 										</div>
-												<button
+																								<button
 													onClick={clearImage}
-											className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50"
+													className="text-red-400 hover:text-red-300 p-1 rounded hover:bg-red-900"
 													title="Remove image"
 												>
 											<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
