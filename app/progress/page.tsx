@@ -165,7 +165,7 @@ export default function ProgressPage() {
   // Show loading state while data is being fetched
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-black">
         <div className="flex h-screen">
           {/* Left Sidebar */}
           <LeftSidebar>
@@ -190,10 +190,10 @@ export default function ProgressPage() {
               </div>
 
               {/* Loading State */}
-              <div className="bg-white rounded-lg shadow-sm p-12 text-center">
-                <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                <h2 className="text-xl font-semibold text-gray-900 mb-2">Loading Progress Data</h2>
-                <p className="text-gray-600">
+              <div className="bg-gray-900 rounded-lg shadow-sm p-12 text-center">
+                <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary-600 mx-auto mb-4"></div>
+                <h2 className="text-xl font-semibold text-gray-100 mb-2">Loading Progress Data</h2>
+                <p className="text-gray-300">
                   Please wait while we load your progress information...
                 </p>
               </div>
@@ -207,7 +207,7 @@ export default function ProgressPage() {
   // Show error state if there's an error
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-black">
         <div className="flex h-screen">
           {/* Left Sidebar */}
           <LeftSidebar>
@@ -232,18 +232,18 @@ export default function ProgressPage() {
               </div>
 
               {/* Error State */}
-              <div className="bg-white rounded-lg shadow-sm p-12 text-center">
+              <div className="bg-gray-900 rounded-lg shadow-sm p-12 text-center">
                 <div className="text-red-500 text-6xl mb-4">⚠️</div>
-                <h2 className="text-xl font-semibold text-gray-900 mb-2">Error Loading Progress</h2>
-                <p className="text-gray-600 mb-4">
+                <h2 className="text-xl font-semibold text-gray-100 mb-2">Error Loading Progress</h2>
+                <p className="text-gray-300 mb-4">
                   There was an error loading your progress data.
                 </p>
-                <p className="text-sm text-gray-500 mb-6">
+                <p className="text-sm text-gray-400 mb-6">
                   Error: {error}
                 </p>
                 <button 
                   onClick={() => loadUserProgress()}
-                  className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
                 >
                   Try Again
                 </button>
@@ -257,7 +257,7 @@ export default function ProgressPage() {
 
   if (stats.totalCompleted === 0) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-black">
         <div className="flex h-screen">
           {/* Left Sidebar */}
           <LeftSidebar>
@@ -282,15 +282,15 @@ export default function ProgressPage() {
               </div>
 
               {/* Empty State */}
-              <div className="bg-white rounded-lg shadow-sm p-12 text-center">
+              <div className="bg-gray-900 rounded-lg shadow-sm p-12 text-center">
                 <Target className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <h2 className="text-xl font-semibold text-gray-900 mb-2">No Progress Yet</h2>
-                <p className="text-gray-600 mb-6">
+                <h2 className="text-xl font-semibold text-gray-100 mb-2">No Progress Yet</h2>
+                <p className="text-gray-300 mb-6">
                   Start practicing past paper questions to track your progress and see detailed statistics.
                 </p>
                 <Link 
                   href="/"
-                  className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
                 >
                   <MessageCircle className="w-4 h-4 mr-2" />
                   Start Practicing
@@ -304,7 +304,7 @@ export default function ProgressPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-black">
       <div className="flex h-screen">
         {/* Left Sidebar */}
         <LeftSidebar>
@@ -330,19 +330,19 @@ export default function ProgressPage() {
           <div className="max-w-4xl mx-auto">
             {/* Page Header */}
             <div className="mb-8">
-              <h1 className="text-3xl font-bold text-gray-900">Progress Tracker</h1>
-              <p className="text-gray-600 mt-2">Track your past paper practice and exam preparation</p>
+              <h1 className="text-3xl font-bold text-gray-100">Progress Tracker</h1>
+              <p className="text-gray-300 mt-2">Track your past paper practice and exam preparation</p>
             </div>
 
             {/* Tab Navigation */}
             <div className="mb-6">
-              <nav className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
+              <nav className="flex space-x-1 bg-gray-800 p-1 rounded-lg">
                 <button
                   onClick={() => setActiveTab('overview')}
                   className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
                     activeTab === 'overview'
-                      ? 'bg-white text-gray-900 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
+                      ? 'bg-gray-900 text-gray-100 shadow-sm'
+                      : 'text-gray-300 hover:text-gray-100'
                   }`}
                 >
                   Overview
@@ -351,8 +351,8 @@ export default function ProgressPage() {
                   onClick={() => setActiveTab('analytics')}
                   className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
                     activeTab === 'analytics'
-                      ? 'bg-white text-gray-900 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
+                      ? 'bg-gray-900 text-gray-100 shadow-sm'
+                      : 'text-gray-300 hover:text-gray-100'
                   }`}
                 >
                   Analytics
@@ -366,65 +366,65 @@ export default function ProgressPage() {
               <div className="space-y-6">
                 {/* Summary Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                  <div className="bg-white rounded-lg shadow-sm p-6">
+                  <div className="bg-gray-900 rounded-lg shadow-sm p-6">
                     <div className="flex items-center">
-                      <div className="p-2 bg-blue-100 rounded-lg">
-                        <Trophy className="w-6 h-6 text-blue-600" />
+                      <div className="p-2 bg-primary-100 rounded-lg">
+                        <Trophy className="w-6 h-6 text-primary-600" />
                       </div>
                       <div className="ml-4">
-                        <p className="text-sm font-medium text-gray-600">Total Completed</p>
-                        <p className="text-2xl font-bold text-gray-900">{stats.totalCompleted}</p>
+                        <p className="text-sm font-medium text-gray-300">Total Completed</p>
+                        <p className="text-2xl font-bold text-gray-100">{stats.totalCompleted}</p>
                       </div>
                     </div>
                   </div>
 
-                  <div className="bg-white rounded-lg shadow-sm p-6">
+                  <div className="bg-gray-900 rounded-lg shadow-sm p-6">
                     <div className="flex items-center">
                       <div className="p-2 bg-green-100 rounded-lg">
                         <Award className="w-6 h-6 text-green-600" />
                       </div>
                       <div className="ml-4">
-                        <p className="text-sm font-medium text-gray-600">Completion Rate</p>
-                        <p className="text-2xl font-bold text-gray-900">{stats.completionRate}%</p>
+                        <p className="text-sm font-medium text-gray-300">Completion Rate</p>
+                        <p className="text-2xl font-bold text-gray-100">{stats.completionRate}%</p>
                       </div>
                     </div>
                   </div>
 
-                  <div className="bg-white rounded-lg shadow-sm p-6">
+                  <div className="bg-gray-900 rounded-lg shadow-sm p-6">
                     <div className="flex items-center">
                       <div className="p-2 bg-purple-100 rounded-lg">
                         <BookOpen className="w-6 h-6 text-purple-600" />
                       </div>
                       <div className="ml-4">
-                        <p className="text-sm font-medium text-gray-600">Exam Boards</p>
-                        <p className="text-2xl font-bold text-gray-900">{Object.keys(stats.byExamBoard).length}</p>
+                        <p className="text-sm font-medium text-gray-300">Exam Boards</p>
+                        <p className="text-2xl font-bold text-gray-100">{Object.keys(stats.byExamBoard).length}</p>
                       </div>
                     </div>
                   </div>
 
-                  <div className="bg-white rounded-lg shadow-sm p-6">
+                  <div className="bg-gray-900 rounded-lg shadow-sm p-6">
                     <div className="flex items-center">
                       <div className="p-2 bg-orange-100 rounded-lg">
                         <TrendingUp className="w-6 h-6 text-orange-600" />
                       </div>
                       <div className="ml-4">
-                        <p className="text-sm font-medium text-gray-600">Topics Covered</p>
-                        <p className="text-2xl font-bold text-gray-900">{Object.keys(stats.byTopic).length}</p>
+                        <p className="text-sm font-medium text-gray-300">Topics Covered</p>
+                        <p className="text-2xl font-bold text-gray-100">{Object.keys(stats.byTopic).length}</p>
                       </div>
                     </div>
                   </div>
                 </div>
 
                 {/* Overview Sub-tabs */}
-                <div className="bg-white rounded-lg shadow-sm">
-                  <div className="border-b border-gray-200">
+                <div className="bg-gray-900 rounded-lg shadow-sm">
+                  <div className="border-b border-gray-700">
                     <nav className="flex space-x-8 px-6">
                       <button
                         onClick={() => setOverviewSubTab('papers')}
                         className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
                           overviewSubTab === 'papers'
-                            ? 'border-blue-500 text-blue-600'
-                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                            ? 'border-primary-500 text-primary-600'
+                            : 'border-transparent text-gray-400 hover:text-gray-200 hover:border-gray-600'
                         }`}
                       >
                         Recent Exam Papers
@@ -433,8 +433,8 @@ export default function ProgressPage() {
                         onClick={() => setOverviewSubTab('activity')}
                         className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
                           overviewSubTab === 'activity'
-                            ? 'border-blue-500 text-blue-600'
-                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                            ? 'border-primary-500 text-primary-600'
+                            : 'border-transparent text-gray-400 hover:text-gray-200 hover:border-gray-600'
                         }`}
                       >
                         Recent Questions
