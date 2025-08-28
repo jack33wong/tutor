@@ -240,15 +240,15 @@ export default function MarkHomeworkPage() {
   };
 
   return (
-    		<div className="min-h-screen bg-gray-950">
+    		<div className="min-h-screen bg-black">
       <div className="flex h-screen">
         <LeftSidebar>
           <ChatHistory chatSessions={chatSessions} />
         </LeftSidebar>
 
         <main className="flex-1 flex flex-col">
-          {/* Header with Model Selector - matching main chat page design */}
-          <div className="bg-gray-800 border-b border-gray-700 px-6 py-3">
+                     {/* Header with Model Selector - matching main chat page design */}
+           <div className="bg-gray-900 border-b border-gray-800 px-6 py-3">
             <div className="max-w-4xl mx-auto">
               <div className="flex items-center space-x-4">
                 <ModelSelector 
@@ -532,8 +532,8 @@ export default function MarkHomeworkPage() {
                 </div>
               </div>
               
-              {/* Footer */}
-                             <footer className="mt-8 border-t border-gray-700 bg-gray-800">
+                             {/* Footer */}
+                              <footer className="mt-8 border-t border-gray-800 bg-gray-900">
                 <div className="max-w-6xl mx-auto px-6 py-4">
                                      <div className="flex flex-col sm:flex-row justify-between items-center text-sm text-gray-400">
                     <div className="flex items-center space-x-4 mb-2 sm:mb-0">

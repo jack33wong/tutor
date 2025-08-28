@@ -677,7 +677,7 @@ export default function ChatHome() {
 	// Show loading state until we're on the client side
 	  if (!isClient) {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
 						<div className="text-center">
 							<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
 							<p className="text-gray-300">Initializing...</p>
@@ -689,7 +689,7 @@ export default function ChatHome() {
 	// Show loading state until Firestore is ready
 	  if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
 				<div className="text-center">
 					<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
 					<p className="text-gray-300">Loading chat...</p>
@@ -701,7 +701,7 @@ export default function ChatHome() {
 	// Show error state if there's an error
 	  if (error) {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
 				<div className="text-center">
 					<div className="text-red-500 mb-4">
 						<MessageCircle className="w-16 h-16 mx-auto" />
@@ -730,7 +730,7 @@ export default function ChatHome() {
 	// Show fallback state if no sessions exist
 	if (!isLoading && chatSessions.length === 0 && !currentSessionId) {
 		return (
-			<div className="min-h-screen bg-gray-950 flex items-center justify-center">
+			<div className="min-h-screen bg-black flex items-center justify-center">
 				<div className="text-center">
 					<div className="text-blue-500 mb-4">
 						<MessageCircle className="w-16 h-16 mx-auto" />
@@ -749,7 +749,7 @@ export default function ChatHome() {
 	}
 	
 	return (
-		<div className="min-h-screen bg-gray-950">
+		<div className="min-h-screen bg-black">
 			<div className="flex h-screen">
 				{/* Left Sidebar */}
 				<LeftSidebar 
@@ -769,8 +769,8 @@ export default function ChatHome() {
 									onClick={() => switchToSession(session.id)}
 																		className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors duration-200 ${
 										currentSessionId === session.id
-											? 'bg-gray-700 text-gray-100'
-											: 'text-gray-400 hover:bg-gray-700 hover:text-gray-200'
+											? 'bg-gray-800 text-gray-100'
+											: 'text-gray-400 hover:bg-gray-800 hover:text-gray-200'
 									}`}
 								>
 									<div className="truncate">{session.title}</div>
@@ -782,7 +782,7 @@ export default function ChatHome() {
 									<div className="flex space-x-1 mt-1 px-3">
 										<button
 											onClick={() => updateSessionTitle(session.id, session.messages?.find((m: any) => m.role === 'user')?.content || 'New Chat')}
-											className="text-xs text-gray-400 hover:text-gray-200 px-2 py-1 rounded hover:bg-gray-700"
+											className="text-xs text-gray-400 hover:text-gray-200 px-2 py-1 rounded hover:bg-gray-800"
 										>
 											Edit
 										</button>
@@ -802,7 +802,7 @@ export default function ChatHome() {
 				{/* Main Chat Area */}
 				<main className="flex-1 flex flex-col">
 					{/* Header with Model Selector */}
-					<div className="bg-gray-800 border-b border-gray-700 px-6 py-3">
+					<div className="bg-gray-900 border-b border-gray-800 px-6 py-3">
 						<div className="max-w-4xl mx-auto">
 							<div className="flex items-center space-x-4">
 								<ModelSelector 
@@ -839,7 +839,7 @@ export default function ChatHome() {
 					</div>
 
 					{/* Chat Input Area */}
-					<div className="border-t border-gray-700 bg-gray-800 p-4">
+					<div className="border-t border-gray-800 bg-gray-900 p-4">
 						<div className="max-w-4xl mx-auto">
 							<div className="relative">
 								{/* Image upload button */}
@@ -866,7 +866,7 @@ export default function ChatHome() {
 									onChange={(e) => setInput(e.target.value)}
 									onKeyPress={(e) => e.key === 'Enter' && send()}
 									placeholder="Ask a question or upload an image and tell me about it."
-									className="w-full pl-12 pr-20 py-3 border border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-gray-700 text-gray-100 placeholder-gray-400"
+									className="w-full pl-12 pr-20 py-3 border border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-gray-800 text-gray-100 placeholder-gray-400"
 								/>
 								
 												{/* Send button */}
@@ -880,9 +880,9 @@ export default function ChatHome() {
 								</button>
 							</div>
 							
-							{/* Display uploaded image */}
+														{/* Display uploaded image */}
 							{uploadedImage && (
-								        <div className="mt-3 p-3 bg-gray-800 rounded-lg border border-gray-700">
+							        <div className="mt-3 p-3 bg-gray-900 rounded-lg border border-gray-800">
 									<div className="flex items-center justify-between">
 									<div className="flex items-center space-x-3">
 												<img 

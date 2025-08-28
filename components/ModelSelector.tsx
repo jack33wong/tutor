@@ -59,7 +59,7 @@ export default function ModelSelector({ onModelChange, initialModel, className =
         id="model-select"
         value={selectedModel}
         onChange={handleModelChange}
-        className="px-3 py-1.5 text-sm border border-gray-600 rounded-md bg-gray-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+        className="px-3 py-1.5 text-sm border border-gray-700 rounded-md bg-gray-800 text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
       >
         <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
         <option value="chatgpt-5">ChatGPT 5</option>

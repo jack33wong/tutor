@@ -15,7 +15,7 @@ export default function ProgressDisplay({ className = '' }: ProgressDisplayProps
 
   if (stats.totalCompleted === 0) {
     return (
-      <div className={`p-3 bg-gray-700 rounded-lg ${className}`}>
+      <div className={`p-3 bg-gray-800 rounded-lg ${className}`}>
         <div className="flex items-center space-x-2 text-gray-300">
           <Target className="w-4 h-4" />
           <span className="text-sm">No progress yet</span>
@@ -34,7 +34,7 @@ export default function ProgressDisplay({ className = '' }: ProgressDisplayProps
   return (
     <div className={`${className}`}>
       {/* Progress Summary */}
-      <div className="p-3 bg-gradient-to-r from-gray-700 to-gray-600 rounded-lg border border-gray-600">
+      <div className="p-3 bg-gradient-to-r from-gray-800 to-gray-700 rounded-lg border border-gray-700">
         <button
           onClick={() => setShowDetails(!showDetails)}
           className="w-full flex items-center justify-between text-left"
@@ -115,7 +115,7 @@ export default function ProgressDisplay({ className = '' }: ProgressDisplayProps
               </div>
               <div className="space-y-1">
                 {recentQuestions.map((question, index) => (
-                  <div key={question.questionId} className="text-xs text-gray-300 bg-gray-800 p-2 rounded border border-gray-600">
+                  <div key={question.questionId} className="text-xs text-gray-300 bg-gray-900 p-2 rounded border border-gray-700">
                     <div className="font-medium truncate" title={question.questionText}>
                       {question.questionText.slice(0, 40)}
                       {question.questionText.length > 40 ? '...' : ''}

@@ -37,7 +37,7 @@ export default function BoundingBoxDisplay({
       
       <div className="space-y-4">
         {/* Image with bounding box overlays */}
-                 <div className="relative border border-gray-600 rounded-lg overflow-hidden">
+                 <div className="relative border border-gray-700 rounded-lg overflow-hidden">
           <img
             src={imagePreview}
             alt="Homework with bounding boxes"
@@ -74,11 +74,11 @@ export default function BoundingBoxDisplay({
         </div>
 
         {/* Bounding box details */}
-                 <div className="bg-gray-700 p-4 rounded-lg">
+                 <div className="bg-gray-800 p-4 rounded-lg">
                      <h4 className="font-medium text-gray-100 mb-3">Text Region Details</h4>
           <div className="space-y-2 max-h-48 overflow-y-auto">
             {boundingBoxes.map((bbox, index) => (
-                             <div key={index} className="flex items-start space-x-3 p-2 bg-gray-800 rounded border border-gray-600">
+                             <div key={index} className="flex items-start space-x-3 p-2 bg-gray-900 rounded border border-gray-700">
                                   <div className="w-6 h-6 bg-primary-500 text-white text-xs rounded-full flex items-center justify-center flex-shrink-0">
                   {index + 1}
                 </div>
