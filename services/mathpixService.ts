@@ -145,15 +145,15 @@ interface MathpixOCRResult {
         text: string;
         confidence: number;
       }> = [];
-      console.log("RAW Mathpix Response word_data")
-      console.log(result.word_data)
+      //console.log("RAW Mathpix Response word_data")
+      //console.log(result.word_data)
       // Mathpix API now returns coordinates in the correct scale
       // No manual scaling needed
 
       // Extract from the new Mathpix format: word_data array with cnt coordinates
       if (result.word_data && Array.isArray(result.word_data)) {
         result.word_data.forEach((item: any) => {
-          if (item.cnt && Array.isArray(item.cnt) && item.cnt.length > 0 && item.text) {
+          if (item.cnt && Array.isArray(item.cnt) && item.cnt.length > 0) {
             // Mathpix format: cnt = [[x,y]] - contour points for the word
             const points = item.cnt as number[][];
             const rawX = Math.min(...points.map((p: number[]) => p[0]));
@@ -166,7 +166,7 @@ interface MathpixOCRResult {
             const y = Math.round(rawY);
             const width = Math.round(rawWidth);
             const height = Math.round(rawHeight);
-            
+            item.text = item.text||'Unidentified text/diagram/graph/etc.';
             console.log('🔍 Bounding box coordinates:', {
               raw: { x: rawX, y: rawY, width: rawWidth, height: rawHeight },
               final: { x, y, width, height },
