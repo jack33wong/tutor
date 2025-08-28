@@ -52,14 +52,14 @@ export default function ModelSelector({ onModelChange, initialModel, className =
 
   return (
     <div className={`flex items-center space-x-2 ${className}`}>
-      <label htmlFor="model-select" className="text-sm font-medium text-gray-700">
+      <label htmlFor="model-select" className="text-sm font-medium text-gray-300">
         Model:
       </label>
       <select
         id="model-select"
         value={selectedModel}
         onChange={handleModelChange}
-        className="px-3 py-1.5 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        className="px-3 py-1.5 text-sm border border-gray-600 rounded-md bg-gray-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
       >
         <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
         <option value="chatgpt-5">ChatGPT 5</option>

@@ -15,12 +15,12 @@ export default function ProgressDisplay({ className = '' }: ProgressDisplayProps
 
   if (stats.totalCompleted === 0) {
     return (
-      <div className={`p-3 bg-gray-50 rounded-lg ${className}`}>
-        <div className="flex items-center space-x-2 text-gray-600">
+      <div className={`p-3 bg-gray-700 rounded-lg ${className}`}>
+        <div className="flex items-center space-x-2 text-gray-300">
           <Target className="w-4 h-4" />
           <span className="text-sm">No progress yet</span>
         </div>
-        <p className="text-xs text-gray-500 mt-1">
+        <p className="text-xs text-gray-400 mt-1">
           Complete past paper questions to track your progress!
         </p>
       </div>
@@ -34,19 +34,19 @@ export default function ProgressDisplay({ className = '' }: ProgressDisplayProps
   return (
     <div className={`${className}`}>
       {/* Progress Summary */}
-      <div className="p-3 bg-gradient-to-r from-blue-50 to-green-50 rounded-lg border border-blue-200">
+      <div className="p-3 bg-gradient-to-r from-gray-700 to-gray-600 rounded-lg border border-gray-600">
         <button
           onClick={() => setShowDetails(!showDetails)}
           className="w-full flex items-center justify-between text-left"
         >
           <div className="flex items-center space-x-2">
-            <Trophy className="w-4 h-4 text-blue-600" />
-            <span className="text-sm font-medium text-blue-800">
+            <Trophy className="w-4 h-4 text-primary-500" />
+            <span className="text-sm font-medium text-gray-100">
               Progress: {stats.totalCompleted} questions
             </span>
           </div>
           <div className="text-right">
-            <div className="text-xs text-blue-600 font-medium">
+            <div className="text-xs text-primary-500 font-medium">
               {stats.completionRate}%
             </div>
           </div>
@@ -58,7 +58,7 @@ export default function ProgressDisplay({ className = '' }: ProgressDisplayProps
             <div>
               <div className="flex items-center space-x-1 mb-1">
                 <BookOpen className="w-3 h-3 text-gray-600" />
-                <span className="text-xs font-medium text-gray-700">By Exam Board:</span>
+                <span className="text-xs font-medium text-gray-200">By Exam Board:</span>
               </div>
               <div className="flex flex-wrap gap-1">
                 {Object.entries(stats.byExamBoard).map(([board, count]) => (
@@ -73,7 +73,7 @@ export default function ProgressDisplay({ className = '' }: ProgressDisplayProps
             <div>
               <div className="flex items-center space-x-1 mb-1">
                 <Award className="w-3 h-3 text-gray-600" />
-                <span className="text-xs font-medium text-gray-700">By Level:</span>
+                <span className="text-xs font-medium text-gray-200">By Level:</span>
               </div>
               <div className="flex gap-1">
                 {stats.byDifficulty['Foundation'] && (
@@ -93,7 +93,7 @@ export default function ProgressDisplay({ className = '' }: ProgressDisplayProps
             <div>
               <div className="flex items-center space-x-1 mb-1">
                 <TrendingUp className="w-3 h-3 text-gray-600" />
-                <span className="text-xs font-medium text-gray-700">Top Categories:</span>
+                <span className="text-xs font-medium text-gray-200">Top Categories:</span>
               </div>
               <div className="flex flex-wrap gap-1">
                 {Object.entries(stats.byCategory)
@@ -111,16 +111,16 @@ export default function ProgressDisplay({ className = '' }: ProgressDisplayProps
             <div>
               <div className="flex items-center space-x-1 mb-1">
                 <Calendar className="w-3 h-3 text-gray-600" />
-                <span className="text-xs font-medium text-gray-700">Recent:</span>
+                <span className="text-xs font-medium text-gray-200">Recent:</span>
               </div>
               <div className="space-y-1">
                 {recentQuestions.map((question, index) => (
-                  <div key={question.questionId} className="text-xs text-gray-600 bg-white p-2 rounded border">
+                  <div key={question.questionId} className="text-xs text-gray-300 bg-gray-800 p-2 rounded border border-gray-600">
                     <div className="font-medium truncate" title={question.questionText}>
                       {question.questionText.slice(0, 40)}
                       {question.questionText.length > 40 ? '...' : ''}
                     </div>
-                    <div className="text-gray-500 text-xs mt-0.5">
+                    <div className="text-gray-400 text-xs mt-0.5">
                       {question.examBoard} {question.year} • {question.marks} marks
                     </div>
                   </div>
