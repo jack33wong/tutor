@@ -359,7 +359,13 @@ function createSVGOverlay(instructions: MarkingInstructions, imageWidth: number 
         
         // Split text by line breaks and handle each line separately
         const lines = cleanComment.split('\n');
-        const lineHeight = 28; // Approximate line height for font-size 24
+        
+        // Calculate font size based on bounding box size
+        const baseFontSize = Math.max(24, Math.min(width, height) / 8);
+        const scaledFontSize = Math.min(baseFontSize, 80); // Cap at 80px to avoid oversized text
+        
+        // Calculate dynamic line height based on font size
+        const lineHeight = scaledFontSize * 1.2; // 1.2x font size for line height
         
         // Position comment text to the right of the annotation area
         const commentX = x + width + 10; // 10px to the right of the bounding box
@@ -376,7 +382,7 @@ function createSVGOverlay(instructions: MarkingInstructions, imageWidth: number 
         lines.forEach((line, lineIndex) => {
           if (line.trim()) { // Only add non-empty lines
             const lineY = startY + (lineIndex * lineHeight);
-            svg += `<text x="${commentX}" y="${lineY}" fill="red" font-family="Segoe Script, cursive" font-size="56" font-weight="bold" text-anchor="start" dominant-baseline="middle">${line}</text>`;
+            svg += `<text x="${commentX}" y="${lineY}" fill="red" font-family="Segoe Script, cursive" font-size="${scaledFontSize}" font-weight="bold" text-anchor="start" dominant-baseline="middle">${line}</text>`;
           }
         });
       }
@@ -395,7 +401,13 @@ function createSVGOverlay(instructions: MarkingInstructions, imageWidth: number 
       
       // Split text by line breaks and handle each line separately
       const lines = cleanComment.split('\n');
-      const lineHeight = 28; // Approximate line height for font-size 24
+      
+      // Calculate font size based on bounding box size
+      const baseFontSize = Math.max(24, Math.min(width, height) / 8);
+      const scaledFontSize = Math.min(baseFontSize, 80); // Cap at 80px to avoid oversized text
+      
+      // Calculate dynamic line height based on font size
+      const lineHeight = scaledFontSize * 1.2; // 1.2x font size for line height
       
       // Position comment text to the right of the annotation area
       const commentX = x + width + 10; // 10px to the right of the bounding box
@@ -408,11 +420,11 @@ function createSVGOverlay(instructions: MarkingInstructions, imageWidth: number 
         position: { x: commentX, y: startY }
       });
       
-      // Add each line as a separate text element
+            // Add each line as a separate text element
       lines.forEach((line, lineIndex) => {
         if (line.trim()) { // Only add non-empty lines
           const lineY = startY + (lineIndex * lineHeight);
-          svg += `<text x="${commentX}" y="${lineY}" fill="red" font-family="Segoe Script, cursive" font-size="56" font-weight="bold" text-anchor="start" dominant-baseline="middle">${line}</text>`;
+          svg += `<text x="${commentX}" y="${lineY}" fill="red" font-family="Segoe Script, cursive" font-size="${scaledFontSize}" font-weight="bold" text-anchor="start" dominant-baseline="middle">${line}</text>`;
         }
       });
     }
@@ -420,24 +432,33 @@ function createSVGOverlay(instructions: MarkingInstructions, imageWidth: number 
     // Add the visual annotation based on type
     switch (annotation.action) {
       case 'tick':
-        svg += `<text x="${centerX}" y="${centerY + 5}" fill="red" font-family="Segoe Script, cursive" font-size="160" font-weight="bold" text-anchor="middle">✔</text>`;
+        // Calculate font size based on bounding box size for tick
+        const tickFontSize = Math.max(40, Math.min(width, height) / 2);
+        const scaledTickSize = Math.min(tickFontSize, 200); // Cap at 200px
+        svg += `<text x="${centerX}" y="${centerY + 5}" fill="red" font-family="Segoe Script, cursive" font-size="${scaledTickSize}" font-weight="bold" text-anchor="middle">✔</text>`;
         break;
       case 'cross':
-        svg += `<text x="${centerX}" y="${centerY + 5}" fill="red" font-family="Segoe Script, cursive" font-size="200" font-weight="bold" text-anchor="middle">✘</text>`;
+        // Calculate font size based on bounding box size for cross
+        const crossFontSize = Math.max(40, Math.min(width, height) / 2);
+        const scaledCrossSize = Math.min(crossFontSize, 250); // Cap at 250px
+        svg += `<text x="${centerX}" y="${centerY + 5}" fill="red" font-family="Segoe Script, cursive" font-size="${scaledCrossSize}" font-weight="bold" text-anchor="middle">✘</text>`;
         break;
       case 'circle':
         // Draw a red circle around the area with better positioning
         const radius = Math.max(width, height) / 2 + 5;
-        svg += `<circle cx="${centerX}" cy="${centerY}" r="${radius}" fill="none" stroke="red" stroke-width="3" opacity="0.8"/>`;
+        const strokeWidth = Math.max(2, Math.min(width, height) / 20); // Scale stroke width
+        svg += `<circle cx="${centerX}" cy="${centerY}" r="${radius}" fill="none" stroke="red" stroke-width="${strokeWidth}" opacity="0.8"/>`;
         console.log(`🔍 Added circle annotation ${index + 1}:`, {
           center: { x: centerX, y: centerY },
           radius: radius,
-          bbox: { width, height }
+          bbox: { width, height },
+          strokeWidth: strokeWidth
         });
         break;
       case 'underline':
-        // Draw a red underline
-        svg += `<line x1="${x}" y1="${y + height + 5}" x2="${x + width}" y2="${y + height + 5}" stroke="red" stroke-width="3" opacity="0.8"/>`;
+        // Draw a red underline with scaled stroke width
+        const underlineStrokeWidth = Math.max(2, Math.min(width, height) / 20); // Scale stroke width
+        svg += `<line x1="${x}" y1="${y + height + 5}" x2="${x + width}" y2="${y + height + 5}" stroke="red" stroke-width="${underlineStrokeWidth}" opacity="0.8"/>`;
         break;
       case 'write':
       default:
