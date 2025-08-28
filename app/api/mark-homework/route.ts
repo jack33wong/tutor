@@ -96,10 +96,11 @@ IMPORTANT FORMAT RULES:
 - Marking actions (tick, cross, circle, underline) should ONLY include the action and bbox - NO comments
 - Comments should be separate entries with action: "comment" and use "text" field for the comment content
 - The comment should inculde line-break as nessasary to make it more readable.
+- The size of the tick, cross, circle, underline should be relative to the size of the part they are marking (No oversize action).
 - Each marking action can have a corresponding comment entry with the same bbox coordinates
 - The "write" action can still include a comment field for immediate text display
 
-bounding box coordinates are in the format [x,y,width,height] where x and y are the top left corner of the bounding box and width and height are the width and height of the bounding box.
+bounding box coordinates are in the format [x,y,width,height] where x and y are the top left corner of the bounding box and width and height are the width and height of the bounding box for the action.
 IMPORTANT: Do NOT use markdown code blocks. Return ONLY the raw JSON object.`;
 
   let userPrompt = `Here is an uploaded image. Please:
@@ -133,7 +134,9 @@ IMPORTANT: Separate marking actions from comments:
       }
     });
     
-    userPrompt += `\nIMPORTANT: Use these exact bounding box coordinates [x,y,width,height] when creating your annotations.`;
+    userPrompt += `\n\nIMAGE DIMENSIONS: ${processedImage.imageDimensions.width}x${processedImage.imageDimensions.height} pixels`;
+    userPrompt += `\nNote: Use these dimensions to ensure annotations are placed within the image boundaries and to help position comments in appropriate blank spaces.`;
+    userPrompt += `\n\nIMPORTANT: Use these exact bounding box coordinates [x,y,width,height] when creating your annotations.`;
     userPrompt += `\nThe OCR has already identified the positions of text and mathematical symbols in the image.`;
     userPrompt += `\nReference and extrapolate these positions to place your annotations accurately.`;
     userPrompt += `\nComments should write in blank space, not in the same line as the student's work. Use the OCR results to avoid this`;
