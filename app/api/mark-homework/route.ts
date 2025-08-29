@@ -227,13 +227,29 @@ async function callOpenAIForMarking(imageUrl: string, systemPrompt: string, user
     throw new Error('OpenAI API returned no content');
   }
 
+  console.log('🔍 Raw AI Response:', content.substring(0, 500) + '...');
+  
   const jsonMatch = content.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
   if (jsonMatch) {
     const extractedJson = jsonMatch[1];
-    return JSON.parse(extractedJson);
+    console.log('🔍 Extracted JSON from markdown:', extractedJson.substring(0, 300) + '...');
+    try {
+      return JSON.parse(extractedJson);
+    } catch (parseError) {
+      console.error('🔍 JSON Parse Error (extracted):', parseError);
+      console.error('🔍 Problematic JSON:', extractedJson);
+      throw new Error(`Failed to parse AI response JSON: ${parseError.message}`);
+    }
   }
   
-  return JSON.parse(content);
+  console.log('🔍 Attempting to parse raw content as JSON...');
+  try {
+    return JSON.parse(content);
+  } catch (parseError) {
+    console.error('🔍 JSON Parse Error (raw):', parseError);
+    console.error('🔍 Problematic content:', content.substring(0, 500));
+    throw new Error(`Failed to parse AI response JSON: ${parseError.message}`);
+  }
 }
 
 async function callGeminiForMarking(imageUrl: string, systemPrompt: string, userPrompt: string): Promise<MarkingInstructions> {
@@ -294,13 +310,29 @@ async function callGeminiForMarking(imageUrl: string, systemPrompt: string, user
     throw new Error('Gemini API returned no content');
   }
 
+  console.log('🔍 Raw Gemini Response:', content.substring(0, 500) + '...');
+  
   const jsonMatch = content.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
   if (jsonMatch) {
     const extractedJson = jsonMatch[1];
-    return JSON.parse(extractedJson);
+    console.log('🔍 Extracted JSON from markdown:', extractedJson.substring(0, 300) + '...');
+    try {
+      return JSON.parse(extractedJson);
+    } catch (parseError) {
+      console.error('🔍 JSON Parse Error (extracted):', parseError);
+      console.error('🔍 Problematic JSON:', extractedJson);
+      throw new Error(`Failed to parse Gemini response JSON: ${parseError.message}`);
+    }
   }
   
-  return JSON.parse(content);
+  console.log('🔍 Attempting to parse raw content as JSON...');
+  try {
+    return JSON.parse(content);
+  } catch (parseError) {
+    console.error('🔍 JSON Parse Error (raw):', parseError);
+    console.error('🔍 Problematic content:', content.substring(0, 500));
+    throw new Error(`Failed to parse Gemini response JSON: ${parseError.message}`);
+  }
 }
 
 async function applyMarkingsToImage(originalImage: string, instructions: MarkingInstructions): Promise<string> {
@@ -311,16 +343,55 @@ async function applyMarkingsToImage(originalImage: string, instructions: Marking
   let markedImage = sharp(imageBuffer);
   
   const imageMetadata = await markedImage.metadata();
-  const svgOverlay = createSVGOverlay(instructions, imageMetadata.width || 400, imageMetadata.height || 300);
-  
-  if (svgOverlay) {
-    markedImage = markedImage.composite([
-      {
-        input: Buffer.from(svgOverlay),
-        top: 0,
-        left: 0
+  try {
+    let svgOverlay = createSVGOverlay(instructions, imageMetadata.width || 400, imageMetadata.height || 300);
+    
+    if (!svgOverlay) {
+      console.log('🔍 Complex SVG failed, trying simple fallback...');
+      svgOverlay = createSimpleSVGOverlay(instructions, imageMetadata.width || 400, imageMetadata.height || 300);
+    }
+    
+    if (svgOverlay) {
+      console.log('🔍 Attempting to composite SVG overlay...');
+      try {
+        const svgBuffer = Buffer.from(svgOverlay);
+        console.log('🔍 SVG buffer size:', svgBuffer.length);
+        
+        markedImage = markedImage.composite([
+          {
+            input: svgBuffer,
+            top: 0,
+            left: 0
+          }
+        ]);
+        console.log('🔍 SVG composite successful');
+      } catch (compositeError) {
+        console.error('🔍 SVG composite failed:', compositeError);
+        console.log('🔍 Continuing without SVG overlay...');
       }
-    ]);
+    } else {
+      console.log('🔍 No SVG overlay to composite');
+    }
+  } catch (svgError) {
+    console.error('🔍 SVG overlay creation failed:', svgError);
+    // Try simple fallback
+    try {
+      const simpleSvg = createSimpleSVGOverlay(instructions, imageMetadata.width || 400, imageMetadata.height || 300);
+      if (simpleSvg) {
+        console.log('🔍 Trying simple SVG fallback...');
+        markedImage = markedImage.composite([
+          {
+            input: Buffer.from(simpleSvg),
+            top: 0,
+            left: 0
+          }
+        ]);
+        console.log('🔍 Simple SVG composite successful');
+      }
+    } catch (fallbackError) {
+      console.error('🔍 Simple SVG fallback also failed:', fallbackError);
+      console.log('🔍 Continuing without SVG overlay...');
+    }
   }
   
   const outputBuffer = await markedImage.png().toBuffer();
@@ -358,12 +429,23 @@ function createSVGOverlay(instructions: MarkingInstructions, imageWidth: number 
     if (annotation.action === 'comment') {
       if (annotation.text && annotation.text.trim()) {
         // Clean and escape the comment text for SVG
-        const cleanComment = annotation.text
+        let cleanComment = annotation.text
           .replace(/&/g, '&amp;')
           .replace(/</g, '&lt;')
           .replace(/>/g, '&gt;')
           .replace(/"/g, '&quot;')
           .replace(/'/g, '&#39;');
+        
+        // Handle LaTeX expressions by converting them to plain text
+        cleanComment = cleanComment
+          .replace(/\\\(/g, '(') // Convert \( to (
+          .replace(/\\\)/g, ')') // Convert \) to )
+          .replace(/\\\\/g, '\\') // Convert \\ to \
+          .replace(/\\mathrm\{([^}]*)\}/g, '$1') // Convert \mathrm{text} to text
+          .replace(/\\approx/g, '≈') // Convert \approx to ≈
+          .replace(/\\mathrm/g, '') // Remove \mathrm
+          .replace(/\\text\{([^}]*)\}/g, '$1') // Convert \text{text} to text
+          .replace(/\\mathrm\{([^}]*)\}/g, '$1'); // Convert \mathrm{text} to text
         
         // Split text by line breaks and handle each line separately
         const lines = cleanComment.split('\n');
@@ -390,7 +472,7 @@ function createSVGOverlay(instructions: MarkingInstructions, imageWidth: number 
         lines.forEach((line, lineIndex) => {
           if (line.trim()) { // Only add non-empty lines
             const lineY = startY + (lineIndex * lineHeight);
-            svg += `<text x="${commentX}" y="${lineY}" fill="red" font-family="Segoe Script, cursive" font-size="${scaledFontSize}" font-weight="bold" text-anchor="start" dominant-baseline="middle">${line}</text>`;
+            svg += `<text x="${commentX}" y="${lineY}" fill="red" font-family="Lucida Handwriting, cursive, sans-serif" font-size="${scaledFontSize}" font-weight="bold" text-anchor="start" dominant-baseline="middle">${line}</text>`;
           }
         });
       }
@@ -400,12 +482,23 @@ function createSVGOverlay(instructions: MarkingInstructions, imageWidth: number 
     // Handle legacy comment field for backward compatibility (write actions)
     if (annotation.comment && annotation.comment.trim()) {
       // Clean and escape the comment text for SVG
-      const cleanComment = annotation.comment
+      let cleanComment = annotation.comment
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
+      
+      // Handle LaTeX expressions by converting them to plain text
+      cleanComment = cleanComment
+        .replace(/\\\(/g, '(') // Convert \( to (
+        .replace(/\\\)/g, ')') // Convert \) to )
+        .replace(/\\\\/g, '\\') // Convert \\ to \
+        .replace(/\\mathrm\{([^}]*)\}/g, '$1') // Convert \mathrm{text} to text
+        .replace(/\\approx/g, '≈') // Convert \approx to ≈
+        .replace(/\\mathrm/g, '') // Remove \mathrm
+        .replace(/\\text\{([^}]*)\}/g, '$1') // Convert \text{text} to text
+        .replace(/\\mathrm\{([^}]*)\}/g, '$1'); // Convert \mathrm{text} to text
       
       // Split text by line breaks and handle each line separately
       const lines = cleanComment.split('\n');
@@ -432,7 +525,7 @@ function createSVGOverlay(instructions: MarkingInstructions, imageWidth: number 
       lines.forEach((line, lineIndex) => {
         if (line.trim()) { // Only add non-empty lines
           const lineY = startY + (lineIndex * lineHeight);
-          svg += `<text x="${commentX}" y="${lineY}" fill="red" font-family="Segoe Script, cursive" font-size="${scaledFontSize}" font-weight="bold" text-anchor="start" dominant-baseline="middle">${line}</text>`;
+          svg += `<text x="${commentX}" y="${lineY}" fill="red" font-family="Lucida Handwriting, cursive, sans-serif" font-size="${scaledFontSize}" font-weight="bold" text-anchor="start" dominant-baseline="middle">${line}</text>`;
         }
       });
     }
@@ -443,13 +536,13 @@ function createSVGOverlay(instructions: MarkingInstructions, imageWidth: number 
         // Calculate font size based on bounding box size for tick
         const tickFontSize = Math.max(40, Math.min(width, height) / 2);
         const scaledTickSize = Math.min(tickFontSize, 200); // Cap at 200px
-        svg += `<text x="${centerX}" y="${centerY + 5}" fill="red" font-family="Segoe Script, cursive" font-size="${scaledTickSize}" font-weight="bold" text-anchor="middle">✔</text>`;
+        svg += `<text x="${centerX}" y="${centerY + 5}" fill="red" font-family="Arial, sans-serif" font-size="${scaledTickSize}" font-weight="bold" text-anchor="middle">✔</text>`;
         break;
       case 'cross':
         // Calculate font size based on bounding box size for cross
         const crossFontSize = Math.max(40, Math.min(width, height) / 2);
         const scaledCrossSize = Math.min(crossFontSize, 250); // Cap at 250px
-        svg += `<text x="${centerX}" y="${centerY + 5}" fill="red" font-family="Segoe Script, cursive" font-size="${scaledCrossSize}" font-weight="bold" text-anchor="middle">✘</text>`;
+        svg += `<text x="${centerX}" y="${centerY + 5}" fill="red" font-family="Arial, sans-serif" font-size="${scaledCrossSize}" font-weight="bold" text-anchor="middle">✘</text>`;
         break;
       case 'circle':
         // Draw a red circle around the area with better positioning
@@ -479,6 +572,129 @@ function createSVGOverlay(instructions: MarkingInstructions, imageWidth: number 
   
   console.log('🔍 SVG overlay created successfully, length:', svg.length);
   console.log('🔍 SVG preview (first 500 chars):', svg.substring(0, 500));
+  
+  // Additional validation
+  if (svg.length < 100) {
+    console.error('🔍 SVG too short, likely invalid');
+    return null;
+  }
+  
+  // Check for basic SVG structure
+  if (!svg.includes('<svg') || !svg.includes('</svg>') || !svg.includes('xmlns=')) {
+    console.error('🔍 Invalid SVG structure');
+    return null;
+  }
+  
+  // Validate SVG structure
+  if (!svg.includes('<svg') || !svg.includes('</svg>')) {
+    console.error('🔍 Invalid SVG structure detected');
+    return null;
+  }
+  
+  // Check for common XML issues - more sophisticated ampersand detection
+  const ampersandRegex = /&(?!amp;|lt;|gt;|quot;|#39;|#x[0-9a-fA-F]+;)/g;
+  if (ampersandRegex.test(svg)) {
+    console.error('🔍 Unescaped ampersands detected in SVG');
+    // Try to fix unescaped ampersands
+    svg = svg.replace(/&(?!amp;|lt;|gt;|quot;|#39;|#x[0-9a-fA-F]+;)/g, '&amp;');
+    console.log('🔍 Fixed unescaped ampersands in SVG');
+  }
+  
+  return svg;
+}
+
+// Fallback function to create a simple SVG overlay
+function createSimpleSVGOverlay(instructions: MarkingInstructions, imageWidth: number = 400, imageHeight: number = 300): string | null {
+  if (!instructions.annotations || instructions.annotations.length === 0) {
+    return null;
+  }
+
+  console.log('🔍 Creating simple SVG overlay as fallback...');
+  
+  let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${imageWidth}" height="${imageHeight}">`;
+  
+  instructions.annotations.forEach((annotation, index) => {
+    const [x, y, width, height] = annotation.bbox;
+    const centerX = x + (width / 2);
+    const centerY = y + (height / 2);
+    
+    // Handle comments first
+    if (annotation.action === 'comment' && annotation.text && annotation.text.trim()) {
+      const cleanComment = annotation.text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+        .replace(/\\\(/g, '(')
+        .replace(/\\\)/g, ')')
+        .replace(/\\\\/g, '\\')
+        .replace(/\\mathrm\{([^}]*)\}/g, '$1')
+        .replace(/\\approx/g, '≈')
+        .replace(/\\mathrm/g, '')
+        .replace(/\\text\{([^}]*)\}/g, '$1');
+      
+      const lines = cleanComment.split('\n');
+      const commentX = x + width + 10;
+      const startY = y + (height / 2) - ((lines.length - 1) * 30 / 2);
+      
+      lines.forEach((line, lineIndex) => {
+        if (line.trim()) {
+          const lineY = startY + (lineIndex * 30);
+          svg += `<text x="${commentX}" y="${lineY}" fill="red" font-family="Lucida Handwriting, cursive, sans-serif" font-size="24" font-weight="bold" text-anchor="start" dominant-baseline="middle">${line}</text>`;
+        }
+      });
+      return;
+    }
+    
+    // Handle legacy comment field for write actions
+    if (annotation.comment && annotation.comment.trim()) {
+      const cleanComment = annotation.comment
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+        .replace(/\\\(/g, '(')
+        .replace(/\\\)/g, ')')
+        .replace(/\\\\/g, '\\')
+        .replace(/\\mathrm\{([^}]*)\}/g, '$1')
+        .replace(/\\approx/g, '≈')
+        .replace(/\\mathrm/g, '')
+        .replace(/\\text\{([^}]*)\}/g, '$1');
+      
+      const lines = cleanComment.split('\n');
+      const commentX = x + width + 10;
+      const startY = y + (height / 2) - ((lines.length - 1) * 30 / 2);
+      
+      lines.forEach((line, lineIndex) => {
+        if (line.trim()) {
+          const lineY = startY + (lineIndex * 30);
+          svg += `<text x="${commentX}" y="${lineY}" fill="red" font-family="Lucida Handwriting, cursive, sans-serif" font-size="24" font-weight="bold" text-anchor="start" dominant-baseline="middle">${line}</text>`;
+        }
+      });
+    }
+    
+    // Add visual marks
+    switch (annotation.action) {
+      case 'tick':
+        svg += `<text x="${centerX}" y="${centerY}" fill="red" font-family="Arial" font-size="40" text-anchor="middle">✓</text>`;
+        break;
+      case 'cross':
+        svg += `<text x="${centerX}" y="${centerY}" fill="red" font-family="Arial" font-size="40" text-anchor="middle">✗</text>`;
+        break;
+      case 'circle':
+        const radius = Math.max(width, height) / 2 + 5;
+        svg += `<circle cx="${centerX}" cy="${centerY}" r="${radius}" fill="none" stroke="red" stroke-width="3"/>`;
+        break;
+      case 'underline':
+        svg += `<line x1="${x}" y1="${y + height + 5}" x2="${x + width}" y2="${y + height + 5}" stroke="red" stroke-width="3"/>`;
+        break;
+    }
+  });
+  
+  svg += '</svg>';
+  console.log('🔍 Simple SVG overlay created, length:', svg.length);
   
   return svg;
 }
