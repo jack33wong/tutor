@@ -60,9 +60,9 @@ interface MathpixOCRResult {
       }
 
       const result = await response.json();
-      console.log('🔍 Mathpix API response received');
+      /*console.log('🔍 Mathpix API response received');
       console.log('🔍 Raw Mathpix response:', JSON.stringify(result, null, 2));
-      
+      */
       // Extract text and confidence
       console.log('🔍 DEBUG: result.text exists:', !!result.text);
       console.log('🔍 DEBUG: result.text length:', result.text ? result.text.length : 'undefined');
@@ -127,6 +127,7 @@ interface MathpixOCRResult {
 
   /**
    * Extract bounding boxes from Mathpix response data with coordinate scaling
+   * Filters to only include LaTeX lines
    */
   private static extractBoundingBoxes(result: any): Array<{
     x: number;
@@ -154,6 +155,13 @@ interface MathpixOCRResult {
       if (result.word_data && Array.isArray(result.word_data)) {
         result.word_data.forEach((item: any) => {
           if (item.cnt && Array.isArray(item.cnt) && item.cnt.length > 0) {
+            // Filter to only include LaTeX lines
+            const text = item.text || '';
+            if (!this.isLatexLine(text)) {
+              console.log("Skipping non-LaTeX line:", text);
+              return; // Skip non-LaTeX lines
+            }
+            
             // Mathpix format: cnt = [[x,y]] - contour points for the word
             const points = item.cnt as number[][];
             const rawX = Math.min(...points.map((p: number[]) => p[0]));
@@ -163,9 +171,9 @@ interface MathpixOCRResult {
             console.log("Getting cnt for each item")
             // Use coordinates directly from Mathpix API (already in correct scale)
             const x = Math.round(rawX);
-            const y = Math.round(rawY);
+            const y = Math.round(rawY)-20;
             const width = Math.round(rawWidth);
-            const height = Math.round(rawHeight);
+            const height = Math.round(rawHeight)-20;
             item.text = item.text||'Unidentified text/diagram/graph/etc.';
             console.log('🔍 Bounding box coordinates:', {
               raw: { x: rawX, y: rawY, width: rawWidth, height: rawHeight },
@@ -206,6 +214,42 @@ interface MathpixOCRResult {
       console.warn('🔍 Failed to extract bounding boxes from Mathpix response:', error);
       return [];
     }
+  }
+
+  /**
+   * Check if a text line contains LaTeX content
+   * @param text The text to check
+   * @returns true if the text contains LaTeX syntax
+   */
+  private static isLatexLine(text: string): boolean {
+    if (!text || typeof text !== 'string') return false;
+    
+    // Common LaTeX patterns
+    const latexPatterns = [
+      /\\[a-zA-Z]+/,           // LaTeX commands like \frac, \sqrt, etc.
+      /\\[{}[\]]/,             // LaTeX braces and brackets
+      /\\left|\\right/,        // Left/right delimiters
+      /\\[a-zA-Z]+\{[^}]*\}/, // LaTeX commands with arguments
+      /\$[^$]+\$/,            // Inline math mode
+      /\\\([^)]*\\\)/,        // Display math mode
+      /\\[a-zA-Z]+\([^)]*\)/, // LaTeX functions with parentheses
+      /[a-zA-Z]+\^[a-zA-Z0-9]/, // Superscript notation
+      /[a-zA-Z]+_[a-zA-Z0-9]/,  // Subscript notation
+      /\\frac\{[^}]*\}\{[^}]*\}/, // Fractions
+      /\\sqrt\{[^}]*\}/,      // Square roots
+      /\\sum|\\int|\\prod/,   // Mathematical operators
+      /\\alpha|\\beta|\\gamma|\\delta|\\theta|\\pi|\\sigma/, // Greek letters
+      /\\mathrm\{[^}]*\}/,    // Mathrm commands
+      /\\approx|\\approxeq|\\simeq/, // Approximation symbols
+      /\\Rightarrow|\\Leftarrow|\\Leftrightarrow/, // Arrows
+      /\\cdot|\\times|\\div/, // Mathematical operators
+      /\\sin|\\cos|\\tan/,    // Trigonometric functions
+      /\\log|\\ln/,           // Logarithmic functions
+      /\\exp/,                // Exponential function
+    ];
+    
+    // Check if any LaTeX pattern matches
+    return latexPatterns.some(pattern => pattern.test(text));
   }
 
   /**

@@ -63,45 +63,77 @@ async function generateMarkingInstructions(imageData: string, model?: string, pr
   const imageUrl = compressedImage;
 
   const systemPrompt = `You are an AI assistant analyzing images. 
-You will receive an image and your task is to:
+  You will receive an image and your task is to:
+  
+  1. Analyze the image content
+  2. Provide marking annotations if it's math homework, or general feedback if not
+  
+  CRITICAL OUTPUT RULES:
+  - Return ONLY raw JSON, no markdown formatting, no code blocks, no explanations
+  - Output MUST strictly follow the format shown below
+  
+  ==================== EXAMPLE OUTPUT ====================
+  
+  Math Homework Example:
+  {
+    "annotations": [
+      {"action": "tick", "bbox": [50, 80, 200, 150]},
+      {"action": "comment", "bbox": [50, 180, 200, 50], "text": "Correct solution"},
+    ]
+  }
+  
+  Non-Math Example:
+  {
+    "annotations": [
+      {"action": "write", "bbox": [50, 50, 400, 100], "comment": "This is a computer screenshot. Please upload a photo of math homework instead."}
+    ]
+  }
+  
+  ========================================================
+  
+  AVAILABLE ACTIONS: write, tick, cross, underline, comment
+  
+  IMPORTANT FORMAT & PLACEMENT RULES:
+  1. Marking actions (tick, cross, underline):
+     - Include ONLY {action, bbox}
+     - Size must match the content being marked (no oversized marks)
+     - Marking action should place at the exact positon you are marking (marking may overlap with the original text)
+     - Comments may be place in conjunction with marking actions, but MUST FOLLOW the rules below
+  
+  2. Comment actions:
+     - Must use {"action": "comment", "bbox": [...], "text": "..."}
+     - Comments must appear in **blank space between lines of work**
+     - DO NOT place comments adjacent to or overlapping student text
+     
+  
+  3. Write actions:
+     - May include {"action": "write", "bbox": [...], "comment": "..."}
+     - Used for overall feedback
+  
+  4. IMAGE BOUNDARY CONSTRAINTS:
+     - Every annotation bbox must satisfy:
+       - x >= 0, y >= 0
+       - (x + width) <= IMAGE_WIDTH
+       - (y + height) <= IMAGE_HEIGHT
+     - If placement would exceed boundary, shrink or reposition the bbox BEFORE returning
+  
+  5. COMMENT SPACING RULES:
+     - Leave at least 20px padding between comments and existing text bboxes
+     - Leave at least 20px padding between two comment bboxes
+     - If no safe space is available inside the image, place the comment at the bottom inside the image with reduced height
+     - Insert line breaks when comments is too long
 
-1. Analyze the image content
-2. Provide marking annotations if it's math homework, or general feedback if not
-
-CRITICAL: Return ONLY raw JSON, no markdown formatting, no code blocks, no explanations.
-
-Output JSON only with this exact format:
-
-Example Output for Math Homework (return exactly this format, no markdown):
-{
-  "annotations": [
-    {"action": "tick", "bbox": [50, 80, 200, 150]},
-    {"action": "comment", "bbox": [50, 80, 200, 150], "text": "Correct solution"},
-    {"action": "cross", "bbox": [100, 200, 150, 100]},
-    {"action": "comment", "bbox": [100, 200, 150, 100], "text": "Check your calculation here"},
-    {"action": "write", "bbox": [50, 160, 200, 180], "comment": "Good work!"}
-  ]
-}
-
-Example Output for Non-Math Content (return exactly this format, no markdown):
-{
-  "annotations": [
-    {"action": "write", "bbox": [50, 50, 400, 100], "comment": "This is a computer screenshot. Please upload a photo of math homework instead."}
-  ]
-}
-
-Available actions: circle, write, tick, cross, underline, comment
-
-IMPORTANT FORMAT RULES:
-- Marking actions (tick, cross, circle, underline) should ONLY include the action and bbox - NO comments
-- Comments should be separate entries with action: "comment" and use "text" field for the comment content
-- The comment should inculde line-break as nessasary to make it more readable.
-- The size of the tick, cross, circle, underline should be relative to the size of the part they are marking (No oversize action).
-- Each marking action can have a corresponding comment entry with the same bbox coordinates
-- The "write" action can still include a comment field for immediate text display
-
-bounding box coordinates are in the format [x,y,width,height] where x and y are the top left corner of the bounding box and width and height are the width and height of the bounding box for the action.
-IMPORTANT: Do NOT use markdown code blocks. Return ONLY the raw JSON object.`;
+  6. FINAL CHECK BEFORE OUTPUT:
+     - Ensure no bbox exceeds the image boundary
+     - Ensure no bbox overlaps OCR-detected text
+     - Ensure comments are clearly readable in blank areas only
+     - If uncertain, place comments lower in the image (stacked at bottom), not at edges
+  
+  Bounding box format: [x, y, width, height]  
+  where (x, y) is top-left corner.
+  
+  Return ONLY the JSON object.`;
+  
 
   let userPrompt = `Here is an uploaded image. Please:
 
@@ -109,13 +141,14 @@ IMPORTANT: Do NOT use markdown code blocks. Return ONLY the raw JSON object.`;
 2. If it's math homework, provide marking annotations
 3. If it's not math homework, provide appropriate feedback
 
-Focus on providing clear, actionable annotations with bounding boxes and comments.
+========================================================
+`;
 
-IMPORTANT: Separate marking actions from comments:
-- Use tick, cross, circle, underline actions for visual marks ONLY
-- Create separate comment entries for explanations using action: "comment" and text field
-- This allows for cleaner visual presentation and better organization`;
+if (processedImage && processedImage.boundingBoxes && processedImage.boundingBoxes.length > 0) {
+  userPrompt += `\n\nHere is the OCR DETECTION RESULTS for the uploaded image (Only LaTex content are shown) - Use these bounding box positions as reference for annotations:\n`;
+  //userPrompt += `The following text regions were detected in the image:\n`;
 
+<<<<<<< Updated upstream
   if (processedImage && processedImage.boundingBoxes && processedImage.boundingBoxes.length > 0) {
     userPrompt += `\n\nOCR DETECTION RESULTS - Use these bounding box positions as reference for annotations:\n`;
     userPrompt += `The following text regions were detected in the image:\n`;
@@ -144,12 +177,28 @@ IMPORTANT: Separate marking actions from comments:
     
     userPrompt += `\n\nIMAGE DIMENSIONS: ${processedImage.imageDimensions.width}x${processedImage.imageDimensions.height} pixels`;
     userPrompt += `\nNo annotation/comments should cross the boundary of the image. Check yourself by adding coordinate and width/height of each annotation/comment, and making sure it is within the image boundaries.`;
-    userPrompt += `\n\nIMPORTANT: Use these exact bounding box coordinates [x,y,width,height] when creating your annotations.`;
-    userPrompt += `\nThe OCR has already identified the positions of text and mathematical symbols in the image.`;
-    userPrompt += `\nReference and extrapolate these positions to place your annotations accurately.`;
-    userPrompt += `\nComments should write in blank space, not in the same line as the student's work. Use the OCR results to avoid this`;
-    userPrompt += `\nThe image may also incude diagrams, graphs, dense mathematical notation, vectors/matrix, or other non-text content that ocr fail to detect.`;
-    userPrompt += `\nPlease feel free to fill in the gaps and annotate those as you see fit.`;
+  // Add bounding box information to the prompt
+  if (processedImage && processedImage.boundingBoxes && processedImage.boundingBoxes.length > 0) {
+    userPrompt += `\n\nHere is the OCR DETECTION RESULTS for the uploaded image (Only LaTex content are shown) - Use these bounding box positions as reference for annotations:`;
+    
+    processedImage.boundingBoxes.forEach((bbox: any, index: number) => {
+      if (bbox.text && bbox.text.trim()) {
+        const confidence = ((bbox.confidence || 0) * 100).toFixed(1);
+
+        if (bbox.x !== undefined && bbox.y !== undefined && bbox.width !== undefined && bbox.height !== undefined) {
+          userPrompt += `bbox[${bbox.x},${bbox.y},${bbox.width},${bbox.height}], text: "${bbox.text.trim()}", confidence: "${confidence}%"\n`;
+        } else {
+          userPrompt += `text: "${bbox.text.trim()}", confidence: "${confidence}%"\n`;
+        }
+      }
+    });
+    
+    userPrompt += `\nUse OCR positions as a guide to avoid overlaps and to find blank spaces for comments.`;
+    userPrompt += `\n\nIMAGE DIMENSIONS: ${processedImage.imageDimensions.width}x${processedImage.imageDimensions.height} pixels`;
+    userPrompt += `\nIMPORTANT: All annotations must stay within these dimensions.`;
+    userPrompt += `\n(x + width) <= ${processedImage.imageDimensions.width}`;
+    userPrompt += `\n(y + height) <= ${processedImage.imageDimensions.height}`;
+    userPrompt += `\nIf diagrams, graphs, or math symbols are not detected by OCR, estimate their positions and annotate accordingly.`;
   }
   
   console.log(systemPrompt+userPrompt)
@@ -458,8 +507,8 @@ function createSVGOverlay(instructions: MarkingInstructions, imageWidth: number 
         const lineHeight = scaledFontSize * 1.2; // 1.2x font size for line height
         
         // Position comment text to the right of the annotation area
-        const commentX = x + width + 10; // 10px to the right of the bounding box
-        const startY = y + (height / 2) - ((lines.length - 1) * lineHeight / 2); // Center the multi-line text
+        const commentX = x ; // 10px to the right of the bounding box
+        const startY = y - ((lines.length - 1) * lineHeight / 2); // Center the multi-line text
         
         console.log(`🔍 Adding comment text for annotation ${index + 1}:`, {
           original: annotation.text,
@@ -511,8 +560,8 @@ function createSVGOverlay(instructions: MarkingInstructions, imageWidth: number 
       const lineHeight = scaledFontSize * 1.2; // 1.2x font size for line height
       
       // Position comment text to the right of the annotation area
-      const commentX = x + width + 10; // 10px to the right of the bounding box
-      const startY = y + (height / 2) - ((lines.length - 1) * lineHeight / 2); // Center the multi-line text
+      const commentX = x ; // 10px to the right of the bounding box
+      const startY = y - ((lines.length - 1) * lineHeight / 2); // Center the multi-line text
       
       console.log(`🔍 Adding legacy comment text for annotation ${index + 1}:`, {
         original: annotation.comment,
