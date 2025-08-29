@@ -19,6 +19,15 @@ interface MarkingResult {
   message: string;
   apiUsed?: string;
   ocrMethod?: string;
+  isQuestionOnly?: boolean;
+}
+
+interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  imageData?: string;
+  imageName?: string;
+  apiUsed?: string;
 }
 
 export default function MarkHomeworkPage() {
@@ -32,7 +41,13 @@ export default function MarkHomeworkPage() {
   const [markingResult, setMarkingResult] = useState<MarkingResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [detailedError, setDetailedError] = useState<any>(null);
-      const [selectedModel, setSelectedModel] = useState<ModelType>('chatgpt-4o'); // Default to ChatGPT 4o for homework marking
+  const [selectedModel, setSelectedModel] = useState<ModelType>('chatgpt-4o'); // Default to ChatGPT 4o for homework marking
+  
+  // Chat state for question-only mode
+  const [isQuestionMode, setIsQuestionMode] = useState(false);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [isChatLoading, setIsChatLoading] = useState(false);
   
   // Log when selectedModel changes
   useEffect(() => {
@@ -298,6 +313,19 @@ export default function MarkHomeworkPage() {
         }
         
         setError(errorMessage);
+      } else {
+        const result = await response.json();
+        
+        if (result.isQuestionOnly) {
+          // Switch to question mode
+          setIsQuestionMode(true);
+          setMarkingResult(result);
+          // Start the question chat automatically
+          startQuestionChat();
+        } else {
+          // Normal marking mode
+          setMarkingResult(result);
+        }
       }
     } catch (error) {
       setError('Network error. Please try again.');
@@ -327,8 +355,122 @@ export default function MarkHomeworkPage() {
     setMarkingResult(null);
     setError(null);
     setDetailedError(null);
+    setIsQuestionMode(false);
+    setChatMessages([]);
+    setChatInput('');
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
+    }
+  };
+
+  const handleChatSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!chatInput.trim() || !selectedImage || !imagePreview) return;
+
+    const userMessage: ChatMessage = {
+      role: 'user',
+      content: chatInput.trim()
+    };
+
+    setChatMessages(prev => [...prev, userMessage]);
+    setChatInput('');
+    setIsChatLoading(true);
+
+    try {
+      const response = await fetch('/api/mark-homework-chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: chatInput.trim(),
+          imageData: imagePreview,
+          imageName: selectedImage.name,
+          model: selectedModel,
+          isInitialQuestion: false
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to send message');
+      }
+
+      const data = await response.json();
+      
+      const assistantMessage: ChatMessage = {
+        role: 'assistant',
+        content: data.reply,
+        apiUsed: data.apiUsed
+      };
+
+      setChatMessages(prev => [...prev, assistantMessage]);
+    } catch (error) {
+      console.error('Chat error:', error);
+      const errorMessage: ChatMessage = {
+        role: 'assistant',
+        content: 'Sorry, I encountered an error. Please try again.',
+        apiUsed: 'Error'
+      };
+      setChatMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsChatLoading(false);
+    }
+  };
+
+  const startQuestionChat = async () => {
+    if (!selectedImage || !imagePreview) return;
+
+    setIsChatLoading(true);
+
+    try {
+      // Add the image as the first user message
+      const userMessage: ChatMessage = {
+        role: 'user',
+        content: `[📷 Image: ${selectedImage.name}]`,
+        imageData: imagePreview,
+        imageName: selectedImage.name
+      };
+
+      setChatMessages([userMessage]);
+
+      // Get initial AI response
+      const response = await fetch('/api/mark-homework-chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: '',
+          imageData: imagePreview,
+          imageName: selectedImage.name,
+          model: selectedModel,
+          isInitialQuestion: true
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to get initial response');
+      }
+
+      const data = await response.json();
+      
+      const assistantMessage: ChatMessage = {
+        role: 'assistant',
+        content: data.reply,
+        apiUsed: data.apiUsed
+      };
+
+      setChatMessages(prev => [...prev, assistantMessage]);
+    } catch (error) {
+      console.error('Failed to start chat:', error);
+      const errorMessage: ChatMessage = {
+        role: 'assistant',
+        content: 'Sorry, I encountered an error starting the chat. Please try again.',
+        apiUsed: 'Error'
+      };
+      setChatMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsChatLoading(false);
     }
   };
 
@@ -596,8 +738,8 @@ export default function MarkHomeworkPage() {
                             )}
 
                             
-                            {/* Marking Instructions */}
-                            {markingResult?.instructions && (
+                            {/* Marking Instructions - Only show when not in question mode */}
+                            {markingResult?.instructions && !isQuestionMode && (
                               <div className="card">
                                 <h3 className="text-lg font-semibold text-gray-100 mb-4">Marking Instructions</h3>
                                 <div className="bg-gray-700 p-4 rounded-lg">
@@ -615,8 +757,8 @@ export default function MarkHomeworkPage() {
                               </div>
                             )}
 
-                            {/* Marked Image Result */}
-                            {markingResult?.markedImage && (
+                            {/* Marked Image Result - Only show when not in question mode */}
+                            {markingResult?.markedImage && !isQuestionMode && (
                               <div className="card">
                                 <div className="flex items-center justify-between mb-4">
                                   <h3 className="text-lg font-semibold text-gray-100">Marked Homework</h3>
@@ -760,6 +902,94 @@ export default function MarkHomeworkPage() {
                                </div>
                              )}
 
+                            {/* Question Chat Interface */}
+                            {isQuestionMode && (
+                              <div className="card">
+                                <h3 className="text-lg font-semibold text-gray-100 mb-4">Question Chat</h3>
+                                <div className="space-y-4">
+                                  {/* Chat Messages */}
+                                  <div className="max-h-96 overflow-y-auto space-y-4">
+                                    {chatMessages.map((message, index) => (
+                                      <div key={index} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                        <div className={`max-w-[80%] rounded-2xl px-4 py-3 shadow-sm ${
+                                          message.role === 'user' 
+                                            ? 'bg-primary-600 text-white rounded-br-md' 
+                                            : 'bg-gray-950 border border-gray-900 text-gray-100 rounded-bl-md'
+                                        }`}>
+                                          {message.imageData && message.imageName && (
+                                            <div className="mb-3">
+                                              <img 
+                                                src={message.imageData} 
+                                                alt={message.imageName}
+                                                className="w-32 h-32 object-cover rounded-lg"
+                                              />
+                                            </div>
+                                          )}
+                                          <div className="whitespace-pre-wrap">{message.content}</div>
+                                          {message.role === 'assistant' && message.apiUsed && (
+                                            <div className="mt-3 pt-2 border-t border-gray-900">
+                                              <p className="text-xs text-gray-400 text-right">
+                                                Powered by {message.apiUsed}
+                                              </p>
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    ))}
+                                    {isChatLoading && (
+                                      <div className="flex justify-start">
+                                        <div className="bg-gray-950 border border-gray-900 text-gray-100 rounded-2xl rounded-bl-md px-4 py-3 shadow-sm">
+                                          <div className="flex items-center space-x-2">
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                            <span>Thinking...</span>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* Chat Input */}
+                                  <form onSubmit={handleChatSubmit} className="flex space-x-2">
+                                    <input
+                                      type="text"
+                                      value={chatInput}
+                                      onChange={(e) => setChatInput(e.target.value)}
+                                      placeholder="Ask me about this question..."
+                                      className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                                      disabled={isChatLoading}
+                                    />
+                                    <button
+                                      type="submit"
+                                      disabled={!chatInput.trim() || isChatLoading}
+                                      className="btn-primary px-6 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                      Send
+                                    </button>
+                                  </form>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Question Mode Success Message */}
+                            {isQuestionMode && markingResult && (
+                              <div className="card">
+                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                  <div className="flex items-center space-x-2">
+                                    <span className="text-xl text-blue-600">💡</span>
+                                    <span className="text-blue-800 font-medium">
+                                      Question detected! I've started a chat to help you solve this step by step.
+                                    </span>
+                                  </div>
+                                  <div className="mt-3 pt-2 border-t border-blue-200">
+                                    <div className="flex justify-between items-center text-xs text-blue-600">
+                                      <span>Powered by {markingResult?.apiUsed || 'AI Assistant'}</span>
+                                      <span>Model: {selectedModel === 'gemini-2.5-pro' ? 'Google Gemini 2.5 Pro' : selectedModel === 'chatgpt-5' ? 'OpenAI ChatGPT 5' : 'OpenAI GPT-4 Omni'}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
                             {/* How It Works */}
                             <div className="card">
                               <h3 className="text-lg font-semibold text-gray-100 mb-4">How It Works</h3>
@@ -769,9 +999,9 @@ export default function MarkHomeworkPage() {
                                     1
                                   </div>
                                   <div>
-                                    <h4 className="font-medium text-gray-100">OCR & AI Image Analysis</h4>
+                                    <h4 className="font-medium text-gray-100">Image Classification</h4>
                                     <p className="text-sm text-gray-300">
-                                      Mathpix API performs advanced OCR to extract mathematical text and equations, then {selectedModel === 'gemini-2.5-pro' ? 'Gemini 2.5 Pro' : selectedModel === 'chatgpt-5' ? 'ChatGPT 5' : 'GPT-4 Omni'} analyzes the content to identify mathematical errors.
+                                      AI automatically classifies your image as either a question-only or homework with answers.
                                     </p>
                                   </div>
                                 </div>
@@ -781,9 +1011,9 @@ export default function MarkHomeworkPage() {
                                     2
                                   </div>
                                   <div>
-                                    <h4 className="font-medium text-gray-100">Marking Instructions</h4>
+                                    <h4 className="font-medium text-gray-100">Smart Response</h4>
                                     <p className="text-sm text-gray-300">
-                                      The AI generates structured instructions for placing red pen corrections on the image.
+                                      For questions: Get step-by-step explanations in chat format. For homework: Get AI-powered marking with red pen corrections.
                                     </p>
                                   </div>
                                 </div>
@@ -793,9 +1023,9 @@ export default function MarkHomeworkPage() {
                                     3
                                   </div>
                                   <div>
-                                    <h4 className="font-medium text-gray-100">Image Processing</h4>
+                                    <h4 className="font-medium text-gray-100">Interactive Learning</h4>
                                     <p className="text-sm text-gray-300">
-                                      Sharp image processing library applies red pen annotations using SVG overlays.
+                                      Ask follow-up questions, get clarification, or download marked homework images.
                                     </p>
                                   </div>
                                 </div>

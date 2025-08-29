@@ -27,6 +27,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Missing image data or name' }, { status: 400 });
   }
 
+  // First, classify the image as question-only or question+answer
+  const imageClassification = await classifyImage(imageData, model);
+  console.log('🔍 Image Classification:', imageClassification);
+  
+  if (imageClassification.isQuestionOnly) {
+    // For question-only images, return early with classification result
+    return NextResponse.json({ 
+      isQuestionOnly: true,
+      message: 'Image classified as question only - use chat interface',
+      apiUsed: imageClassification.apiUsed,
+      model: model || 'gemini-2.5-pro'
+    });
+  }
+
+  // For question+answer images, proceed with normal marking
   const processedImage = await ImageProcessingService.processImage(imageData);
   console.log('🔍 ImageProcessingService completed successfully!');
   console.log('🔍 OCR Text length:', processedImage.ocrText.length);
@@ -48,6 +63,7 @@ export async function POST(req: NextRequest) {
   }
   
   return NextResponse.json({ 
+    isQuestionOnly: false,
     markedImage,
     instructions: markingInstructions,
     message: `Homework marked successfully using ${modelName} + Sharp image processing`,
@@ -56,6 +72,179 @@ export async function POST(req: NextRequest) {
                processedImage.boundingBoxes && processedImage.boundingBoxes.length > 0 ? 
                'Mathpix API' : 'Tesseract.js (Fallback)'
   });
+}
+
+async function classifyImage(imageData: string, model?: string): Promise<{ isQuestionOnly: boolean; apiUsed: string }> {
+  const compressedImage = await compressImage(imageData);
+  const imageUrl = compressedImage;
+
+  const systemPrompt = `You are an AI assistant that classifies math images. 
+  
+  Your task is to determine if an uploaded image contains:
+  
+  A) A math question ONLY (no student work, no answers, just the question/problem)
+  B) A math question WITH student work/answers (homework to be marked)
+  
+  CRITICAL OUTPUT RULES:
+  - Return ONLY raw JSON, no markdown formatting, no code blocks, no explanations
+  - Output MUST strictly follow this format:
+  
+  {
+    "isQuestionOnly": true/false,
+    "reasoning": "brief explanation of your classification"
+  }
+  
+  CLASSIFICATION CRITERIA:
+  - "isQuestionOnly: true" if the image shows ONLY a math question/problem with NO student work or answers
+  - "isQuestionOnly: false" if the image shows a math question WITH student work, calculations, or answers written down
+  
+  Examples:
+  - Textbook question, exam paper question, worksheet question = "isQuestionOnly: true"
+  - Student homework with written answers, student's working out, completed problem = "isQuestionOnly: false"
+  
+  Return ONLY the JSON object.`;
+
+  const userPrompt = `Please classify this uploaded image as either a math question only or a math question with student work/answers.`;
+
+  try {
+    if (model === 'gemini-2.5-pro') {
+      return await callGeminiForClassification(imageUrl, systemPrompt, userPrompt);
+    } else if (model === 'chatgpt-5') {
+      return await callOpenAIForClassification(imageUrl, systemPrompt, userPrompt, 'gpt-5');
+    } else {
+      return await callOpenAIForClassification(imageUrl, systemPrompt, userPrompt, 'gpt-4o');
+    }
+  } catch (error) {
+    console.error('Classification failed:', error);
+    // Default to false (assume it's homework to be marked) if classification fails
+    return { isQuestionOnly: false, apiUsed: 'Fallback' };
+  }
+}
+
+async function callOpenAIForClassification(imageUrl: string, systemPrompt: string, userPrompt: string, openaiModel: string = 'gpt-4o'): Promise<{ isQuestionOnly: boolean; apiUsed: string }> {
+  const openaiApiKey = process.env.OPENAI_API_KEY;
+  
+  if (!openaiApiKey) {
+    throw new Error('OpenAI API key not configured');
+  }
+
+  const requestBody = {
+    model: openaiModel,
+    messages: [
+      {
+        role: "system",
+        content: systemPrompt,
+      },
+      {
+        role: "user",
+        content: [
+          { type: "text", text: userPrompt },
+          {
+            type: "image_url",
+            image_url: {
+              url: imageUrl,
+            },
+          },
+        ],
+      },
+    ],
+    max_tokens: 500,
+  };
+
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${openaiApiKey}`,
+    },
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(`OpenAI API error: ${errorData.error?.message || response.statusText}`);
+  }
+
+  const data = await response.json();
+  const content = data.choices?.[0]?.message?.content;
+  
+  if (!content) {
+    throw new Error('OpenAI API returned no content');
+  }
+
+  try {
+    const result = JSON.parse(content);
+    return { 
+      isQuestionOnly: result.isQuestionOnly || false, 
+      apiUsed: openaiModel === 'gpt-5' ? 'OpenAI GPT-5' : 'OpenAI GPT-4 Omni'
+    };
+  } catch (parseError) {
+    console.error('Failed to parse classification response:', parseError);
+    return { isQuestionOnly: false, apiUsed: openaiModel === 'gpt-5' ? 'OpenAI GPT-5' : 'OpenAI GPT-4 Omni' };
+  }
+}
+
+async function callGeminiForClassification(imageUrl: string, systemPrompt: string, userPrompt: string): Promise<{ isQuestionOnly: boolean; apiUsed: string }> {
+  const geminiApiKey = process.env.GEMINI_API_KEY;
+  
+  if (!geminiApiKey) {
+    throw new Error('Gemini API key not configured');
+  }
+
+  const requestBody = {
+    contents: [
+      {
+        parts: [
+          {
+            text: `${systemPrompt}\n\n${userPrompt}`
+          },
+          {
+            inline_data: {
+              mime_type: "image/jpeg",
+              data: imageUrl.replace('data:image/jpeg;base64,', '')
+            }
+          }
+        ]
+      }
+    ],
+    generationConfig: {
+      temperature: 0.1,
+      topK: 32,
+      topP: 1,
+      maxOutputTokens: 500,
+    }
+  };
+
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${geminiApiKey}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  
+  if (!content) {
+    throw new Error('Gemini API returned no content');
+  }
+
+  try {
+    const result = JSON.parse(content);
+    return { 
+      isQuestionOnly: result.isQuestionOnly || false, 
+      apiUsed: 'Google Gemini 2.0 Flash Exp'
+    };
+  } catch (parseError) {
+    console.error('Failed to parse classification response:', parseError);
+    return { isQuestionOnly: false, apiUsed: 'Google Gemini 2.0 Flash Exp' };
+  }
 }
 
 async function generateMarkingInstructions(imageData: string, model?: string, processedImage?: any): Promise<MarkingInstructions> {
@@ -96,6 +285,7 @@ async function generateMarkingInstructions(imageData: string, model?: string, pr
   IMPORTANT FORMAT & PLACEMENT RULES:
   1. Marking actions (tick, cross, underline):
      - Include ONLY {action, bbox}
+     - Mark every line of working, not just the last line
      - Size must match the content being marked (no oversized marks)
      - Marking action should place at the exact positon you are marking (marking may overlap with the original text)
      - Comments may be place in conjunction with marking actions, but MUST FOLLOW the rules below
@@ -130,7 +320,7 @@ async function generateMarkingInstructions(imageData: string, model?: string, pr
      - If uncertain, place comments lower in the image (stacked at bottom), not at edges
   
   Bounding box format: [x, y, width, height]  
-  where (x, y) is top-left corner.
+  where (x, y) is top-left corner and you can control the size of marking using (width, height)
   
   Return ONLY the JSON object.`;
   
