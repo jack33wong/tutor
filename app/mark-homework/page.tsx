@@ -5,6 +5,7 @@ import { Upload, FileImage, CheckCircle, XCircle, Loader2, Download } from 'luci
 import LeftSidebar from '@/components/LeftSidebar';
 import ChatHistory from '@/components/ChatHistory';
 import ModelSelector from '@/components/ModelSelector';
+import ChatMessageWithLatex from '@/components/ChatMessageWithLatex';
 import { ModelType } from '@/config/aiModels';
 // Removed useDefaultModel hook to fix display issues
 
@@ -242,11 +243,20 @@ export default function MarkHomeworkPage() {
       
       setProgressStage(2); // Stage 2: Generating marking instructions
       
-             // Animate from 65% to 90% over 1 second
-       const startTime = Date.now();
-       const duration = 1000; // 1 second
-       const startPercent = 65;
-       const targetPercent = 90;
+      // Read response body only once
+      let responseData;
+      try {
+        responseData = await response.json();
+      } catch (parseError) {
+        setError('Failed to parse server response. Please try again.');
+        return;
+      }
+      
+      // Animate from 65% to 90% over 1 second
+      const startTime = Date.now();
+      const duration = 1000; // 1 second
+      const startPercent = 65;
+      const targetPercent = 90;
       
       const animateStage2 = () => {
         const elapsed = Date.now() - startTime;
@@ -260,29 +270,27 @@ export default function MarkHomeworkPage() {
         } else {
           // Stage 2 complete, move to Stage 3
           if (response.ok) {
-            response.json().then(result => {
-              setProgressStage(3); // Stage 3: Applying annotations
+            setProgressStage(3); // Stage 3: Applying annotations
+            
+            // Animate from 90% to 100% over 0.5 seconds
+            const stage3StartTime = Date.now();
+            const stage3Duration = 500; // 0.5 seconds
+            
+            const animateStage3 = () => {
+              const stage3Elapsed = Date.now() - stage3StartTime;
+              const stage3Progress = Math.min(stage3Elapsed / stage3Duration, 1);
+              const stage3CurrentPercent = Math.floor(90 + (stage3Progress * 10));
               
-              // Animate from 90% to 100% over 0.5 seconds
-              const stage3StartTime = Date.now();
-              const stage3Duration = 500; // 0.5 seconds
+              setProgressPercent(stage3CurrentPercent);
               
-              const animateStage3 = () => {
-                const stage3Elapsed = Date.now() - stage3StartTime;
-                const stage3Progress = Math.min(stage3Elapsed / stage3Duration, 1);
-                const stage3CurrentPercent = Math.floor(90 + (stage3Progress * 10));
-                
-                setProgressPercent(stage3CurrentPercent);
-                
-                if (stage3Progress < 1) {
-                  requestAnimationFrame(animateStage3);
-                } else {
-                  setMarkingResult(result);
-                }
-              };
-              
-              requestAnimationFrame(animateStage3);
-            });
+              if (stage3Progress < 1) {
+                requestAnimationFrame(animateStage3);
+              } else {
+                setMarkingResult(responseData);
+              }
+            };
+            
+            requestAnimationFrame(animateStage3);
           }
         }
       };
@@ -290,17 +298,15 @@ export default function MarkHomeworkPage() {
       requestAnimationFrame(animateStage2);
       
       if (!response.ok) {
-        const errorData = await response.json();
-        
         // Display detailed error information
-        let errorMessage = errorData.error || 'Failed to mark homework';
+        let errorMessage = responseData.error || 'Failed to mark homework';
         
-        if (errorData.errorDetails) {
-          setDetailedError(errorData.errorDetails);
+        if (responseData.errorDetails) {
+          setDetailedError(responseData.errorDetails);
           
           // Add additional error details to the message
-          if (errorData.errorDetails.additionalDetails) {
-            const details = errorData.errorDetails.additionalDetails;
+          if (responseData.errorDetails.additionalDetails) {
+            const details = responseData.errorDetails.additionalDetails;
             if (details.errorData?.error?.message) {
               errorMessage += `: ${details.errorData.error.message}`;
             }
@@ -314,17 +320,15 @@ export default function MarkHomeworkPage() {
         
         setError(errorMessage);
       } else {
-        const result = await response.json();
-        
-        if (result.isQuestionOnly) {
+        if (responseData.isQuestionOnly) {
           // Switch to question mode
           setIsQuestionMode(true);
-          setMarkingResult(result);
+          setMarkingResult(responseData);
           // Start the question chat automatically
           startQuestionChat();
         } else {
           // Normal marking mode
-          setMarkingResult(result);
+          setMarkingResult(responseData);
         }
       }
     } catch (error) {
@@ -910,31 +914,14 @@ export default function MarkHomeworkPage() {
                                   {/* Chat Messages */}
                                   <div className="max-h-96 overflow-y-auto space-y-4">
                                     {chatMessages.map((message, index) => (
-                                      <div key={index} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                        <div className={`max-w-[80%] rounded-2xl px-4 py-3 shadow-sm ${
-                                          message.role === 'user' 
-                                            ? 'bg-primary-600 text-white rounded-br-md' 
-                                            : 'bg-gray-950 border border-gray-900 text-gray-100 rounded-bl-md'
-                                        }`}>
-                                          {message.imageData && message.imageName && (
-                                            <div className="mb-3">
-                                              <img 
-                                                src={message.imageData} 
-                                                alt={message.imageName}
-                                                className="w-32 h-32 object-cover rounded-lg"
-                                              />
-                                            </div>
-                                          )}
-                                          <div className="whitespace-pre-wrap">{message.content}</div>
-                                          {message.role === 'assistant' && message.apiUsed && (
-                                            <div className="mt-3 pt-2 border-t border-gray-900">
-                                              <p className="text-xs text-gray-400 text-right">
-                                                Powered by {message.apiUsed}
-                                              </p>
-                                            </div>
-                                          )}
-                                        </div>
-                                      </div>
+                                      <ChatMessageWithLatex
+                                        key={index}
+                                        content={message.content}
+                                        role={message.role}
+                                        imageData={message.imageData}
+                                        imageName={message.imageName}
+                                        apiUsed={message.apiUsed}
+                                      />
                                     ))}
                                     {isChatLoading && (
                                       <div className="flex justify-start">
