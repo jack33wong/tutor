@@ -146,8 +146,8 @@ interface MathpixOCRResult {
         text: string;
         confidence: number;
       }> = [];
-      //console.log("RAW Mathpix Response word_data")
-      //console.log(result.word_data)
+      console.log("RAW Mathpix Response word_data")
+      console.log(result.word_data)
       // Mathpix API now returns coordinates in the correct scale
       // No manual scaling needed
 
