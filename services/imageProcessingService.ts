@@ -45,6 +45,8 @@ export class ImageProcessingService {
   /**
    * Preprocess image for better OCR results before sending to MathPix API
    * This function creates a new processed image without modifying the original
+   * 
+   * TEMPORARILY DISABLED - This method is not being called during image processing
    */
   static async preprocessImageForOCR(
     imageBuffer: Buffer, 
@@ -280,17 +282,17 @@ export class ImageProcessingService {
       throw error;
     }
     
-    // Step 2: Preprocess image for better OCR results
-    console.log('🔍 Step 2: Preprocessing image for better OCR...');
+    // Step 2: Preprocess image for better OCR results (TEMPORARILY DISABLED)
+    console.log('🔍 Step 2: Image preprocessing TEMPORARILY DISABLED - using original image');
     const imageBuffer = await this.readImage(imageData);
-    const preprocessedBuffer = await this.autoPreprocessImage(imageBuffer);
+    // const preprocessedBuffer = await this.autoPreprocessImage(imageBuffer); // TEMPORARILY DISABLED
     
-    // Convert preprocessed buffer back to base64 for MathPix
-    const preprocessedBase64 = `data:image/jpeg;base64,${preprocessedBuffer.toString('base64')}`;
-    console.log('🔍 ✅ Image preprocessing completed');
+    // Use original image instead of preprocessed
+    const preprocessedBase64 = imageData; // Use original image data directly
+    console.log('🔍 ✅ Using original image (preprocessing skipped)');
     
-    // Step 3: Attempt Mathpix OCR with preprocessed image
-    console.log('🔍 Step 3: Attempting Mathpix OCR with preprocessed image...');
+    // Step 3: Attempt Mathpix OCR with original image
+    console.log('🔍 Step 3: Attempting Mathpix OCR with original image...');
     
     let mathpixResult: any;
     try {
