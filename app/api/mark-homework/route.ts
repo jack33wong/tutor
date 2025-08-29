@@ -262,7 +262,8 @@ async function callOpenAIForMarking(imageUrl: string, systemPrompt: string, user
     } catch (parseError) {
       console.error('🔍 JSON Parse Error (extracted):', parseError);
       console.error('🔍 Problematic JSON:', extractedJson);
-      throw new Error(`Failed to parse AI response JSON: ${parseError.message}`);
+      const errorMessage = parseError instanceof Error ? parseError.message : String(parseError);
+      throw new Error(`Failed to parse AI response JSON: ${errorMessage}`);
     }
   }
   
@@ -272,7 +273,8 @@ async function callOpenAIForMarking(imageUrl: string, systemPrompt: string, user
   } catch (parseError) {
     console.error('🔍 JSON Parse Error (raw):', parseError);
     console.error('🔍 Problematic content:', content.substring(0, 500));
-    throw new Error(`Failed to parse AI response JSON: ${parseError.message}`);
+    const errorMessage = parseError instanceof Error ? parseError.message : String(parseError);
+    throw new Error(`Failed to parse AI response JSON: ${errorMessage}`);
   }
 }
 
@@ -345,7 +347,8 @@ async function callGeminiForMarking(imageUrl: string, systemPrompt: string, user
     } catch (parseError) {
       console.error('🔍 JSON Parse Error (extracted):', parseError);
       console.error('🔍 Problematic JSON:', extractedJson);
-      throw new Error(`Failed to parse Gemini response JSON: ${parseError.message}`);
+      const errorMessage = parseError instanceof Error ? parseError.message : String(parseError);
+      throw new Error(`Failed to parse Gemini response JSON: ${errorMessage}`);
     }
   }
   
@@ -355,7 +358,8 @@ async function callGeminiForMarking(imageUrl: string, systemPrompt: string, user
   } catch (parseError) {
     console.error('🔍 JSON Parse Error (raw):', parseError);
     console.error('🔍 Problematic content:', content.substring(0, 500));
-    throw new Error(`Failed to parse Gemini response JSON: ${parseError.message}`);
+    const errorMessage = parseError instanceof Error ? parseError.message : String(parseError);
+    throw new Error(`Failed to parse Gemini response JSON: ${errorMessage}`);
   }
 }
 
