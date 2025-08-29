@@ -34,6 +34,19 @@
     @apply bg-primary-600 h-2 rounded-full transition-all duration-300;
   }
   
+  /* Progress bar animation */
+  @keyframes progress {
+    0% {
+      transform: translateX(-100%);
+    }
+    50% {
+      transform: translateX(0%);
+    }
+    100% {
+      transform: translateX(100%);
+    }
+  }
+  
   /* Chat template styling */
   .chat-question {
     @apply font-semibold text-gray-200 mb-2;

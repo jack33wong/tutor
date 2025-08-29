@@ -25,6 +25,10 @@ export default function MarkHomeworkPage() {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [progressStage, setProgressStage] = useState(0); // 0-3 stages
+  const [progressPercent, setProgressPercent] = useState(0); // 0-100%
+  const [showPlaceholders, setShowPlaceholders] = useState(false); // Show grey placeholders after Stage 1
+  const [isWaiting, setIsWaiting] = useState(false); // Track wait period for flashing animation
   const [markingResult, setMarkingResult] = useState<MarkingResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [detailedError, setDetailedError] = useState<any>(null);
@@ -43,6 +47,38 @@ export default function MarkHomeworkPage() {
       setSelectedModel(savedModel);
     }
   }, []);
+
+    // Handle smooth progress animation
+  useEffect(() => {
+    if (isProcessing && progressStage === 1) {
+      // Animate from 0% to 65% over 2 seconds
+      const startTime = Date.now();
+      const duration = 2000; // 2 seconds
+      const targetPercent = 65;
+      
+      const animate = () => {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const currentPercent = Math.floor(progress * targetPercent);
+        
+        setProgressPercent(currentPercent);
+        
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        } else {
+          // Stage 1 complete, start wait period with flashing animation
+          setIsWaiting(true);
+          // Show placeholders after 5 seconds
+          setTimeout(() => {
+            setShowPlaceholders(true);
+            setIsWaiting(false);
+          }, 5000);
+        }
+      };
+      
+      requestAnimationFrame(animate);
+    }
+  }, [isProcessing, progressStage]);
   const [chatSessions, setChatSessions] = useState<Array<{
     id: string;
     title: string;
@@ -158,6 +194,10 @@ export default function MarkHomeworkPage() {
     }
 
     setIsProcessing(true);
+    setProgressStage(0);
+    setProgressPercent(0);
+    setShowPlaceholders(false);
+    setIsWaiting(false);
     setError(null);
     setMarkingResult(null);
 
@@ -174,6 +214,9 @@ export default function MarkHomeworkPage() {
         modelType: typeof selectedModel
       });
       
+      // Simulate progress through stages with smooth transitions
+      setProgressStage(1); // Stage 1: AI analysis (will animate to 75%)
+      
       const response = await fetch('/api/mark-homework', {
         method: 'POST',
         headers: {
@@ -181,11 +224,57 @@ export default function MarkHomeworkPage() {
         },
         body: JSON.stringify(requestBody),
       });
-
-      if (response.ok) {
-        const result = await response.json();
-        setMarkingResult(result);
-      } else {
+      
+      setProgressStage(2); // Stage 2: Generating marking instructions
+      
+             // Animate from 65% to 90% over 1 second
+       const startTime = Date.now();
+       const duration = 1000; // 1 second
+       const startPercent = 65;
+       const targetPercent = 90;
+      
+      const animateStage2 = () => {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const currentPercent = Math.floor(startPercent + (progress * (targetPercent - startPercent)));
+        
+        setProgressPercent(currentPercent);
+        
+        if (progress < 1) {
+          requestAnimationFrame(animateStage2);
+        } else {
+          // Stage 2 complete, move to Stage 3
+          if (response.ok) {
+            response.json().then(result => {
+              setProgressStage(3); // Stage 3: Applying annotations
+              
+              // Animate from 90% to 100% over 0.5 seconds
+              const stage3StartTime = Date.now();
+              const stage3Duration = 500; // 0.5 seconds
+              
+              const animateStage3 = () => {
+                const stage3Elapsed = Date.now() - stage3StartTime;
+                const stage3Progress = Math.min(stage3Elapsed / stage3Duration, 1);
+                const stage3CurrentPercent = Math.floor(90 + (stage3Progress * 10));
+                
+                setProgressPercent(stage3CurrentPercent);
+                
+                if (stage3Progress < 1) {
+                  requestAnimationFrame(animateStage3);
+                } else {
+                  setMarkingResult(result);
+                }
+              };
+              
+              requestAnimationFrame(animateStage3);
+            });
+          }
+        }
+      };
+      
+      requestAnimationFrame(animateStage2);
+      
+      if (!response.ok) {
         const errorData = await response.json();
         
         // Display detailed error information
@@ -214,6 +303,10 @@ export default function MarkHomeworkPage() {
       setError('Network error. Please try again.');
     } finally {
       setIsProcessing(false);
+      setProgressStage(0);
+      setProgressPercent(0);
+      setShowPlaceholders(false);
+      setIsWaiting(false);
     }
   };
 
@@ -381,12 +474,18 @@ export default function MarkHomeworkPage() {
                           disabled={isProcessing}
                           className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          {isProcessing ? (
-                            <div className="flex items-center justify-center">
-                              <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                              Processing Homework...
-                            </div>
-                          ) : (
+                                                     {isProcessing ? (
+                             <div className="flex items-center justify-center">
+                               <div className="w-5 h-1 bg-white rounded-full mr-2 overflow-hidden">
+                                 <div className="h-full bg-white rounded-full transition-all duration-1000 ease-out" 
+                                      style={{
+                                        width: `${progressPercent}%`
+                                      }}
+                                 />
+                               </div>
+                               Processing Homework...
+                             </div>
+                           ) : (
                             <div className="flex items-center justify-center">
                               <span className="text-xl mr-2">✔</span>
                               Mark This Homework
@@ -400,37 +499,104 @@ export default function MarkHomeworkPage() {
                   {/* Processing Status */}
                   {isProcessing && (
                     <div className="card">
-                      <div className="text-center space-y-4">
-                        <Loader2 className="w-12 h-12 animate-spin text-primary-600 mx-auto" />
-                                                 <div>
-                           <h3 className="text-lg font-semibold text-gray-100">Processing Your Homework</h3>
-                           <p className="text-gray-300">This may take a few moments...</p>
+                      <div className="text-center space-y-6">
+                        <div>
+                          <h3 className="text-lg font-semibold text-gray-100 mb-2">Processing Your Homework</h3>
+                          <p className="text-gray-300">This may take a few moments...</p>
                         </div>
-                                                         <div className="space-y-2 text-sm text-gray-500">
-                                   <div className="flex items-center justify-center space-x-2">
-                                     <Loader2 className="w-4 h-4 animate-spin text-primary-500" />
-                                     <span>Stage 1: AI analysis of homework image</span>
-                                   </div>
-                                   <div className="flex items-center justify-center space-x-2">
-                                     <Loader2 className="w-4 h-4 animate-spin text-primary-500" />
-                                     <span>Stage 2: Generating marking instructions</span>
-                                   </div>
-                                   <div className="flex items-center justify-center space-x-2">
-                                     <Loader2 className="w-4 h-4 animate-spin text-primary-500" />
-                                     <span>Stage 3: Applying annotations with Sharp</span>
-                                   </div>
-                                 </div>
+                        
+                                                 {/* Horizontal Progress Bar */}
+                         <div className="space-y-2">
+                           <div className="w-full bg-gray-700 rounded-full h-3 overflow-hidden">
+                             <div className={`h-full bg-gradient-to-r from-primary-500 to-primary-600 rounded-full transition-all duration-1000 ease-out ${
+                               isWaiting ? 'animate-pulse' : ''
+                             }`}
+                                  style={{
+                                    width: `${progressPercent}%`
+                                  }}
+                             />
+                           </div>
+                           <div className="text-center">
+                             <span className="text-sm font-medium text-primary-400">
+                               {progressPercent}% Complete
+                             </span>
+                           </div>
+                         </div>
+                        
+                        {/* Progress Stages */}
+                        <div className="space-y-3 text-sm">
+                          <div className="flex items-center justify-between">
+                            <span className={`${progressStage >= 1 ? 'text-primary-400' : 'text-gray-500'}`}>
+                              Stage 1: AI analysis of homework image
+                            </span>
+                            <div className={`w-4 h-4 rounded-full transition-all duration-300 ${
+                              progressStage >= 1 ? 'bg-primary-500' : 'bg-gray-600'
+                            } ${progressStage === 1 ? 'animate-pulse' : ''}`}></div>
+                          </div>
+                                                     <div className="flex items-center justify-between">
+                             <span className={`${progressStage >= 2 ? 'text-primary-400' : 'text-gray-500'}`}>
+                               Stage 2: Generating marking instructions
+                             </span>
+                             <div className={`w-4 h-4 rounded-full transition-all duration-300 ${
+                               progressStage >= 2 ? 'bg-primary-500' : 'bg-gray-600'
+                             } ${progressStage === 2 || progressPercent >= 65 ? 'animate-pulse' : ''}`}></div>
+                           </div>
+                          <div className="flex items-center justify-between">
+                            <span className={`${progressStage >= 3 ? 'text-primary-400' : 'text-gray-500'}`}>
+                              Stage 3: Applying annotations with Sharp
+                            </span>
+                            <div className={`w-4 h-4 rounded-full transition-all duration-300 ${
+                              progressStage >= 3 ? 'bg-primary-500' : 'bg-gray-600'
+                            } ${progressStage === 3 ? 'animate-pulse' : ''}`}></div>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   )}
                 </div>
 
-                                         {/* Right Column - Results */}
-                         <div className="space-y-6">
+                                                                                   {/* Right Column - Results */}
+                          <div className="space-y-6">
 
-                           
-                           {/* Marking Instructions */}
-                           {markingResult?.instructions && (
+                            {/* Placeholder Boxes - Show after Stage 1 completes */}
+                            {showPlaceholders && !markingResult && (
+                              <>
+                                {/* Marking Instructions Placeholder */}
+                                <div className="card">
+                                  <h3 className="text-lg font-semibold text-gray-100 mb-4">Marking Instructions</h3>
+                                  <div className="bg-gray-700 p-4 rounded-lg">
+                                    <div className="space-y-3">
+                                      <div className="h-4 bg-gray-600 rounded animate-pulse"></div>
+                                      <div className="h-4 bg-gray-600 rounded w-3/4 animate-pulse"></div>
+                                      <div className="h-4 bg-gray-600 rounded w-1/2 animate-pulse"></div>
+                                      <div className="h-4 bg-gray-600 rounded w-5/6 animate-pulse"></div>
+                                      <div className="h-4 bg-gray-600 rounded w-2/3 animate-pulse"></div>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Marked Image Placeholder */}
+                                <div className="card">
+                                  <div className="flex items-center justify-between mb-4">
+                                    <h3 className="text-lg font-semibold text-gray-100">Marked Homework</h3>
+                                    <div className="w-20 h-8 bg-gray-600 rounded animate-pulse"></div>
+                                  </div>
+                                  <div className="space-y-4">
+                                    <div className="w-full h-64 bg-gray-700 rounded-lg animate-pulse"></div>
+                                    <div className="bg-gray-700 border border-gray-600 rounded-lg p-4">
+                                      <div className="flex items-center space-x-2">
+                                        <div className="w-6 h-6 bg-gray-600 rounded animate-pulse"></div>
+                                        <div className="h-4 bg-gray-600 rounded w-1/3 animate-pulse"></div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </>
+                            )}
+
+                            
+                            {/* Marking Instructions */}
+                            {markingResult?.instructions && (
                     <div className="card">
                                              <h3 className="text-lg font-semibold text-gray-100 mb-4">Marking Instructions</h3>
                                              <div className="bg-gray-700 p-4 rounded-lg">

@@ -168,7 +168,7 @@ export class ImageAnnotationService {
       <g id="write-${index}">
         <rect x="${x1}" y="${y1}" width="${x2 - x1}" height="${y2 - y1}" 
               fill="rgba(255, 0, 0, 0.1)" stroke="#FF0000" stroke-width="1" rx="3"/>
-        <text x="${textX}" y="${textY}" font-family="Arial, sans-serif" 
+        <text x="${textX}" y="${textY}" font-family="Caveat, cursive" 
               font-size="${fontSize}" fill="#FF0000" font-weight="bold">${comment}</text>
       </g>
     `;
