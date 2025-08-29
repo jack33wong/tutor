@@ -366,197 +366,198 @@ export default function MarkHomeworkPage() {
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Left Column - Image Upload and Processing */}
-                <div className="space-y-6">
-                  {/* Image Upload Area */}
-                  <div className="card">
-                                         <h2 className="text-xl font-semibold text-gray-100 mb-4">Upload Homework Image</h2>
-                    
-                    <div
-                      className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-                        imagePreview 
-                          ? 'border-green-300 bg-green-50' 
-                          : 'border-gray-300 hover:border-primary-400'
-                      }`}
-                      onDrop={handleDrop}
-                      onDragOver={handleDragOver}
-                    >
-                      {imagePreview ? (
-                                               <div className="space-y-4">
-                         <div className="relative">
-                           <img
-                             src={imagePreview}
-                             alt="Homework preview"
-                             className="max-w-full h-auto max-h-64 mx-auto rounded-lg shadow-sm"
-                           />
-                           <button
-                             onClick={resetForm}
-                             className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
-                           >
-                             <XCircle className="w-4 h-4" />
-                           </button>
-                         </div>
-                         <p className="text-sm text-gray-300">
-                           {selectedImage?.name}
-                         </p>
-                        </div>
-                      ) : (
-                        <div className="space-y-4">
-                          <Upload className="w-12 h-12 text-gray-400 mx-auto" />
-                                                     <div>
-                             <p className="text-lg font-medium text-gray-100">
-                               Drop your homework image here
-                             </p>
-                             <p className="text-gray-400">or click to browse</p>
-                          </div>
-                          <input
-                            ref={fileInputRef}
-                            type="file"
-                            accept="image/*"
-                            onChange={handleImageSelect}
-                            className="hidden"
-                          />
-                          <button
-                            onClick={() => fileInputRef.current?.click()}
-                            className="btn-primary"
-                          >
-                            Choose Image
-                          </button>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Error Display */}
-                    {error && (
-                      <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                        <div className="flex items-center space-x-2">
-                          <XCircle className="w-5 h-5 text-red-500" />
-                          <span className="text-red-700">{error}</span>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Detailed Error Debug Panel */}
-                    {detailedError && (
-                      <div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                        <h4 className="text-sm font-semibold text-gray-700 mb-2">Debug Information</h4>
-                        <div className="text-xs text-gray-600 space-y-1">
-                          <div><strong>Error Type:</strong> {detailedError.name}</div>
-                          <div><strong>Message:</strong> {detailedError.message}</div>
-                          {detailedError.additionalDetails && (
-                            <>
-                              <div><strong>Status:</strong> {detailedError.additionalDetails.status}</div>
-                              <div><strong>Status Text:</strong> {detailedError.additionalDetails.statusText}</div>
-                              {detailedError.additionalDetails.errorData?.error?.message && (
-                                <div><strong>OpenAI Error:</strong> {detailedError.additionalDetails.errorData.error.message}</div>
-                              )}
-                              {detailedError.additionalDetails.errorData?.error?.code && (
-                                <div><strong>Error Code:</strong> {detailedError.additionalDetails.errorData.error.code}</div>
-                              )}
-                            </>
-                          )}
-                          <details className="mt-2">
-                            <summary className="cursor-pointer text-primary-600 hover:text-primary-800">View Full Stack Trace</summary>
-                            <pre className="mt-2 p-2 bg-gray-100 rounded text-xs overflow-x-auto whitespace-pre-wrap">
-                              {detailedError.stack}
-                            </pre>
-                          </details>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Process Button */}
-                    {imagePreview && (
-                      <div className="mt-6">
-                        <button
-                          onClick={markHomework}
-                          disabled={isProcessing}
-                          className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                                                           <div className="space-y-6">
+                 {/* Main Content Area */}
+                 <div className="space-y-6">
+                                       {/* Image Upload Area - Hide when placeholders are showing */}
+                    {!showPlaceholders && (
+                      <div className="card">
+                        <h2 className="text-xl font-semibold text-gray-100 mb-4">Upload Homework Image</h2>
+                        
+                        <div
+                          className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                            imagePreview 
+                              ? 'border-green-300 bg-green-50' 
+                              : 'border-gray-300 hover:border-primary-400'
+                          }`}
+                          onDrop={handleDrop}
+                          onDragOver={handleDragOver}
                         >
-                                                     {isProcessing ? (
-                             <div className="flex items-center justify-center">
-                               <div className="w-5 h-1 bg-white rounded-full mr-2 overflow-hidden">
-                                 <div className="h-full bg-white rounded-full transition-all duration-1000 ease-out" 
-                                      style={{
-                                        width: `${progressPercent}%`
-                                      }}
-                                 />
-                               </div>
-                               Processing Homework...
-                             </div>
-                           ) : (
-                            <div className="flex items-center justify-center">
-                              <span className="text-xl mr-2">✔</span>
-                              Mark This Homework
+                          {imagePreview ? (
+                            <div className="space-y-4">
+                              <div className="relative">
+                                <img
+                                  src={imagePreview}
+                                  alt="Homework preview"
+                                  className="max-w-full h-auto max-h-64 mx-auto rounded-lg shadow-sm"
+                                />
+                                <button
+                                  onClick={resetForm}
+                                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                                >
+                                  <XCircle className="w-4 h-4" />
+                                </button>
+                              </div>
+                              <p className="text-sm text-gray-300">
+                                {selectedImage?.name}
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="space-y-4">
+                              <Upload className="w-12 h-12 text-gray-400 mx-auto" />
+                              <div>
+                                <p className="text-lg font-medium text-gray-100">
+                                  Drop your homework image here
+                                </p>
+                                <p className="text-gray-400">or click to browse</p>
+                              </div>
+                              <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept="image/*"
+                                onChange={handleImageSelect}
+                                className="hidden"
+                              />
+                              <button
+                                onClick={() => fileInputRef.current?.click()}
+                                className="btn-primary"
+                              >
+                                Choose Image
+                              </button>
                             </div>
                           )}
-                        </button>
+                        </div>
+
+                        {/* Error Display */}
+                        {error && (
+                          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                            <div className="flex items-center space-x-2">
+                              <XCircle className="w-5 h-5 text-red-500" />
+                              <span className="text-red-700">{error}</span>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Detailed Error Debug Panel */}
+                        {detailedError && (
+                          <div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                            <h4 className="text-sm font-semibold text-gray-700 mb-2">Debug Information</h4>
+                            <div className="text-xs text-gray-600 space-y-1">
+                              <div><strong>Error Type:</strong> {detailedError.name}</div>
+                              <div><strong>Message:</strong> {detailedError.message}</div>
+                              {detailedError.additionalDetails && (
+                                <>
+                                  <div><strong>Status:</strong> {detailedError.additionalDetails.status}</div>
+                                  <div><strong>Status Text:</strong> {detailedError.additionalDetails.statusText}</div>
+                                  {detailedError.additionalDetails.errorData?.error?.message && (
+                                    <div><strong>OpenAI Error:</strong> {detailedError.additionalDetails.errorData.error.message}</div>
+                                  )}
+                                  {detailedError.additionalDetails.errorData?.error?.code && (
+                                    <div><strong>Error Code:</strong> {detailedError.additionalDetails.errorData.error.code}</div>
+                                  )}
+                                </>
+                              )}
+                              <details className="mt-2">
+                                <summary className="cursor-pointer text-primary-600 hover:text-primary-800">View Full Stack Trace</summary>
+                                <pre className="mt-2 p-2 bg-gray-100 rounded text-xs overflow-x-auto whitespace-pre-wrap">
+                                  {detailedError.stack}
+                                </pre>
+                              </details>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Process Button */}
+                        {imagePreview && (
+                          <div className="mt-6">
+                            <button
+                              onClick={markHomework}
+                              disabled={isProcessing}
+                              className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {isProcessing ? (
+                                <div className="flex items-center justify-center">
+                                  <div className="w-5 h-1 bg-white rounded-full mr-2 overflow-hidden">
+                                    <div className="h-full bg-white rounded-full transition-all duration-1000 ease-out" 
+                                         style={{
+                                           width: `${progressPercent}%`
+                                         }}
+                                    />
+                                  </div>
+                                  Processing Homework...
+                                </div>
+                              ) : (
+                                <div className="flex items-center justify-center">
+                                  <span className="text-xl mr-2">✔</span>
+                                  Mark This Homework
+                                </div>
+                              )}
+                            </button>
+                          </div>
+                        )}
                       </div>
                     )}
-                  </div>
 
-                  {/* Processing Status */}
-                  {isProcessing && (
-                    <div className="card">
-                      <div className="text-center space-y-6">
-                        <div>
-                          <h3 className="text-lg font-semibold text-gray-100 mb-2">Processing Your Homework</h3>
-                          <p className="text-gray-300">This may take a few moments...</p>
-                        </div>
-                        
-                                                 {/* Horizontal Progress Bar */}
-                         <div className="space-y-2">
-                           <div className="w-full bg-gray-700 rounded-full h-3 overflow-hidden">
-                             <div className={`h-full bg-gradient-to-r from-primary-500 to-primary-600 rounded-full transition-all duration-1000 ease-out ${
-                               isWaiting ? 'animate-pulse' : ''
-                             }`}
-                                  style={{
-                                    width: `${progressPercent}%`
-                                  }}
-                             />
-                           </div>
-                           <div className="text-center">
-                             <span className="text-sm font-medium text-primary-400">
-                               {progressPercent}% Complete
-                             </span>
-                           </div>
+                   {/* Processing Status */}
+                   {isProcessing && (
+                     <div className="card">
+                       <div className="text-center space-y-6">
+                         <div>
+                           <h3 className="text-lg font-semibold text-gray-100 mb-2">Processing Your Homework</h3>
+                           <p className="text-gray-300">This may take a few moments...</p>
                          </div>
-                        
-                        {/* Progress Stages */}
-                        <div className="space-y-3 text-sm">
-                          <div className="flex items-center justify-between">
-                            <span className={`${progressStage >= 1 ? 'text-primary-400' : 'text-gray-500'}`}>
-                              Stage 1: AI analysis of homework image
-                            </span>
-                            <div className={`w-4 h-4 rounded-full transition-all duration-300 ${
-                              progressStage >= 1 ? 'bg-primary-500' : 'bg-gray-600'
-                            } ${progressStage === 1 ? 'animate-pulse' : ''}`}></div>
+                         
+                                                  {/* Horizontal Progress Bar */}
+                          <div className="space-y-2">
+                            <div className="w-full bg-gray-700 rounded-full h-3 overflow-hidden">
+                              <div className={`h-full bg-gradient-to-r from-primary-500 to-primary-600 rounded-full transition-all duration-1000 ease-out ${
+                                isWaiting ? 'animate-pulse' : ''
+                              }`}
+                                   style={{
+                                     width: `${progressPercent}%`
+                                   }}
+                              />
+                            </div>
+                            <div className="text-center">
+                              <span className="text-sm font-medium text-primary-400">
+                                {progressPercent}% Complete
+                              </span>
+                            </div>
                           </div>
-                                                     <div className="flex items-center justify-between">
-                             <span className={`${progressStage >= 2 ? 'text-primary-400' : 'text-gray-500'}`}>
-                               Stage 2: Generating marking instructions
+                         
+                         {/* Progress Stages */}
+                         <div className="space-y-3 text-sm">
+                           <div className="flex items-center justify-between">
+                             <span className={`${progressStage >= 1 ? 'text-primary-400' : 'text-gray-500'}`}>
+                               Stage 1: AI analysis of homework image
                              </span>
                              <div className={`w-4 h-4 rounded-full transition-all duration-300 ${
-                               progressStage >= 2 ? 'bg-primary-500' : 'bg-gray-600'
-                             } ${progressStage === 2 || progressPercent >= 65 ? 'animate-pulse' : ''}`}></div>
+                               progressStage >= 1 ? 'bg-primary-500' : 'bg-gray-600'
+                             } ${progressStage === 1 ? 'animate-pulse' : ''}`}></div>
                            </div>
-                          <div className="flex items-center justify-between">
-                            <span className={`${progressStage >= 3 ? 'text-primary-400' : 'text-gray-500'}`}>
-                              Stage 3: Applying annotations with Sharp
-                            </span>
-                            <div className={`w-4 h-4 rounded-full transition-all duration-300 ${
-                              progressStage >= 3 ? 'bg-primary-500' : 'bg-gray-600'
-                            } ${progressStage === 3 ? 'animate-pulse' : ''}`}></div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                                                      <div className="flex items-center justify-between">
+                              <span className={`${progressStage >= 2 ? 'text-primary-400' : 'text-gray-500'}`}>
+                                Stage 2: Generating marking instructions
+                              </span>
+                              <div className={`w-4 h-4 rounded-full transition-all duration-300 ${
+                                progressStage >= 2 ? 'bg-primary-500' : 'bg-gray-600'
+                              } ${progressStage === 2 || progressPercent >= 65 ? 'animate-pulse' : ''}`}></div>
+                            </div>
+                           <div className="flex items-center justify-between">
+                             <span className={`${progressStage >= 3 ? 'text-primary-400' : 'text-gray-500'}`}>
+                               Stage 3: Applying annotations with Sharp
+                             </span>
+                             <div className={`w-4 h-4 rounded-full transition-all duration-300 ${
+                               progressStage >= 3 ? 'bg-primary-500' : 'bg-gray-600'
+                             } ${progressStage === 3 ? 'animate-pulse' : ''}`}></div>
+                           </div>
+                         </div>
+                       </div>
+                     </div>
+                   )}
 
-                                                                                   {/* Right Column - Results */}
-                          <div className="space-y-6">
+                                      {/* Results Section */}
+                   <div className="space-y-6">
 
                             {/* Placeholder Boxes - Show after Stage 1 completes */}
                             {showPlaceholders && !markingResult && (
@@ -597,106 +598,212 @@ export default function MarkHomeworkPage() {
                             
                             {/* Marking Instructions */}
                             {markingResult?.instructions && (
-                    <div className="card">
-                                             <h3 className="text-lg font-semibold text-gray-100 mb-4">Marking Instructions</h3>
-                                             <div className="bg-gray-700 p-4 rounded-lg">
-                         <pre className="text-sm text-gray-200 whitespace-pre-wrap">
-                          {JSON.stringify(markingResult.instructions, null, 2)}
-                        </pre>
-                        {/* Model API version footer */}
-                                                 <div className="mt-3 pt-2 border-t border-gray-600">
-                           <div className="flex justify-between items-center text-xs text-gray-400">
-                            <span>OCR: {markingResult?.ocrMethod || 'Unknown'}</span>
-                            <span>Powered by {markingResult?.apiUsed || 'AI Assistant'}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                              <div className="card">
+                                <h3 className="text-lg font-semibold text-gray-100 mb-4">Marking Instructions</h3>
+                                <div className="bg-gray-700 p-4 rounded-lg">
+                                  <pre className="text-sm text-gray-200 whitespace-pre-wrap">
+                                    {JSON.stringify(markingResult.instructions, null, 2)}
+                                  </pre>
+                                  {/* Model API version footer */}
+                                  <div className="mt-3 pt-2 border-t border-gray-600">
+                                    <div className="flex justify-between items-center text-xs text-gray-400">
+                                      <span>OCR: {markingResult?.ocrMethod || 'Unknown'}</span>
+                                      <span>Powered by {markingResult?.apiUsed || 'AI Assistant'}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
 
-                  {/* Marked Image Result */}
-                  {markingResult?.markedImage && (
-                    <div className="card">
-                      <div className="flex items-center justify-between mb-4">
-                                                 <h3 className="text-lg font-semibold text-gray-100">Marked Homework</h3>
-                        <button
-                          onClick={downloadMarkedImage}
-                          className="btn-secondary flex items-center space-x-2"
-                        >
-                          <Download className="w-4 h-4" />
-                          <span>Download</span>
-                        </button>
-                      </div>
-                      
-                      <div className="space-y-4">
-                                                 <img
-                           src={markingResult.markedImage}
-                           alt="Marked homework"
-                           className="w-full h-auto rounded-lg border border-gray-600 shadow-sm"
-                         />
-                        
-                        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                          <div className="flex items-center space-x-2">
-                            <span className="text-xl text-green-600">✔</span>
-                            <span className="text-green-800 font-medium">
-                              {markingResult.message}
-                            </span>
-                          </div>
-                          {/* Model API version footer */}
-                          <div className="mt-3 pt-2 border-t border-green-200">
-                            <div className="flex justify-between items-center text-xs text-green-600">
-                              <span>OCR: {markingResult?.ocrMethod || 'Unknown'}</span>
-                              <span>Powered by {markingResult?.apiUsed || 'AI Assistant'}</span>
+                            {/* Marked Image Result */}
+                            {markingResult?.markedImage && (
+                              <div className="card">
+                                <div className="flex items-center justify-between mb-4">
+                                  <h3 className="text-lg font-semibold text-gray-100">Marked Homework</h3>
+                                  <button
+                                    onClick={downloadMarkedImage}
+                                    className="btn-secondary flex items-center space-x-2"
+                                  >
+                                    <Download className="w-4 h-4" />
+                                    <span>Download</span>
+                                  </button>
+                                </div>
+                                
+                                <div className="space-y-4">
+                                  <img
+                                    src={markingResult.markedImage}
+                                    alt="Marked homework"
+                                    className="w-full h-auto rounded-lg border border-gray-600 shadow-sm"
+                                  />
+                                  
+                                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                                    <div className="flex items-center space-x-2">
+                                      <span className="text-xl text-green-600">✔</span>
+                                      <span className="text-green-800 font-medium">
+                                        {markingResult.message}
+                                      </span>
+                                    </div>
+                                    {/* Model API version footer */}
+                                    <div className="mt-3 pt-2 border-t border-green-200">
+                                      <div className="flex justify-between items-center text-xs text-green-600">
+                                        <span>OCR: {markingResult?.ocrMethod || 'Unknown'}</span>
+                                        <span>Powered by {markingResult?.apiUsed || 'AI Assistant'}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                                                         
+
+                             {/* Upload Box - Show when placeholders are showing OR after marking is complete */}
+                             {(showPlaceholders || markingResult) && (
+                               <div className="card">
+                                 <h3 className="text-lg font-semibold text-gray-100 mb-4">
+                                   {showPlaceholders ? 'Upload New Homework' : 'Upload Another Homework'}
+                                 </h3>
+                                 <div className="space-y-4">
+                                   <div
+                                     className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                                       imagePreview 
+                                         ? 'border-green-300 bg-green-50' 
+                                         : 'border-gray-300 hover:border-primary-400'
+                                     }`}
+                                     onDrop={handleDrop}
+                                     onDragOver={handleDragOver}
+                                   >
+                                     {imagePreview ? (
+                                       <div className="space-y-4">
+                                         <div className="relative">
+                                           <img
+                                             src={imagePreview}
+                                             alt="Homework preview"
+                                             className="max-w-full h-auto max-h-64 mx-auto rounded-lg shadow-sm"
+                                           />
+                                           <button
+                                             onClick={resetForm}
+                                             className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                                           >
+                                             <XCircle className="w-4 h-4" />
+                                           </button>
+                                         </div>
+                                         <p className="text-sm text-gray-300">
+                                           {selectedImage?.name}
+                                         </p>
+                                       </div>
+                                     ) : (
+                                       <div className="space-y-4">
+                                         <Upload className="w-12 h-12 text-gray-400 mx-auto" />
+                                         <div>
+                                           <p className="text-lg font-medium text-gray-100">
+                                             Drop your homework image here
+                                           </p>
+                                           <p className="text-gray-400">or click to browse</p>
+                                         </div>
+                                         <input
+                                           ref={fileInputRef}
+                                           type="file"
+                                           accept="image/*"
+                                           onChange={handleImageSelect}
+                                           className="hidden"
+                                         />
+                                         <button
+                                           onClick={() => fileInputRef.current?.click()}
+                                           className="btn-primary"
+                                         >
+                                           Choose Image
+                                         </button>
+                                       </div>
+                                     )}
+                                   </div>
+                                   
+                                   {/* Error Display */}
+                                   {error && (
+                                     <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                                       <div className="flex items-center space-x-2">
+                                         <XCircle className="w-5 h-5 text-red-500" />
+                                         <span className="text-red-700">{error}</span>
+                                       </div>
+                                     </div>
+                                   )}
+
+                                   {/* Process Button - Show when image is selected */}
+                                   {imagePreview && (
+                                     <div className="mt-6">
+                                       <button
+                                         onClick={markHomework}
+                                         disabled={isProcessing}
+                                         className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                                       >
+                                         {isProcessing ? (
+                                           <div className="flex items-center justify-center">
+                                             <div className="w-5 h-1 bg-white rounded-full mr-2 overflow-hidden">
+                                               <div className="h-full bg-white rounded-full transition-all duration-1000 ease-out" 
+                                                    style={{
+                                                      width: `${progressPercent}%`
+                                                    }}
+                                               />
+                                             </div>
+                                             Processing Homework...
+                                           </div>
+                                         ) : (
+                                           <div className="flex items-center justify-center">
+                                             <span className="text-xl mr-2">✔</span>
+                                             Mark This Homework
+                                           </div>
+                                         )}
+                                       </button>
+                                     </div>
+                                   )}
+                                 </div>
+                               </div>
+                             )}
+
+                            {/* How It Works */}
+                            <div className="card">
+                              <h3 className="text-lg font-semibold text-gray-100 mb-4">How It Works</h3>
+                              <div className="space-y-4">
+                                <div className="flex items-start space-x-3">
+                                  <div className="w-8 h-8 bg-primary-100 text-primary-600 rounded-full flex items-center justify-center text-sm font-medium">
+                                    1
+                                  </div>
+                                  <div>
+                                    <h4 className="font-medium text-gray-100">OCR & AI Image Analysis</h4>
+                                    <p className="text-sm text-gray-300">
+                                      Mathpix API performs advanced OCR to extract mathematical text and equations, then {selectedModel === 'gemini-2.5-pro' ? 'Gemini 2.5 Pro' : selectedModel === 'chatgpt-5' ? 'ChatGPT 5' : 'GPT-4 Omni'} analyzes the content to identify mathematical errors.
+                                    </p>
+                                  </div>
+                                </div>
+                                
+                                <div className="flex items-start space-x-3">
+                                  <div className="w-8 h-8 bg-primary-100 text-primary-600 rounded-full flex items-center justify-center text-sm font-medium">
+                                    2
+                                  </div>
+                                  <div>
+                                    <h4 className="font-medium text-gray-100">Marking Instructions</h4>
+                                    <p className="text-sm text-gray-300">
+                                      The AI generates structured instructions for placing red pen corrections on the image.
+                                    </p>
+                                  </div>
+                                </div>
+                                
+                                <div className="flex items-start space-x-3">
+                                  <div className="w-8 h-8 bg-primary-100 text-primary-600 rounded-full flex items-center justify-center text-sm font-medium">
+                                    3
+                                  </div>
+                                  <div>
+                                    <h4 className="font-medium text-gray-100">Image Processing</h4>
+                                    <p className="text-sm text-gray-300">
+                                      Sharp image processing library applies red pen annotations using SVG overlays.
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
                             </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  )}
-
-                  {/* How It Works */}
-                  <div className="card">
-                                             <h3 className="text-lg font-semibold text-gray-100 mb-4">How It Works</h3>
-                    <div className="space-y-4">
-                      <div className="flex items-start space-x-3">
-                        <div className="w-8 h-8 bg-primary-100 text-primary-600 rounded-full flex items-center justify-center text-sm font-medium">
-                          1
-                        </div>
-                        <div>
-                                                     <h4 className="font-medium text-gray-100">OCR & AI Image Analysis</h4>
-                           <p className="text-sm text-gray-300">
-                            Mathpix API performs advanced OCR to extract mathematical text and equations, then {selectedModel === 'gemini-2.5-pro' ? 'Gemini 2.5 Pro' : selectedModel === 'chatgpt-5' ? 'ChatGPT 5' : 'GPT-4 Omni'} analyzes the content to identify mathematical errors.
-                          </p>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-start space-x-3">
-                        <div className="w-8 h-8 bg-primary-100 text-primary-600 rounded-full flex items-center justify-center text-sm font-medium">
-                          2
-                        </div>
-                        <div>
-                                                     <h4 className="font-medium text-gray-100">Marking Instructions</h4>
-                           <p className="text-sm text-gray-300">
-                            The AI generates structured instructions for placing red pen corrections on the image.
-                          </p>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-start space-x-3">
-                        <div className="w-8 h-8 bg-primary-100 text-primary-600 rounded-full flex items-center justify-center text-sm font-medium">
-                          3
-                        </div>
-                        <div>
-                                                     <h4 className="font-medium text-gray-100">Image Processing</h4>
-                           <p className="text-sm text-gray-300">
-                            Sharp image processing library applies red pen annotations using SVG overlays.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
               
                                                            {/* Footer */}
                               <footer className="mt-8 border-t border-gray-900 bg-gray-950">
