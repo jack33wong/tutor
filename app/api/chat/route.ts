@@ -312,7 +312,7 @@ async function callChatGPT(message: string, model: string = 'gpt-4o', imageData?
         body: JSON.stringify({
           model: openaiModel,
           messages: messages,
-          max_tokens: 800,
+          ...(openaiModel === 'gpt-5' ? { max_completion_tokens: 800 } : { max_tokens: 800 }),
           temperature: 0.7
         })
       });

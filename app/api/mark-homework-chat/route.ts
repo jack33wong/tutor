@@ -89,7 +89,7 @@ async function callChatGPT(message: string, model: string, imageData: string, im
         ],
       },
     ],
-    max_tokens: 2000,
+    ...(model === 'chatgpt-5' ? { max_completion_tokens: 2000 } : { max_tokens: 2000 }),
   };
 
   const response = await fetch("https://api.openai.com/v1/chat/completions", {

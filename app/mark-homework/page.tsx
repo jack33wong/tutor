@@ -5,7 +5,7 @@ import { Upload, FileImage, CheckCircle, XCircle, Loader2, Download } from 'luci
 import LeftSidebar from '@/components/LeftSidebar';
 import ChatHistory from '@/components/ChatHistory';
 import ModelSelector from '@/components/ModelSelector';
-import ChatMessageWithLatex from '@/components/ChatMessageWithLatex';
+import ChatMessage from '@/components/ChatMessage';
 import { ModelType } from '@/config/aiModels';
 // Removed useDefaultModel hook to fix display issues
 
@@ -914,7 +914,7 @@ export default function MarkHomeworkPage() {
                                   {/* Chat Messages */}
                                   <div className="max-h-96 overflow-y-auto space-y-4">
                                     {chatMessages.map((message, index) => (
-                                      <ChatMessageWithLatex
+                                      <ChatMessage
                                         key={index}
                                         content={message.content}
                                         role={message.role}

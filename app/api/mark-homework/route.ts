@@ -148,7 +148,7 @@ async function callOpenAIForClassification(imageUrl: string, systemPrompt: strin
         ],
       },
     ],
-    max_tokens: 500,
+    ...(openaiModel === 'gpt-5' ? { max_completion_tokens: 500 } : { max_tokens: 500 }),
   };
 
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -174,6 +174,7 @@ async function callOpenAIForClassification(imageUrl: string, systemPrompt: strin
 
   try {
     const result = JSON.parse(content);
+    console.log("OpenAI Classification Response:", result.isQuestionOnly);
     return { 
       isQuestionOnly: result.isQuestionOnly || false, 
       apiUsed: openaiModel === 'gpt-5' ? 'OpenAI GPT-5' : 'OpenAI GPT-4 Omni'
